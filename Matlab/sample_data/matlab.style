@@ -1,0 +1,28 @@
+# gpsbabel XCSV style file
+#
+# Format: Tab delimited useful for OpenOffice, Ploticus etc.
+# Author: Tobias Minich
+#   Date: 07/18/2005
+#
+#
+
+DESCRIPTION		Tab delimited fields useful for OpenOffice, Ploticus etc.
+
+# FILE LAYOUT DEFINITIIONS:
+#
+FIELD_DELIMITER		TAB
+RECORD_DELIMITER	NEWLINE
+BADCHARS		TAB
+
+#
+# HEADER STUFF:
+#
+PROLOGUE	DateTime	Lat			Lon			Alt
+
+#
+# INDIVIDUAL DATA FIELDS:
+#
+IFIELD GMT_TIME,"","%Y-%m-%d %T"
+IFIELD	LAT_DECIMAL, "", "%f"
+IFIELD	LON_DECIMAL, "", "%f"
+IFIELD	ALT_METERS, "", "%f"
