@@ -37,6 +37,7 @@ dof_out_blind_optimal = zeros(length(result_stride),1);
 lambda_true_optimal = zeros(length(result_stride),1);
 rms_error_true_optimal = zeros(length(result_stride),1);
 dof_out_true_optimal = zeros(length(result_stride),1);
+dof_var_out_true_optimal = zeros(length(result_stride),1);
 
 for i=1:length(result_stride)
     stride = result_stride(i);
@@ -85,9 +86,10 @@ for i=1:length(result_stride)
     lambda_true_optimal(i) = TensionSpline.OptimalTensionSolution(spline_fit,data.t(indicesAll),[data.x(indicesAll),data.y(indicesAll)]);
     rms_error_true_optimal(i) = compute_rms_error();
     dof_out_true_optimal(i) = spline_fit.IsotropicDOF;
+    dof_var_out_true_optimal(i) = spline_fit.IsotropicVarianceDOF;
     
 %     fprintf('S=%d, T=2, stride=%d, rms_error=%g, rms_error_blind_initial=%g, rms_error_blind_optimal=%g,\n', S, stride, rms_error_true_optimal(i), rms_error_blind_initial(i), rms_error_blind_optimal(i) );
-    fprintf('%d & %#.3g m (%#.3g) &  %#.3g m (%#.3g) &  %#.3g m (%#.3g) \\\\ \n', result_stride(i), rms_error_true_optimal(i), dof_out_true_optimal(i), rms_error_blind_optimal(i), dof_out_blind_optimal(i), rms_error_blind_initial(i), dof_out_blind_initial(i) )  ;
+    fprintf('%d & %#.3g m (%#.3g/%#.3g) &  %#.3g m (%#.3g) &  %#.3g m (%#.3g) \\\\ \n', result_stride(i), rms_error_true_optimal(i), dof_out_true_optimal(i), dof_var_out_true_optimal(i), rms_error_blind_optimal(i), dof_out_blind_optimal(i), rms_error_blind_initial(i), dof_out_blind_initial(i) )  ;
 end
 
 fprintf('\n\n');
