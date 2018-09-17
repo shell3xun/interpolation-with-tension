@@ -216,13 +216,13 @@ The first term of equation \ref{smoothing-spline} is proportional to the sample 
 which is expected to scale like
 \begin{equation}
 \label{sample_variance_variance}
-\hat{\sigma}^2 = \frac{d-1}{d} \sigma^2
+\hat{\sigma}^2 = \frac{d_{\textrm{var}}-1}{d_{\textrm{var}}} \sigma^2
 \end{equation}
-where $d$ is the number of degrees of freedom (reference Adam? It's on the wikipedia page on Cochran's theorem). For a large number of degrees of freedom, $d$, the sample variance matches the true variance, but as will be discussed in section \ref{sec:optimal_parameter} this distinction is key to optimal parameter choice.
+where $d_{\textrm{var}}$ is the number of degrees of freedom (reference Adam? It's on the wikipedia page on Cochran's theorem). For a large number of degrees of freedom the sample variance matches the true variance, but as will be discussed in section \ref{sec:optimal_parameter} this distinction is key to optimal parameter choice.
 
-Combining equations \ref{sample_variance} and \ref{sample_variance_variance} means that the first term in equation \ref{smoothing-spline} scales like $N \frac{d-1}{d}$.
+Combining equations \ref{sample_variance} and \ref{sample_variance_variance} means that the first term in equation \ref{smoothing-spline} scales like $N \frac{d_{\textrm{var}}-1}{d_{\textrm{var}}}$.
 
-This estimate for the sample \emph{variance} can be compared with our estimate for the sample \emph{mean}, the error for which is expected to scale like $SE = \frac{\sigma}{\sqrt{d}}$. When choosing the optimal parameter in section \ref{sec:optimal_parameter}, we will use the fact that the degree-of-freedom in the sample variance should be the same as the degrees-of-freedom in the standard error.
+This estimate for the sample \emph{variance} can be compared with our estimate for the sample \emph{mean}, the error for which is expected to scale like $SE = \frac{\sigma}{\sqrt{d_{\textrm{mean}}}}$. When choosing the optimal parameter in section \ref{sec:optimal_parameter}, we will use the fact that the degree-of-freedom in the sample variance should be the same as the degrees-of-freedom in the standard error.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Tension term}
@@ -269,7 +269,7 @@ A second implication is that the tension spline can be easily modified to accomm
 %%%%%%%%%%%%%%%%%%%%%%
 
 \begin{figure*}[t]
-  \centerline{\includegraphics[width=33pc,angle=0]{synthetic_process_and_spectrum}}
+  \centerline{\includegraphics[width=33pc,angle=0]{figures/synthetic_process_and_spectrum}}
   
   \caption{The upper panel shows a small portion of the decimated signal generated from the Matern process where, using \ref{gamma_equation}, $\Gamma = 3$. The bolded points are further decimated and give $\Gamma=0.3$. The lower panel shows the uncontaminated velocity spectrum of the signal (black) and velocity spectrum of the noise (red). The observed signal is the sum of the two. }
   \label{synthetic_process_and_spectrum}
@@ -301,7 +301,7 @@ To find the coefficients that minimize this function, we take the derivative wit
 \end{equation}
 or
 \begin{equation}
-\label{solution}
+\label{solution2}
 \mathbf{\xi} = \left[ \mathbf{X}^{\textrm{T}} \Sigma^{-1} \mathbf{X} + \lambda_1 \mathbf{V}^{\textrm{T}} \mathbf{V} \right]^{-1} \mathbf{X}^{\textrm{T}} \Sigma^{-1} \mathbf{x}
 \end{equation}
 
@@ -318,6 +318,32 @@ which takes observations $\mathbf{x}$ to their smoothed values $\mathbf{\hat{x}}
 
 The first matrix on the right hand side of equation \ref{solution} is $N\times N$ and fully invertible because the knots point were chosen such that each spline has at least one data point in its nonzero region. This is a nice feature because it means the solution will be well-behaved even if there is no tension.
 
+The mean sample variance in this notation is,
+\begin{equation}
+    \left(1-\frac{1}{d} \right)\sigma^2 = \frac{1}{N} || \left( \mathbf{I} - \mathbf{S_\lambda} \right) \mathbf{x} ||^2
+\end{equation}
+while the variance of the mean (the squared standard error) in this notation is,
+\begin{equation}
+    \frac{\sigma^2}{d} = \frac{1}{N} \Tr \left( \mathbf{S_\lambda} \Sigma \right)
+\end{equation}
+
+
+Matching the degrees-of-freedom is almost the same as minimizing the least squares, but not quite. I'm not sure why. Following \cite{craven1979-nm}, we want to minimize (under expectation)
+\begin{equation}
+    \textrm{MSE}(\lambda) = \frac{1}{N} || \mathbf{S_\lambda}\mathbf{x} - \mathbf{x}_{\textrm{true}} ||^2
+\end{equation}
+Using our definitions,
+\begin{align}
+    \textrm{MSE}(\lambda) =& \frac{1}{N} || \left( \mathbf{S_\lambda} - I \right) \mathbf{x} ||^2 + \frac{2 \sigma^2}{N}  \Tr \mathbf{S_\lambda} - \sigma^2 \\
+    =&  \left(1-\frac{1}{d_{\textrm{var}}} \right)\sigma^2 + \frac{2 \sigma^2}{d_\textrm{mean}} - \sigma^2 \\
+    =& \sigma^2 \left( \frac{2}{d_\textrm{mean}} -\frac{1}{d_{\textrm{var}}} \right)
+\end{align}
+
+If we can assume that the DOF are the same, then we find that,
+\begin{equation}
+    \textrm{MSE} = \frac{\sigma^2}{d}
+\end{equation}
+which is a fairly intuitive result.
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
@@ -340,10 +366,14 @@ This idea can be made more rigorous by noting that one would consider change in 
 \label{gamma_equation}
 \Gamma \equiv \frac{3 \sigma_x}{u_{\textrm{rms}}\Delta t}
 \end{equation}
-where $\sigma_x$ is the standard deviation of positioning noise and $\Delta t$ is the typical time between observations. this argument suggests that the degrees of freedom is $d_\Gamma = 1 + \Gamma$. Intuitively this means that as long as the particle didn't move too far between observations, nearby observations help to estimate the true position of the particle.
+where $\sigma_x$ is the standard deviation of positioning noise and $\Delta t$ is the typical time between observations. this argument suggests that the degrees of freedom is 
+\begin{equation}
+d_\Gamma = 1 + \Gamma.
+\end{equation}
+Intuitively this means that as long as the particle didn't move too far between observations, nearby observations help to estimate the true position of the particle.
 
 \begin{figure*}[t]
-  \centerline{\includegraphics[width=39pc,angle=0]{gaussianfit}}
+  \centerline{\includegraphics[width=39pc,angle=0]{figures/gaussianfit}}
   
   \caption{An example of model fits to the drifter data assuming Gaussian errors. The thick black line shows a fit with $\sigma=10$ meters, while the gray line shows a fit with $\sigma=50$ meters}
   \label{gaussianfit}
@@ -399,7 +429,7 @@ and therefore has finite amplitude low frequency and power-law fall off at high 
 
 For these experiments we choose a spline of degree $S=3$ and apply tension on the second derivative (acceleration). To estimate the tension parameter $\lambda_2$ from equation \ref{lambda} we therefore need an estimate of both $u_{\textrm{rms}}$ and $a_{\textrm{rms}}$. Computing this directly from the observed signal in the time domain is problematic because, given frequent enough sampling, the noise will dominate the estimate. Instead we estimate these values in the frequency domain summing the power in the frequency bins that more than 10 times the expected value of the noise. Because each frequency bin in a periodigram follows a $\chi^2$ distribution for two degrees of freedom, this only adds observed power that is likely to be true signal.
 
-\begin{table}[h]
+\begin{table}[ht]
 \caption{RMS error and effective degrees-of-freedom for a range of strides (subsampled signal). The first column shows the optimal, best-case scenario found using the uncontaminated signal. This is the lower bound on the error. The iterated estimated found by requiring that equation \ref{iterated_tension} is true. The initial estimate is found using $\lambda_2$ from equation \ref{lambda} directly. }
 \label{fit_results}
 \centering
@@ -458,7 +488,7 @@ The position recorded by the motionless GPS are assumed to have isotropic errors
 
 The error distribution is first fit to a Gaussian PDF,
 \begin{equation}
-\label{gaussian_pdf}
+% \label{gaussian_pdf}
 p_g(\epsilon|\sigma_g) = \frac{e^{-\frac{1}{2}\frac{\epsilon^2}{\sigma_g^2}} }{\sigma_g \sqrt{ 2 \pi}}.
 \end{equation}
 The best fit is produced by compute the standard deviation of the sample (Adam, citation?), which is found to be $\sigma_g \approx 10$ meters and shown as the gray line in figure \ref{motionless_error}. However, it is clear the error distribution shows much longer tails than the Gaussian PDF.
@@ -471,8 +501,8 @@ p_t\left(\epsilon |\nu,\sigma_t^2\right) = \frac{\Gamma\left( \frac{\nu + 1}{2} 
 where the $\sigma_t$ parameter scales the distribution width and the $\nu$ parameter sets the number of degrees of freedom. The variance is $\textrm{var}(X)=\sigma_t^2 \frac{\nu}{\nu-2}$ and only exists for $\nu > 2$. The t-distribution is equivalent to the Gaussian distribution when $\nu \rightarrow \infty$. We find the best fit t-distribution to the data by maximizing the Kolmogorov-Smirnoff test. The best fit with parameters $\sigma_t \approx 8.5$ meters and $\nu \approx 4.5$ is shown as the black line in figure \ref{motionless_error}.
 
 \begin{figure}
-  \centerline{\includegraphics[width=19pc,angle=0]{gps_error_distribution}}
-  \centerline{\includegraphics[width=19pc,angle=0]{gps_distance_error_distribution}} 
+  \centerline{\includegraphics[width=19pc,angle=0]{figures/gps_error_distribution}}
+  \centerline{\includegraphics[width=19pc,angle=0]{figures/gps_distance_error_distribution}} 
   \caption{The top panel shows the position error distribution of the motionless GPS. The black line is the best fit t-distribution and the gray line is the best fit Gaussian distribution. The bottom panel shows the distance error distribution with the corresponding expected distributions from the Gaussian and t-distribution. The vertical line in the bottom panel shows the 95\% error of the t-distribution at about 30 meters.}
   \label{motionless_error}
 \end{figure}
@@ -485,7 +515,7 @@ p_r(\epsilon_d|\sigma_g) = \frac{\epsilon_d}{\sigma_g^2 } e^{-\frac{1}{2}\frac{\
 The distance distribution for two t-distributions is computed numerically and is shown in the bottom panel of figure \ref{motionless_error}.
 
 \begin{figure}
-  \centerline{\includegraphics[width=19pc,angle=0]{gps_autocorrelation}}
+  \centerline{\includegraphics[width=19pc,angle=0]{figures/gps_autocorrelation}}
   \caption{The autocorrelation function of the GPS positioning error with 99\% confidence intervals shown in gray. The correlation at drifter sampling period of 30 minutes is indistinguishable from zero.}
   \label{gps_autocorrelation}
 \end{figure}
