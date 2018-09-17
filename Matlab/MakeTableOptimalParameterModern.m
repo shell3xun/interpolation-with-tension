@@ -20,7 +20,7 @@ end
 shouldUseObservedSignalOnly = 1;
 
 result_stride = 2.^(0:9)';
-result_stride = [16];
+result_stride = [8];
 
 u_estimate_spectral = zeros(length(result_stride),1);
 a_estimate_spectral = zeros(length(result_stride),1);
@@ -33,6 +33,10 @@ dof_out_blind_initial = zeros(length(result_stride),1);
 lambda_blind_optimal = zeros(length(result_stride),1);
 rms_error_blind_optimal = zeros(length(result_stride),1);
 dof_out_blind_optimal = zeros(length(result_stride),1);
+
+lambda_blind_expectedMSE = zeros(length(result_stride),1);
+rms_error_blind_expectedMSE = zeros(length(result_stride),1);
+dof_out_blind_expectedMSE = zeros(length(result_stride),1);
 
 lambda_true_optimal = zeros(length(result_stride),1);
 rms_error_true_optimal = zeros(length(result_stride),1);
@@ -108,64 +112,74 @@ for i=1:length(result_stride)
         rms_error_blind_optimal(i) = compute_rms_error();
         dof_out_blind_optimal(i) = spline_fit.IsotropicDOF;
         
+        lambda_blind_expectedMSE(i) = TensionSpline.MinimizeExpectedMeanSquareError(spline_fit);
+        rms_error_blind_expectedMSE(i) = compute_rms_error();
+        dof_out_blind_expectedMSE(i) = spline_fit.IsotropicDOF;
+        
         % now optimize the tension using the true value
-        lambda_true_optimal(i) = TensionSpline.OptimalTensionSolution(spline_fit,data.t(indices),data.x(indices));
+        lambda_true_optimal(i) = TensionSpline.MinimizeMeanSquareError(spline_fit,data.t(indices),data.x(indices));
         rms_error_true_optimal(i) = compute_rms_error();
         dof_out_true_optimal(i) = spline_fit.IsotropicDOF;
         dof_var_out_true_optimal(i) = spline_fit.IsotropicVarianceDOF;
         
-        % Compute RMS using observed signal
-        S = spline_fit.SmoothingMatrix;
-        SI = (S-eye(size(S)));
-        a = mean((SI*x_obs).^2);
-        b = mean(2*(SI*x_obs).*epsilon_x);
-        c = mean(epsilon_x.^2);
-        b1 = mean(2*(S*x_obs).*epsilon_x);
-        b2 = -mean(2*(eye(size(S))*x_obs).*epsilon_x);
-        fprintf('obs. def. rms: %#.3g m, (a,b(b1,b2),c) = (%#.3g m^2, %#.3g m^2=%#.3g m^2 + %#.3g m^2, %#.3g m^2), sum=%#.3g m\n', rms_error_true_optimal(i),a,b,b1,b2,c,sqrt(a+b+c));
-        
-        % Compute RMS using true signal
-        a = mean((SI*data.x(indices)).^2);
-        b = mean(2*(SI*data.x(indices)).*(S*epsilon_x));
-        c = mean((S*epsilon_x).^2);
-        c_alt = sigma*sigma*trace(S*S)/length(S);
-        fprintf('true. def. rms: %#.3g m, (a,b,c) = (%#.3g m^2, %#.3g m^2, %#.3g m^2), sum=%#.3g m, sum_wo_b=%#.3g m, sum_expectation=%#.3g m\n', rms_error_true_optimal(i),a,b,c,sqrt(a+b+c),sqrt(a+c),sqrt(a+c_alt));
-
-        % Compute RMS using true signal
-        a = mean((SI*(x_obs - epsilon_x )).^2);
-        b = mean(2*(SI*data.x(indices)).*(S*epsilon_x));
-        c = mean((S*epsilon_x).^2);
-        fprintf('true. def. rms: %#.3g m, (a,b,c) = (%#.3g m^2, %#.3g m^2, %#.3g m^2), sum=%#.3g m\n', rms_error_true_optimal(i),a,b,c,sqrt(a+b+c));
-        
-        % Compute RMS using true signal
-%         SIx = SI*x_obs;
-%         SIe = SI*epsilon_x;
-        a1 = mean((SI*x_obs).^2);
-        a2 = mean((SI*epsilon_x).^2);
-        a3 = -2*mean((SI*x_obs).*(SI*epsilon_x));
-        c = mean((S*epsilon_x).^2);
-        fprintf('true. def. expanded. rms: %#.3g m, (a1,a2,a3,c) = (%#.3g m^2, %#.3g m^2, %#.3g m^2, %#.3g m^2), sum=%#.3g m\n', rms_error_true_optimal(i),a1,a2,a3,c,sqrt(a1+a2+a3+c));
-        
-        % now under expectation
-        a1 = mean((SI*x_obs).^2);
-        a2 = sigma*sigma*trace(SI*SI)/length(S);
-        a3 = -2*mean((SI*x_obs).*(SI*epsilon_x));
-        c = sigma*sigma*trace(S*S)/length(S);
-        fprintf('true. def. expectation. rms: %#.3g m, (a1,a2,a3,c) = (%#.3g m^2, %#.3g m^2, %#.3g m^2, %#.3g m^2), sum=%#.3g m\n', rms_error_true_optimal(i),a1,a2,a3,c,sqrt(a1+a2+a3+c));
-
+%         % Compute RMS using observed signal
+%         S = spline_fit.SmoothingMatrix;
+%         SI = (S-eye(size(S)));
+%         a = mean((SI*x_obs).^2);
+%         b = mean(2*(SI*x_obs).*epsilon_x);
+%         c = mean(epsilon_x.^2);
+%         b1 = mean(2*(S*x_obs).*epsilon_x);
+%         b2 = -mean(2*(eye(size(S))*x_obs).*epsilon_x);
+%         fprintf('obs. def. rms: %#.3g m, (a,b(b1,b2),c) = (%#.3g m^2, %#.3g m^2=%#.3g m^2 + %#.3g m^2, %#.3g m^2), sum=%#.3g m\n', rms_error_true_optimal(i),a,b,b1,b2,c,sqrt(a+b+c));
+%         
+%         % Compute RMS using true signal
+%         a = mean((SI*data.x(indices)).^2);
+%         b = mean(2*(SI*data.x(indices)).*(S*epsilon_x));
+%         c = mean((S*epsilon_x).^2);
+%         c_alt = sigma*sigma*trace(S*S)/length(S);
+%         fprintf('true. def. rms: %#.3g m, (a,b,c) = (%#.3g m^2, %#.3g m^2, %#.3g m^2), sum=%#.3g m, sum_wo_b=%#.3g m, sum_expectation=%#.3g m\n', rms_error_true_optimal(i),a,b,c,sqrt(a+b+c),sqrt(a+c),sqrt(a+c_alt));
+% 
+%         % Compute RMS using true signal
+%         a = mean((SI*(x_obs - epsilon_x )).^2);
+%         b = mean(2*(SI*data.x(indices)).*(S*epsilon_x));
+%         c = mean((S*epsilon_x).^2);
+%         fprintf('true. def. rms: %#.3g m, (a,b,c) = (%#.3g m^2, %#.3g m^2, %#.3g m^2), sum=%#.3g m\n', rms_error_true_optimal(i),a,b,c,sqrt(a+b+c));
+%         
+%         % Compute RMS using true signal
+% %         SIx = SI*x_obs;
+% %         SIe = SI*epsilon_x;
 %         a1 = mean((SI*x_obs).^2);
-%         a2 = 0;
-%         a3 = -2*mean((SI*x_obs).*(SI*data.epsilon_x(indices)));
-%         c = sigma*sigma*(1+2*trace(S*S-S)/length(S));
+%         a2 = mean((SI*epsilon_x).^2);
+%         a3 = -2*mean((SI*x_obs).*(SI*epsilon_x));
+%         c = mean((S*epsilon_x).^2);
 %         fprintf('true. def. expanded. rms: %#.3g m, (a1,a2,a3,c) = (%#.3g m^2, %#.3g m^2, %#.3g m^2, %#.3g m^2), sum=%#.3g m\n', rms_error_true_optimal(i),a1,a2,a3,c,sqrt(a1+a2+a3+c));
 %         
-%         % Craven and Wahba unbiassed estimator
+%         % now under expectation
+%         a1 = mean((SI*x_obs).^2);
+%         a2 = sigma*sigma*trace(SI*SI)/length(S);
+%         a3 = -2*mean((SI*x_obs).*(SI*epsilon_x));
+%         c = sigma*sigma*trace(S*S)/length(S);
+%         fprintf('true. def. expectation. rms: %#.3g m, (a1,a2,a3,c) = (%#.3g m^2, %#.3g m^2, %#.3g m^2, %#.3g m^2), sum=%#.3g m\n', rms_error_true_optimal(i),a1,a2,a3,c,sqrt(a1+a2+a3+c));
+% 
+% %         a1 = mean((SI*x_obs).^2);
+% %         a2 = 0;
+% %         a3 = -2*mean((SI*x_obs).*(SI*data.epsilon_x(indices)));
+% %         c = sigma*sigma*(1+2*trace(S*S-S)/length(S));
+% %         fprintf('true. def. expanded. rms: %#.3g m, (a1,a2,a3,c) = (%#.3g m^2, %#.3g m^2, %#.3g m^2, %#.3g m^2), sum=%#.3g m\n', rms_error_true_optimal(i),a1,a2,a3,c,sqrt(a1+a2+a3+c));
+% %         
+% %         % Craven and Wahba unbiassed estimator
 %         a = mean((SI*x_obs).^2);
 %         b = -sigma*sigma*trace(SI*SI)/length(S);
 %         c = sigma*sigma*trace(S*S)/length(S);
-% %         d = 2*mean( (SI*x_obs).*data.epsilon_x(indices) );
-%         fprintf('rms: %#.3g m, (a,b,c) = (%#.3g m^2, %#.3g m^2, %#.3g m^2), sum=%#.3g m\n', rms_error_true_optimal(i),a,b,c,sqrt(a+b+c));
+%         fprintf('craven-wahba rms: %#.3g m, (a,b,c) = (%#.3g m^2, %#.3g m^2, %#.3g m^2), sum=%#.3g m\n', rms_error_true_optimal(i),a,b,c,sqrt(a+b+c));
 % 
+%         % Craven and Wahba unbiassed estimator
+%         a = mean((SI*x_obs).^2);
+%         b = 2*sigma*sigma*trace(S)/length(S);
+%         c = -sigma*sigma;
+%         fprintf('craven-wahba rms: %#.3g m, (a,b,c) = (%#.3g m^2, %#.3g m^2, %#.3g m^2), sum=%#.3g m\n', rms_error_true_optimal(i),a,b,c,sqrt(a+b+c));
+
+        % 
 %         % Craven and Wahba unbiassed estimator, all terms
 %         a = mean((SI*x_obs).^2);
 %         b = mean(2*(SI*x_obs).*data.epsilon_x(indices));
@@ -181,7 +195,7 @@ for i=1:length(result_stride)
     
     
 %     fprintf('S=%d, T=2, stride=%d, rms_error=%g, rms_error_blind_initial=%g, rms_error_blind_optimal=%g,\n', S, stride, rms_error_true_optimal(i), rms_error_blind_initial(i), rms_error_blind_optimal(i) );
-    fprintf('%d & %#.3g m (%#.3g/%#.3g) &  %#.3g m (%#.3g) &  %#.3g m (%#.3g) \\\\ \n', result_stride(i), rms_error_true_optimal(i), dof_out_true_optimal(i), dof_var_out_true_optimal(i), rms_error_blind_optimal(i), dof_out_blind_optimal(i), rms_error_blind_initial(i), dof_out_blind_initial(i) )  ;
+    fprintf('%d & %#.3g m (%#.3g/%#.3g) &  %#.3g m (%#.3g) &  %#.3g m (%#.3g) &  %#.3g m (%#.3g) \\\\ \n', result_stride(i), rms_error_true_optimal(i), dof_out_true_optimal(i), dof_var_out_true_optimal(i), rms_error_blind_expectedMSE(i),dof_out_blind_expectedMSE(i), rms_error_blind_optimal(i), dof_out_blind_optimal(i), rms_error_blind_initial(i), dof_out_blind_initial(i) )  ;
 end
 
 fprintf('\n\n');
