@@ -20,7 +20,7 @@ end
 shouldUseObservedSignalOnly = 1;
 
 result_stride = 2.^(0:9)';
-result_stride = [8];
+result_stride = [16];
 
 u_estimate_spectral = zeros(length(result_stride),1);
 a_estimate_spectral = zeros(length(result_stride),1);
@@ -121,6 +121,8 @@ for i=1:length(result_stride)
         rms_error_true_optimal(i) = compute_rms_error();
         dof_out_true_optimal(i) = spline_fit.IsotropicDOF;
         dof_var_out_true_optimal(i) = spline_fit.IsotropicVarianceDOF;
+        
+        TensionSpline.MinimizeExpectedMeanSquareErrorNoSigma(spline_fit)
         
 %         % Compute RMS using observed signal
 %         S = spline_fit.SmoothingMatrix;
