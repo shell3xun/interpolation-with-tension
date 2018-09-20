@@ -1,6 +1,9 @@
 % Site 1 or site 2?
 Site = 1;
-IndependentXYOutlierRejection = 1;
+
+% It appears to be the case that you do NOT want to look for outliers in X
+% and Y independently. 
+IndependentXYOutlierRejection = 0;
 
 % AMS figure widths, given in picas, converted to points (1 pica=12 points)
 scaleFactor = 1;
@@ -43,9 +46,16 @@ range(2) = -range(1); % it's symmetric
 
 % apply "full" tension
 if 1 == 0
+    % This applies full tension by matching the sample variance to the
+    % total expected variance, BUT this doesn't work well because the
+    % outliers add significant variance... so ultimately it ends up
+    % under-tensioned.
     spline_x.Minimize( @(spline) abs(spline.SampleVariance - variance_of_the_noise) );
     spline_y.Minimize( @(spline) abs(spline.SampleVariance - variance_of_the_noise) );
 else
+    % This works better because here we require the distribution of errors
+    % match the expected distribution, but restrict ourselves to a limit
+    % range (and ignore the outliers).
     spline_x.Minimize( @(spline) KolmogorovSmirnovErrorForTDistribution(spline.epsilon,sigma,nu,range))
     spline_y.Minimize( @(spline) KolmogorovSmirnovErrorForTDistribution(spline.epsilon,sigma,nu,range))
 end
@@ -109,6 +119,24 @@ end
 if max(t) > max(tq)
     tq(end+1) = max(t);
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Position fit figure
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+figure
+s = 1/1000; % scale
+plot(s*spline_x(tq),s*spline_y(tq), 'LineWidth', 0.5*scaleFactor, 'Color',0.4*[1.0 1.0 1.0]), hold on
+scatter(s*drifters.x{iDrifter},s*drifters.y{iDrifter},(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
+
+rejects_xy = intersect(rejectedPointIndices_x{iDrifter},rejectedPointIndices_y{iDrifter});
+rejects_x = setdiff(rejectedPointIndices_x{iDrifter},rejects_xy);
+rejects_y = setdiff(rejectedPointIndices_y{iDrifter},rejects_xy);
+scatter(s*drifters.x{iDrifter}(rejects_xy),s*drifters.y{iDrifter}(rejects_xy),(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r')
+scatter(s*drifters.x{iDrifter}(rejects_x),s*drifters.y{iDrifter}(rejects_x),(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'g', 'MarkerFaceColor', 'g')
+scatter(s*drifters.x{iDrifter}(rejects_y),s*drifters.y{iDrifter}(rejects_y),(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'b', 'MarkerFaceColor', 'b')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
