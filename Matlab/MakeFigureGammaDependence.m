@@ -1,7 +1,15 @@
+% \Gamma = \sigma/(u*dt)
+% The hypothesis is that d = 1+scale*\Gamma
+%
+% We find that the scale is larger for steep slopes, and smaller for
+% shallower slopes. This makes intuitive sense, because the underlying
+% function isn't changing as much more smoother functions (steeper slopes).
+% So, your degrees of freedom increase more quickly for steeper slopes.
+
 scaleFactor = 1;
 LoadFigureDefaults
 
-slope = -2;
+slope = -4;
 
 if slope == -2
     data = load('sample_data/SyntheticTrajectories.mat');
@@ -14,16 +22,24 @@ elseif slope == -4
     outputFile = 'OptimalParametersSlope4.mat';
 end
 
-result_stride = [4;8;16;32;64;128];
+result_stride = [2;4;8;16;32;64;128];
 ensembles = 5*ones(size(result_stride));
 totalEnsembles = sum(ensembles);
 
-measured_dof = zeros(totalEnsembles,1);
+measured_dof_mse = zeros(totalEnsembles,1);
+measured_dof_se = zeros(totalEnsembles,1);
+measured_dof_var = zeros(totalEnsembles,1);
 d_gamma = zeros(totalEnsembles,1);
 
-measured_dof_mean = zeros(length(result_stride),1);
-measured_dof_median = zeros(length(result_stride),1);
-measured_dof_std = zeros(length(result_stride),1);
+measured_dof_mse_mean = zeros(length(result_stride),1);
+measured_dof_mse_median = zeros(length(result_stride),1);
+measured_dof_mse_std = zeros(length(result_stride),1);
+measured_dof_se_mean = zeros(length(result_stride),1);
+measured_dof_se_median = zeros(length(result_stride),1);
+measured_dof_se_std = zeros(length(result_stride),1);
+measured_dof_var_mean = zeros(length(result_stride),1);
+measured_dof_var_median = zeros(length(result_stride),1);
+measured_dof_var_std = zeros(length(result_stride),1);
 d_gamma_mean = zeros(length(result_stride),1);
 
 iteration = 0;
@@ -57,31 +73,39 @@ for i=1:length(result_stride)
         
         
         u_rms = sqrt(mean((diff( data.x(1:max(indices)) )/(data.t(2)-data.t(1))).^2));
-        a_rms = sqrt(mean(diff(diff( data.x(indicesAll) ))/(data.t(2)-data.t(1))^2));
+        a_rms = sqrt(mean((diff(diff( data.x(indicesAll) ))/(data.t(2)-data.t(1)))).^2);
         spline_fit = TensionSpline(t_obs,x_obs,sigma, 'S', S, 'T', T);
         
         % Minimize to the observed points only
         TensionSpline.MinimizeMeanSquareError(spline_fit,data.t(indices),data.x(indices));
         
-        measured_dof(iteration) = spline_fit.ExpectedMeanSquareErrorDOF;
+        measured_dof_mse(iteration) = spline_fit.DOFFromExpectedMeanSquareError;
+        measured_dof_se(iteration) = spline_fit.DOFFromVarianceOfTheMean;
+        measured_dof_var(iteration) = spline_fit.DOFFromSampleVariance;
         d_gamma(iteration) = 1 + sigma/(u_rms*(t_obs(2)-t_obs(1)));
     end
     
     cum_ensembles = cumsum(ensembles);
     startIndex = cum_ensembles(i) - ensembles(i) + 1;
     endIndex = cum_ensembles(i);
-    measured_dof_mean(i) = mean( measured_dof(startIndex:endIndex) );
-    measured_dof_median(i) = median( measured_dof(startIndex:endIndex) );
-    measured_dof_std(i) = std( measured_dof(startIndex:endIndex) );
+    measured_dof_mse_mean(i) = mean( measured_dof_mse(startIndex:endIndex) );
+    measured_dof_mse_median(i) = median( measured_dof_mse(startIndex:endIndex) );
+    measured_dof_mse_std(i) = std( measured_dof_mse(startIndex:endIndex) );
+    measured_dof_se_mean(i) = mean( measured_dof_se(startIndex:endIndex) );
+    measured_dof_se_median(i) = median( measured_dof_se(startIndex:endIndex) );
+    measured_dof_se_std(i) = std( measured_dof_se(startIndex:endIndex) );
+    measured_dof_var_mean(i) = mean( measured_dof_var(startIndex:endIndex) );
+    measured_dof_var_median(i) = median( measured_dof_var(startIndex:endIndex) );
+    measured_dof_var_std(i) = std( measured_dof_var(startIndex:endIndex) );
     d_gamma_mean(i) = mean( d_gamma(startIndex:endIndex) );
 end
 
 
 % Best fit to a straight line, using the estimate of the standard error for
 % sigma. From Press et al page 662
-sigma2 = (measured_dof_std.*measured_dof_std)./ensembles;
+sigma2 = (measured_dof_mse_std.*measured_dof_mse_std)./ensembles;
 x = d_gamma_mean;
-y = measured_dof_mean;
+y = measured_dof_mse_mean;
 
 S = sum(1./sigma2);
 Sx = sum(x./sigma2);
@@ -93,16 +117,58 @@ a = (Sxx*Sy - Sx*Sxy)/Delta;
 b = (S*Sxy - Sx*Sy)/Delta;
 
 figure
-scatter(d_gamma,measured_dof), hold on
+
+subplot(3,1,1)
+scatter(d_gamma,measured_dof_mse), hold on
 plot(d_gamma_mean, b*d_gamma_mean + a)
 xlabel('dof from \Gamma')
-ylabel('measured dof')
+ylabel('mse dof')
+title(sprintf('best fit slope: %f',b))
+
+sigma2 = (measured_dof_se_std.*measured_dof_se_std)./ensembles;
+x = d_gamma_mean;
+y = measured_dof_se_mean;
+
+S = sum(1./sigma2);
+Sx = sum(x./sigma2);
+Sy = sum(y./sigma2);
+Sxx = sum((x.*x)./sigma2);
+Sxy = sum((x.*y)./sigma2);
+Delta = S*Sxx - Sx*Sx;
+a = (Sxx*Sy - Sx*Sxy)/Delta;
+b = (S*Sxy - Sx*Sy)/Delta;
+
+subplot(3,1,2)
+scatter(d_gamma,measured_dof_se), hold on
+plot(d_gamma_mean, b*d_gamma_mean + a)
+xlabel('dof from \Gamma')
+ylabel('se dof')
+title(sprintf('best fit slope: %f',b))
+
+sigma2 = (measured_dof_var_std.*measured_dof_var_std)./ensembles;
+x = d_gamma_mean;
+y = measured_dof_var_mean;
+
+S = sum(1./sigma2);
+Sx = sum(x./sigma2);
+Sy = sum(y./sigma2);
+Sxx = sum((x.*x)./sigma2);
+Sxy = sum((x.*y)./sigma2);
+Delta = S*Sxx - Sx*Sx;
+a = (Sxx*Sy - Sx*Sxy)/Delta;
+b = (S*Sxy - Sx*Sy)/Delta;
+
+subplot(3,1,3)
+scatter(d_gamma,measured_dof_var), hold on
+plot(d_gamma_mean, b*d_gamma_mean + a)
+xlabel('dof from \Gamma')
+ylabel('var dof')
 title(sprintf('best fit slope: %f',b))
 
 
-% D = 1;
-% [p,~,mu]=polyfit(d_gamma,measured_dof,D);
-% slope = factorial(D)*p(1)/mu(2)^D;
+D = 2;
+[p,~,mu]=polyfit(x,y,D);
+slope = factorial(D)*p(1)/mu(2)^D;
 % 
 % [p,~,mu]=polyfit(d_gamma_mean,measured_dof_median,D);
 % slope = factorial(D)*p(1)/mu(2)^D
