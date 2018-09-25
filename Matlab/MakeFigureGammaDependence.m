@@ -9,7 +9,7 @@
 scaleFactor = 1;
 LoadFigureDefaults
 
-slope = -4;
+slope = -2;
 
 if slope == -2
     data = load('sample_data/SyntheticTrajectories.mat');
@@ -125,6 +125,8 @@ xlabel('dof from \Gamma')
 ylabel('mse dof')
 title(sprintf('best fit slope: %f',b))
 
+
+
 sigma2 = (measured_dof_se_std.*measured_dof_se_std)./ensembles;
 x = d_gamma_mean;
 y = measured_dof_se_mean;
@@ -144,6 +146,8 @@ plot(d_gamma_mean, b*d_gamma_mean + a)
 xlabel('dof from \Gamma')
 ylabel('se dof')
 title(sprintf('best fit slope: %f',b))
+
+
 
 sigma2 = (measured_dof_var_std.*measured_dof_var_std)./ensembles;
 x = d_gamma_mean;
@@ -165,10 +169,32 @@ xlabel('dof from \Gamma')
 ylabel('var dof')
 title(sprintf('best fit slope: %f',b))
 
+%%%%%%%%%%%%%%%%%%%%%%%%%
+figure
 
-D = 2;
-[p,~,mu]=polyfit(x,y,D);
-slope = factorial(D)*p(1)/mu(2)^D;
+sigma2 = (measured_dof_se_std.*measured_dof_se_std)./ensembles;
+x = d_gamma_mean.^(2/3);
+y = measured_dof_se_mean;
+
+S = sum(1./sigma2);
+Sx = sum(x./sigma2);
+Sy = sum(y./sigma2);
+Sxx = sum((x.*x)./sigma2);
+Sxy = sum((x.*y)./sigma2);
+Delta = S*Sxx - Sx*Sx;
+a = (Sxx*Sy - Sx*Sxy)/Delta;
+b = (S*Sxy - Sx*Sy)/Delta;
+
+scatter(d_gamma,measured_dof_se), hold on
+plot(d_gamma_mean, b*(d_gamma_mean.^(2/3)) + a)
+xlabel('\Gamma')
+ylabel('se dof')
+title(sprintf('best fit slope: %.2f + %.1f\Gamma^{(2/3)}',a,b))
+
+
+% D = 2;
+% [p,~,mu]=polyfit(x,y,D);
+% slope = factorial(D)*p(1)/mu(2)^D;
 % 
 % [p,~,mu]=polyfit(d_gamma_mean,measured_dof_median,D);
 % slope = factorial(D)*p(1)/mu(2)^D
