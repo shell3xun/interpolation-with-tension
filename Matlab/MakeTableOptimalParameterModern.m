@@ -1,7 +1,7 @@
 scaleFactor = 1;
 LoadFigureDefaults
 
-slope = -3;
+slope = -4;
 
 if slope == -2
     data = load('sample_data/SyntheticTrajectories.mat');
@@ -29,7 +29,7 @@ shouldUseObservedSignalOnly = 1;
 
 S_range = 1:4;
 result_stride = 2.^(3:9)';
-result_stride = 16;
+result_stride = 128;
 
 u_estimate_spectral = zeros(length(result_stride),1);
 a_estimate_spectral = zeros(length(result_stride),1);
@@ -123,6 +123,20 @@ for i=1:length(result_stride)
     
 %     fprintf('S=%d, T=2, stride=%d, rms_error=%g, rms_error_blind_initial=%g, rms_error_blind_optimal=%g,\n', S, stride, rms_error_true_optimal(i), rms_error_blind_initial(i), rms_error_blind_optimal(i) );
 %     fprintf('%d & %#.3g m (%#.3g/%#.3g) &  %#.3g m (%#.3g) &  %#.3g m (%#.3g) &  %#.3g m (%#.3g) \\\\ \n', result_stride(i), rms_error_true_optimal(i), dof_out_true_optimal(i), dof_var_out_true_optimal(i), rms_error_blind_expectedMSE(i),dof_out_blind_expectedMSE(i), rms_error_blind_optimal(i), dof_out_blind_optimal(i), rms_error_blind_initial(i), dof_out_blind_initial(i) )  ;
+end
+
+signal = spline_fit(t_obs);
+dt = t_obs(2)-t_obs(1);
+var_sig = var(signal);
+var_noise = sigma*sigma*spline_fit.VarianceOfTheMean;
+fprintf('var_sig: %.2g, var_noise: %.2g, ratio: %.2g\n',var_sig, var_noise, var_sig/var_noise);
+a = [2;6;20;70;252];
+for iDim = 1:S
+    signal = diff(signal)/dt;
+    var_sig = var(signal);
+    var_noise = mean(diag(spline_fit.CovarianceMatrixForDerivative(iDim)));
+%     var_noise = a(iDim)*sigma*sigma*spline_fit.VarianceOfTheMean/(dt^iDim);
+    fprintf('var_sig: %.2g, var_noise: %.2g, ratio: %.2g\n',var_sig, var_noise, var_sig/var_noise);
 end
 
 fprintf('\n\n');
