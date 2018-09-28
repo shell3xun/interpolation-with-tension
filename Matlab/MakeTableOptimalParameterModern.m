@@ -29,7 +29,7 @@ shouldUseObservedSignalOnly = 1;
 
 S_range = 1:4;
 result_stride = 2.^(3:9)';
-result_stride = 128;
+result_stride = 16;
 
 u_estimate_spectral = zeros(length(result_stride),1);
 a_estimate_spectral = zeros(length(result_stride),1);
