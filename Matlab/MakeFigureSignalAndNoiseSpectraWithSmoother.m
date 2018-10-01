@@ -1,10 +1,31 @@
+% Setting the order of the spline sets the 'interpolation fall off', by
+% which I mean that it sets the slope that the recovered signal falls off
+% at, once it becomes garbage.
+%
+% I think this falloff is with a slope *at least* as steep as the actual
+% signal slope for the lower frequency garbage.
+
 addpath('./support');
 % AMS figure widths, given in picas, converted to points (1 pica=12 points)
 scaleFactor = 1;
 LoadFigureDefaults
 
-load('sample_data/SyntheticTrajectories.mat')
-data = load('sample_data/SyntheticTrajectories.mat');
+slope = -2;
+
+if slope == -2
+    data = load('sample_data/SyntheticTrajectories.mat');
+elseif slope == -3
+    data = load('sample_data/SyntheticTrajectoriesSlope3.mat');
+elseif slope == -4
+    data = load('sample_data/SyntheticTrajectoriesSlope4.mat');
+end
+
+t = data.t;
+x = data.x;
+y = data.y;
+epsilon_x = data.epsilon_x;
+epsilon_y = data.epsilon_y;
+position_error = data.position_error;
 
 timescale = 60;
 indices = find( t/timescale >= 0 & t/timescale <= 42);
@@ -86,8 +107,8 @@ for i=1:length(result_stride)
     t_obs = data.t(indices);
     sigma = data.position_error;
     
-    S = 2;
-    T = 2;
+    S = 1;
+    T = 1;
     K = S+1;
     
     spline_x = TensionSpline(t_obs,x_obs,sigma,'S', S, 'T', T);
