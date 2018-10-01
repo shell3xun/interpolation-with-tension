@@ -1,7 +1,7 @@
 scaleFactor = 1;
 LoadFigureDefaults
 
-slope = -4;
+slope = -2;
 
 if slope == -2
     data = load('sample_data/SyntheticTrajectories.mat');
@@ -29,7 +29,7 @@ shouldUseObservedSignalOnly = 1;
 
 S_range = 1:4;
 result_stride = 2.^(3:9)';
-result_stride = 16;
+result_stride = 8;
 
 u_estimate_spectral = zeros(length(result_stride),1);
 a_estimate_spectral = zeros(length(result_stride),1);
@@ -124,6 +124,31 @@ for i=1:length(result_stride)
 %     fprintf('S=%d, T=2, stride=%d, rms_error=%g, rms_error_blind_initial=%g, rms_error_blind_optimal=%g,\n', S, stride, rms_error_true_optimal(i), rms_error_blind_initial(i), rms_error_blind_optimal(i) );
 %     fprintf('%d & %#.3g m (%#.3g/%#.3g) &  %#.3g m (%#.3g) &  %#.3g m (%#.3g) &  %#.3g m (%#.3g) \\\\ \n', result_stride(i), rms_error_true_optimal(i), dof_out_true_optimal(i), dof_var_out_true_optimal(i), rms_error_blind_expectedMSE(i),dof_out_blind_expectedMSE(i), rms_error_blind_optimal(i), dof_out_blind_optimal(i), rms_error_blind_initial(i), dof_out_blind_initial(i) )  ;
 end
+
+SSER = spline_fit.SignalToStandardErrorRatio;
+
+% [MSE,noise] = spline_fit.ExpectedMeanSquareErrorAtAllOrders();
+% sqrt(MSE)./rmse
+% sqrt(MSE./noise)
+
+return
+
+S = spline_fit.SmoothingMatrix;
+sigma2 = sigma*sigma;
+Diff = TensionSpline.FiniteDifferenceMatrixNoBoundary(K-1,t_obs,1);
+DS = Diff*S;
+A = (DS-Diff);
+N = length(Diff);
+MSE = ( sum( (A*data.x(indices)).^2) + sigma2*sum(sum(DS.^2)))/N
+sqrt(MSE)/rmse(end)
+MSE = (sum( (A*x_obs).^2) + sum((A*epsilon_x).^2) - 2*sum((A*x_obs).*(A*epsilon_x)) +  sigma2*sum(sum(DS.^2)))/N
+sqrt(MSE)/rmse(end)
+
+MSE = (sum( (A*x_obs).^2) + sigma2*sum(sum(A.^2)) - 2*sum((A*x_obs).*(A*epsilon_x)) +  sigma2*sum(sum(DS.^2)))/N
+sqrt(MSE)/rmse(end)
+
+MSE = (sum( (A*x_obs).^2) - sigma2*sum(sum(A.^2)) +  sigma2*sum(sum(DS.^2)))/N
+sqrt(MSE)/rmse(end)
 
 signal = spline_fit(t_obs);
 dt = t_obs(2)-t_obs(1);
