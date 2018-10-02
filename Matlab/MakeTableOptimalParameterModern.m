@@ -1,7 +1,7 @@
 scaleFactor = 1;
 LoadFigureDefaults
 
-slope = -2;
+slope = -4;
 
 if slope == -2
     data = load('sample_data/SyntheticTrajectories.mat');

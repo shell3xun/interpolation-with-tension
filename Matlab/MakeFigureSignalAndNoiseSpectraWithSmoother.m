@@ -4,6 +4,13 @@
 %
 % I think this falloff is with a slope *at least* as steep as the actual
 % signal slope for the lower frequency garbage.
+%
+% The -2 slope, needs S=1
+% The -4 slope, needs S=2
+% Anything else is either too steep or too shallow in the spectrum
+% The -3 slope is what you'd expect: neither works well
+%
+% Coherence would test signal to recovered signal
 
 addpath('./support');
 % AMS figure widths, given in picas, converted to points (1 pica=12 points)
@@ -11,6 +18,7 @@ scaleFactor = 1;
 LoadFigureDefaults
 
 slope = -2;
+numDerivs = 1;
 
 if slope == -2
     data = load('sample_data/SyntheticTrajectories.mat');
@@ -44,22 +52,7 @@ fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
 
-
-subplot(2,1,1)
-errorbar(t(range)/timescale,y(range),position_error*ones(size(t(range))),'ko', 'LineWidth', 0.5*scaleFactor, 'MarkerSize', markersize^2, 'MarkerFaceColor', 'w')
-hold on
-xlim([min(t(range))/timescale max(t(range))/timescale]);
-ylim([1.2*min(y(range)) 1.2*max(y(range))])
-
-range = indices(1:100:end);
-errorbar(t(range)/timescale,y(range),position_error*ones(size(t(range))),'ko', 'LineWidth', 1.5*scaleFactor, 'MarkerSize', markersize^2, 'MarkerFaceColor', 'k')
-
-xlabel('minutes', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
-ylabel('meters', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
-
-
-
-D = TensionSpline.FiniteDifferenceMatrixNoBoundary(1,t,1);
+D = TensionSpline.FiniteDifferenceMatrixNoBoundary(numDerivs,t,1);
 
 dt = t(2)-t(1);
 cv = D*(x + sqrt(-1)*y);
@@ -73,7 +66,10 @@ cepsilon = D*(epsilon_x + sqrt(-1)*epsilon_y);
 
 ylimit = [1e-4 4e2];
 
-subplot(2,1,2)
+sp1 = subplot(2,1,1);
+sp2 = subplot(2,1,2);
+
+set(fig1, 'currentaxes', sp1)
 plot(f*timescale,vmean([snn, spp],2), 'k', 'LineWidth', 2)
 hold on
 plot(f*timescale,vmean([snn_e, spp_e],2), 'r', 'LineWidth', 2)
@@ -83,6 +79,7 @@ ylim(ylimit)
 
 shouldUseObservedSignalOnly = 0;
 result_stride = [1; 10; 100];
+% result_stride = 100;
 for i=1:length(result_stride)
     stride = result_stride(i);
     % Reduce the total length in some cases
@@ -116,17 +113,56 @@ for i=1:length(result_stride)
     TensionSpline.MinimizeExpectedMeanSquareError(spline_x);
     TensionSpline.MinimizeExpectedMeanSquareError(spline_y);
     
-    cv = D*(spline_x(t)+sqrt(-1)*spline_y(t));
+    x_smooth = spline_x(t(indicesAll));
+    y_smooth = spline_y(t(indicesAll));
+    
+    D = TensionSpline.FiniteDifferenceMatrixNoBoundary(numDerivs,t(indicesAll),1);
+    u_smooth = D*x_smooth;
+    v_smooth = D*y_smooth;
+    
+    dof = (spline_x.DOFFromVarianceOfTheMean + spline_y.DOFFromVarianceOfTheMean)/2;
+    f_limit = 1/(2*dof*(t_obs(2)-t_obs(1)));
+    
+    subplot(sp1)
+    
+    
+    cv = u_smooth+sqrt(-1)*v_smooth;
+    [psi,lambda]=sleptap(size(cv,1));
     [f,spp,snn,spn]=mspec(dt,cv,psi,'cyclic');
+    ax = gca;
+    CO = ax.ColorOrderIndex;
     plot(f*timescale,vmean([snn, spp],2), 'LineWidth', 0.5*scaleFactor)
+    ylimits = ylim;
+    plot(timescale*f_limit*[1 1],ylimits,'k--')
     
+    %     ax.ColorOrderIndex = CO;
+    %
+    %     cv = D*(spline_x.StandardErrorAtPointsForDerivative(t(indicesAll),0)+sqrt(-1)*spline_y.StandardErrorAtPointsForDerivative(t(indicesAll),0));
+    %     s_noise_x = spline_x.VarianceOfTheMean*dt*(2*pi*f).^(2*1);
+    %     s_noise_y = spline_y.VarianceOfTheMean*dt*(2*pi*f).^(2*1);
+    %     plot(f*timescale,3*vmean([s_noise_x, s_noise_y],2), 'LineWidth', 0.5*scaleFactor)
     
+    subplot(sp2)
+    
+%     [psi,lambda]=sleptap(size(data.x(indicesAll),1));
+    [f,sxx,syy,sxy]=mspec(dt,u_smooth,D*data.x(indicesAll),psi,'cyclic');
+    gamma=frac(abs(sxy).^2,sxx.*syy);
+    plot(f*timescale,gamma), hold on
+    title('Coherence')
+    xlabel('cycles per second')
+    xlog
+    xlim([min(f*timescale) max(f*timescale)])
+    
+    ylimits = ylim;
+    plot(timescale*f_limit*[1 1],ylimits,'k--')
 end
 
 legend('signal', 'noise', '1', '10', '100');
 
-f_smooth = 0.5/(t_obs(2)-t_obs(1));
-    plot([f_smooth f_smooth]*timescale,ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
+
+
+% f_smooth = 0.5/(t_obs(2)-t_obs(1));
+% plot([f_smooth f_smooth]*timescale,ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
 
 
 % dt_gamma1 = 3*position_error/sigma_u;
@@ -145,6 +181,7 @@ xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figu
 ylabel('power (m^2/s)', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 
 print('-depsc2', '../figures/synthetic_process_and_spectrum_with recovery.eps')
+return
 
 dof1 = 1 + 3*position_error/(sigma_u*dt);
 dof10 = 1 + 3*position_error/(sigma_u*10*dt);
