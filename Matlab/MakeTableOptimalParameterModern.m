@@ -1,7 +1,7 @@
 scaleFactor = 1;
 LoadFigureDefaults
 
-slope = -4;
+slope = -2;
 
 if slope == -2
     data = load('sample_data/SyntheticTrajectories.mat');
@@ -27,7 +27,7 @@ fprintf('Decorrelation time for (u,a,j) = (%.0f, %.0f, %.0f)\n', decorrelation_u
 % the observed (decimated) signal only?
 shouldUseObservedSignalOnly = 1;
 
-S_range = 1:4;
+S_range = 1:2;
 result_stride = 2.^(3:9)';
 result_stride = 8;
 
@@ -97,7 +97,7 @@ for i=1:length(result_stride)
             [rmse,norm] = TensionSpline.MeanSquareErrorAtAllOrders(spline_fit, data.t(indicesAll),data.x(indicesAll));
             Q_blind_initial(i,iS,T) = find(rmse./norm < 0.9,1,'last');
             
-            fprintf('\t\tinitial (rms,lambda,dof,Q)=(%#.3g m, %#.3g, %#.3g, %#.3g)\n',rms_error_blind_initial(i,iS,T),lambda_blind_initial(i,iS,T),dof_out_blind_initial(i,iS,T),Q_blind_initial(i,iS,T));
+            fprintf('\t\tinitial (rms,lambda,dof,Q)=(%#.3g m, %#.3g, %#.3g (%#.3g), %#.3g)\n',rms_error_blind_initial(i,iS,T),lambda_blind_initial(i,iS,T),dof_out_blind_initial(i,iS,T), expectedDOF(i,iS,T),Q_blind_initial(i,iS,T));
             
             % now optimize the tension using the true value
             lambda_true_optimal(i,iS,T) = TensionSpline.MinimizeMeanSquareError(spline_fit,data.t(indicesAll),data.x(indicesAll));
@@ -106,7 +106,7 @@ for i=1:length(result_stride)
             [rmse,norm] = TensionSpline.MeanSquareErrorAtAllOrders(spline_fit, data.t(indicesAll),data.x(indicesAll));
             Q_blind_true_optimal(i,iS,T) = find(rmse./norm < 0.9,1,'last');
             
-            fprintf('\t\toptimal (rms,lambda,dof,Q)=(%#.3g m, %#.3g, %#.3g, %#.3g)\n',rms_error_true_optimal(i,iS,T),lambda_true_optimal(i,iS,T),dof_out_true_optimal(i,iS,T), Q_blind_true_optimal(i,iS,T));
+            fprintf('\t\toptimal (rms,lambda,dof,Q)=(%#.3g m, %#.3g, %#.3g (%#.3g), %#.3g)\n',rms_error_true_optimal(i,iS,T),lambda_true_optimal(i,iS,T),dof_out_true_optimal(i,iS,T), expectedDOF(i,iS,T), Q_blind_true_optimal(i,iS,T));
             
 %             lambda_blind_expectedMSE(i,iS,T) = TensionSpline.MinimizeExpectedMeanSquareError(spline_fit);
 %             rms_error_blind_expectedMSE(i,iS,T) = compute_rms_error();

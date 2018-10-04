@@ -104,17 +104,21 @@ for i=1:length(result_stride)
     t_obs = data.t(indices);
     sigma = data.position_error;
     
-    S = 1;
-    T = 1;
+    S = 2;
+    T = 2;
     K = S+1;
     
-    spline_x = TensionSpline(t_obs,x_obs,sigma,'S', S, 'T', T);
-    spline_y = TensionSpline(t_obs,y_obs,sigma,'S', S, 'T', T);
+    spline_x = TensionSpline(t_obs,x_obs,sigma,'S', S, 'T', T, 'knot_dof', 'auto');
+    spline_y = TensionSpline(t_obs,y_obs,sigma,'S', S, 'T', T, 'knot_dof', 'auto');
     TensionSpline.MinimizeExpectedMeanSquareError(spline_x);
     TensionSpline.MinimizeExpectedMeanSquareError(spline_y);
     
     x_smooth = spline_x(t(indicesAll));
     y_smooth = spline_y(t(indicesAll));
+    
+    rms_error_x =  sqrt(mean(mean(  (data.x(indicesAll) - x_smooth).^2,2 ),1));
+    rms_error_y =  sqrt(mean(mean(  (data.y(indicesAll) - y_smooth).^2,2 ),1));
+    fprintf('rms error (x,y)=(%f,%f)\n',rms_error_x, rms_error_y);
     
     D = TensionSpline.FiniteDifferenceMatrixNoBoundary(numDerivs,t(indicesAll),1);
     u_smooth = D*x_smooth;
