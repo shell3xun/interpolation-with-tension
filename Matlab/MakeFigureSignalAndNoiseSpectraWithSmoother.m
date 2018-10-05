@@ -42,6 +42,12 @@ markersize  = 2*scaleFactor;
 stride = 10; % we start by decimating the signal
 range = indices(1:stride:end);
 
+shouldUseObservedSignalOnly = 0;
+result_stride = [1; 10; 100];
+% result_stride = 100;
+plotHandles = zeros(length(result_stride)+2,1);
+dof = zeros(length(result_stride),1);
+
 FigureSize = [50 50 figure_width_large+7 300*scaleFactor];
 
 fig1 = figure('Units', 'points', 'Position', FigureSize);
@@ -51,6 +57,8 @@ fig1.PaperUnits = 'points';
 fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% plot the signal and noise separately
 
 D = TensionSpline.FiniteDifferenceMatrixNoBoundary(numDerivs,t,1);
 
@@ -61,25 +69,20 @@ cepsilon = D*(epsilon_x + sqrt(-1)*epsilon_y);
 [f,spp,snn,spn]=mspec(dt,cv,psi, 'cyclic');
 [f,spp_e,snn_e,spn_e]=mspec(dt,cepsilon,psi,'cyclic');
 
-% sqrt(2)*position_error/dt
-% std(imag(cepsilon))
-
 ylimit = [1e-4 4e2];
 
 sp1 = subplot(2,1,1);
 sp2 = subplot(2,1,2);
 
 set(fig1, 'currentaxes', sp1)
-plot(f*timescale,vmean([snn, spp],2), 'k', 'LineWidth', 2)
+plotHandles(1) = plot(f*timescale,vmean([snn, spp],2), 'k', 'LineWidth', 2);
 hold on
-plot(f*timescale,vmean([snn_e, spp_e],2), 'r', 'LineWidth', 2)
+plotHandles(2) = plot(f*timescale,vmean([snn_e, spp_e],2), 'r', 'LineWidth', 2);
 xlog, ylog
 xlim([min(f*timescale) max(f*timescale)])
 ylim(ylimit)
 
-shouldUseObservedSignalOnly = 0;
-result_stride = [1; 10; 100];
-% result_stride = 100;
+
 for i=1:length(result_stride)
     stride = result_stride(i);
     % Reduce the total length in some cases
@@ -104,8 +107,8 @@ for i=1:length(result_stride)
     t_obs = data.t(indices);
     sigma = data.position_error;
     
-    S = 2;
-    T = 2;
+    S = 3;
+    T = 3;
     K = S+1;
     
     spline_x = TensionSpline(t_obs,x_obs,sigma,'S', S, 'T', T, 'knot_dof', 'auto');
@@ -124,36 +127,32 @@ for i=1:length(result_stride)
     u_smooth = D*x_smooth;
     v_smooth = D*y_smooth;
     
-    dof = (spline_x.DOFFromVarianceOfTheMean + spline_y.DOFFromVarianceOfTheMean)/2;
-    f_limit = 1/(2*dof*(t_obs(2)-t_obs(1)));
+    dof(i) = (spline_x.DOFFromVarianceOfTheMean + spline_y.DOFFromVarianceOfTheMean)/2;
+    f_limit = 1/(2*dof(i)*(t_obs(2)-t_obs(1)));
+    
     
     subplot(sp1)
     
-    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % plot the spline fit
     cv = u_smooth+sqrt(-1)*v_smooth;
     [psi,lambda]=sleptap(size(cv,1));
     [f,spp,snn,spn]=mspec(dt,cv,psi,'cyclic');
     ax = gca;
     CO = ax.ColorOrderIndex;
-    plot(f*timescale,vmean([snn, spp],2), 'LineWidth', 0.5*scaleFactor)
+    plotHandles(2+i) = plot(f*timescale,vmean([snn, spp],2), 'LineWidth', 0.5*scaleFactor);
     ylimits = ylim;
     plot(timescale*f_limit*[1 1],ylimits,'k--')
     
-    %     ax.ColorOrderIndex = CO;
-    %
-    %     cv = D*(spline_x.StandardErrorAtPointsForDerivative(t(indicesAll),0)+sqrt(-1)*spline_y.StandardErrorAtPointsForDerivative(t(indicesAll),0));
-    %     s_noise_x = spline_x.VarianceOfTheMean*dt*(2*pi*f).^(2*1);
-    %     s_noise_y = spline_y.VarianceOfTheMean*dt*(2*pi*f).^(2*1);
-    %     plot(f*timescale,3*vmean([s_noise_x, s_noise_y],2), 'LineWidth', 0.5*scaleFactor)
     
     subplot(sp2)
     
-%     [psi,lambda]=sleptap(size(data.x(indicesAll),1));
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % plot the coherence of the spline fit with the true signal
     [f,sxx,syy,sxy]=mspec(dt,u_smooth,D*data.x(indicesAll),psi,'cyclic');
     gamma=frac(abs(sxy).^2,sxx.*syy);
-    plot(f*timescale,gamma), hold on
-    title('Coherence')
-    xlabel('cycles per second')
+    
+    plot(f*timescale,RunningAverage(gamma,20)), hold on
     xlog
     xlim([min(f*timescale) max(f*timescale)])
     
@@ -161,7 +160,15 @@ for i=1:length(result_stride)
     plot(timescale*f_limit*[1 1],ylimits,'k--')
 end
 
-legend('signal', 'noise', '1', '10', '100');
+subplot(sp1)
+ylabel('power (m^2/s)', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
+
+subplot(sp2)
+ylabel('coherence', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
+xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
+legend(plotHandles,'signal', 'noise', sprintf('stide 1 (%.2f dof)',dof(1)), sprintf('stride 10 (%.2f dof)',dof(2)), sprintf('stide 100 (%.2f dof)',dof(3)));
+
+
 
 
 
@@ -182,7 +189,7 @@ legend('signal', 'noise', '1', '10', '100');
 % % plot([f_gamma01 f_gamma01],ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
 
 xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
-ylabel('power (m^2/s)', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
+
 
 print('-depsc2', '../figures/synthetic_process_and_spectrum_with recovery.eps')
 return
