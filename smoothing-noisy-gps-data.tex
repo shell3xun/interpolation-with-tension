@@ -47,6 +47,13 @@ IEEE, IEEEtran, journal, \LaTeX, paper, template.
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
+\begin{itemize}
+    \item degrees-of-freedom vs u scaling from knot paper is useful for initial estimate.
+    \item confirm that dof/2 knot placement doesn't hurt anything
+    \item new information occurs at roughly dt*dof.
+    \item order of spline should \emph{not} continue the slope, but should be steeper. The reason is because this generates incoherent part of solution, which simply serves to add noise.
+\end{itemize}
+
 Global positioning system receivers (now commonly referred to as `a GPS') are used in literally billions of devices around the the world to track positions. The quality of the position data can be quite good, with accuracies down to a few meters, but real world effects (such as atmospheric conditions and sky blockages) can significantly increase the errors \cite{faa2016-report}. Kalman filters are often employed to reduce these errors because they can be run in real time \cite{brown1997-book}, but it is often still the case that the data  contains outliers, noisy positions, and infrequent or inconsistent sampling that requires a combination of smoothing and interpolation.
 
 Observations from GPS receivers return positions $x_i$ at times $t_i$ that differ from the true positions $x(t_i)$ by some noise $\epsilon_i \equiv x_i - x(t_i)$. The primary goal of \emph{smoothing} is to find the true position $x(t_i)$ not contaminated by the noise, while the primary goal of \emph{interpolating} is to find the true position $x(t)$ between observation times.
@@ -361,11 +368,37 @@ Roughly speaking, this means we simply compute the MSE for velocity, acceleratio
 \end{align}
 Consider,
 \begin{align}
-    \left[\mathbf{S}\indices{^i_j} \epsilon^j\right]^2 =& \mathbf{S}\indices{^i_j} \epsilon^j \mathbf{S}\indices{^i_k} \epsilon^k
+    \left[\mathbf{S}\indices{^i_j} \epsilon^j\right]^2 =& \mathbf{S}\indices{^i_j} \epsilon^j \mathbf{S}\indices{^i_k} \epsilon^k \\
+    =& \mathbf{S}\indices{^i_j}\mathbf{S}\indices{^i_k} \epsilon^j \epsilon^k \\
+    =& \mathbf{S}\indices{^i_j}\mathbf{S}\indices{^i_j} \epsilon^j \epsilon^j \\
+    =& \sigma^2 \mathbf{S}\indices{^i_j}\mathbf{S}\indices{^i_j} \\
+    =& E\left[\sum_i \left( \mathbf{S}\indices{^i_j} \epsilon^j \right)^2 \right]
 \end{align}
+So this is the sum of the square of all the components in the matrix, which is the the trace of the of the matrix.
 Now, under expectation we have that,
+\begin{align}
+    \textrm{MSE}(\lambda) =& \frac{1}{N} \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right]^2  + \frac{\sigma^2}{N} \mathbf{S}\indices{^i_j} \mathbf{S}\indices{^j_i} \\
+    =& \frac{1}{N} \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) \left(x^j-\epsilon^j\right)  \right]^2  + \frac{\sigma^2}{N} \mathbf{S}\indices{^i_j} \mathbf{S}\indices{^j_i}
+\end{align}
+
+If we include a derivative in there,
+\begin{align}
+    \textrm{MSE}(\lambda) =& \frac{1}{N} \left[ D\indices{^k_i} \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right]^2  + \frac{1}{N} \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2\\
+    & +\frac{2}{N} \left[ D\indices{^k_i} \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right] \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]
+\end{align}
+The last term vanishes under expectation, as usual. The second to last term looks the same as before, in the sense that the matrix operation and the derivative can be combined, and so nothing really changed.
+\begin{align}
+    \textrm{MSE}(\lambda) =& \frac{1}{N} \left[ D\indices{^k_i} \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right]^2  + \frac{1}{N} \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 \\ \nonumber
+    =& \frac{1}{N} \left[ D\indices{^k_i} \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) \left(x^j-\epsilon^j\right)  \right]^2  + \frac{1}{N} \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2\\
+    =& \frac{1}{N}\left[ A\indices{^k_j} \left(x^j-\epsilon^j\right) \right]^2 + \frac{1}{N} \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 \\
+    =& \frac{1}{N}\left[ A\indices{^k_j} x^j-A\indices{^k_j}\epsilon^j \right]^2 + \frac{1}{N} \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 \\
+    =& \left[ A\indices{^k_j} x^j\right]^2 + \left[ A\indices{^k_j}\epsilon^j \right]^2 - 2 \left[ A\indices{^k_j} x^j\right]\left[ A\indices{^k_j}\epsilon^j \right] \\ \nonumber
+    & +  \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2
+\end{align}
+
+Ultimately I get that,
 \begin{equation}
-    \textrm{MSE}(\lambda) = \frac{1}{N} \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right]^2  + \frac{\sigma^2}{N} \mathbf{S}\indices{^i_j} \mathbf{S}\indices{^j_i}
+    MSE(\lambda) = || D(I-S)x ||^2 - \sigma^2 \Tr \left(D - DS \right)^2 + \sigma^2 \Tr (DS)^2 
 \end{equation}
 
 %%%%%%%%%%%%%%%%%%%%%%
