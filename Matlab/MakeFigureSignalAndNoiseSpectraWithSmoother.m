@@ -82,8 +82,8 @@ xlim([min(f*timescale) max(f*timescale)])
 ylim(ylimit)
 
 subplot(sp2)
-plotHandles(1) = plot([1 10], [10 10], 'k', 'LineWidth', 2);
-plotHandles(2) = plot([1 10], [10 10], 'r', 'LineWidth', 2);
+plotHandles(1) = plot(1, nan, 'k', 'LineWidth', 2); hold on;
+plotHandles(2) = plot(1, nan, 'r', 'LineWidth', 2);
 
 for i=1:length(result_stride)
     stride = result_stride(i);
@@ -169,8 +169,8 @@ ylabel('power (m^2/s)', 'FontSize', figure_axis_label_size, 'FontName', figure_f
 subplot(sp2)
 ylabel('coherence', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
-mylegend = legend(plotHandles,'signal', 'noise', sprintf('stide 1 (%.2f dof)',dof(1)), sprintf('stride 10 (%.2f dof)',dof(2)), sprintf('stide 100 (%.2f dof)',dof(3)));
-% ,'Location','southwest'
+mylegend = legend(plotHandles,'signal', 'noise', sprintf('stride 1 (%.2f dof)',dof(1)), sprintf('stride 10 (%.2f dof)',dof(2)), sprintf('stride 100 (%.2f dof)',dof(3)),'Location','southwest');
+
 
 
 
