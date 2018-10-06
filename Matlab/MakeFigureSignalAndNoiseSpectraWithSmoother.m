@@ -45,7 +45,6 @@ range = indices(1:stride:end);
 shouldUseObservedSignalOnly = 0;
 result_stride = [1; 10; 100];
 % result_stride = 100;
-plotHandles = zeros(length(result_stride)+2,1);
 dof = zeros(length(result_stride),1);
 
 FigureSize = [50 50 figure_width_large+7 300*scaleFactor];
@@ -75,13 +74,16 @@ sp1 = subplot(2,1,1);
 sp2 = subplot(2,1,2);
 
 set(fig1, 'currentaxes', sp1)
-plotHandles(1) = plot(f*timescale,vmean([snn, spp],2), 'k', 'LineWidth', 2);
+plot(f*timescale,vmean([snn, spp],2), 'k', 'LineWidth', 2);
 hold on
-plotHandles(2) = plot(f*timescale,vmean([snn_e, spp_e],2), 'r', 'LineWidth', 2);
+plot(f*timescale,vmean([snn_e, spp_e],2), 'r', 'LineWidth', 2);
 xlog, ylog
 xlim([min(f*timescale) max(f*timescale)])
 ylim(ylimit)
 
+subplot(sp2)
+plotHandles(1) = plot([1 10], [10 10], 'k', 'LineWidth', 2);
+plotHandles(2) = plot([1 10], [10 10], 'r', 'LineWidth', 2);
 
 for i=1:length(result_stride)
     stride = result_stride(i);
@@ -140,7 +142,7 @@ for i=1:length(result_stride)
     [f,spp,snn,spn]=mspec(dt,cv,psi,'cyclic');
     ax = gca;
     CO = ax.ColorOrderIndex;
-    plotHandles(2+i) = plot(f*timescale,vmean([snn, spp],2), 'LineWidth', 0.5*scaleFactor);
+    plot(f*timescale,vmean([snn, spp],2), 'LineWidth', 0.5*scaleFactor);
     ylimits = ylim;
     plot(timescale*f_limit*[1 1],ylimits,'k--')
     
@@ -152,9 +154,10 @@ for i=1:length(result_stride)
     [f,sxx,syy,sxy]=mspec(dt,u_smooth,D*data.x(indicesAll),psi,'cyclic');
     gamma=frac(abs(sxy).^2,sxx.*syy);
     
-    plot(f*timescale,RunningAverage(gamma,20)), hold on
+    plotHandles(2+i) = plot(f*timescale,RunningAverage(gamma,20)); hold on
     xlog
     xlim([min(f*timescale) max(f*timescale)])
+    ylim([0 1])
     
     ylimits = ylim;
     plot(timescale*f_limit*[1 1],ylimits,'k--')
@@ -166,8 +169,8 @@ ylabel('power (m^2/s)', 'FontSize', figure_axis_label_size, 'FontName', figure_f
 subplot(sp2)
 ylabel('coherence', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
-legend(plotHandles,'signal', 'noise', sprintf('stide 1 (%.2f dof)',dof(1)), sprintf('stride 10 (%.2f dof)',dof(2)), sprintf('stide 100 (%.2f dof)',dof(3)));
-
+mylegend = legend(plotHandles,'signal', 'noise', sprintf('stide 1 (%.2f dof)',dof(1)), sprintf('stride 10 (%.2f dof)',dof(2)), sprintf('stide 100 (%.2f dof)',dof(3)));
+% ,'Location','southwest'
 
 
 
@@ -191,7 +194,7 @@ legend(plotHandles,'signal', 'noise', sprintf('stide 1 (%.2f dof)',dof(1)), spri
 xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 
 
-print('-depsc2', '../figures/synthetic_process_and_spectrum_with recovery.eps')
+print('-depsc2', sprintf('../figures/synthetic_process_and_spectrum_slope%ddegree%d.eps',abs(slope),S))
 return
 
 dof1 = 1 + 3*position_error/(sigma_u*dt);
