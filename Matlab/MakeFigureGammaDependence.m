@@ -13,6 +13,7 @@ shouldLoadExistingResults = 1;
 
 if shouldLoadExistingResults == 1
     load('DegreesOfFreedomEstimates.mat');
+    totalSlopes = length(slopes);
 else
     slopes = [-2; -3; -4];
     totalSlopes = length(slopes);
@@ -143,11 +144,19 @@ xlabel('dof from \Gamma')
 ylabel('var dof')
 
 
-figure
+FigureSize = [50 50 figure_width_1col+7 150*scaleFactor];
+
+fig1 = figure('Units', 'points', 'Position', FigureSize,'Name','DOFvsGamma');
+set(gcf,'PaperPositionMode','auto')
+set(gcf, 'Color', 'w');
+fig1.PaperUnits = 'points';
+fig1.PaperPosition = FigureSize;
+fig1.PaperSize = [FigureSize(3) FigureSize(4)];
+
 m = zeros(length(totalSlopes),1);
 b = zeros(length(totalSlopes),1);
 for iSlope = 1:totalSlopes
-    scatter(gamma(:,iSlope),measured_dof_se(:,iSlope)), hold on
+    plotHandles(iSlope) = scatter(gamma(:,iSlope),measured_dof_se(:,iSlope)); hold on
     
     x = gamma_mean(:,iSlope);
     y = measured_dof_se_mean(:,iSlope);
@@ -156,12 +165,21 @@ for iSlope = 1:totalSlopes
 %     [m(iSlope),b(iSlope)] = LinearBestFitWithVariableError(x,y,sigma2);
 %     plot(x, m(iSlope)*x + b(iSlope))
     
+ax = gca;
+ax.ColorOrderIndex = ax.ColorOrderIndex-1;
     [m(iSlope),b(iSlope)] = LinearBestFitWithVariableError(log(x),log(y),ones(size(y)));
-    plot(x, exp(b(iSlope))*(x).^m(iSlope))
+    plot(x, exp(b(iSlope))*(x).^m(iSlope));
 end
-xlabel('dof from \Gamma')
-ylabel('se dof')
+xlabel('\Gamma', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
+ylabel('dof', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
+leg = legend(plotHandles,'-2 slope','-3 slope','-4 slope');
+leg.FontSize = figure_legend_size;
+leg.FontName = figure_font;
+leg.Location = 'northwest';
+set( gca, 'FontSize', figure_axis_tick_size);
 
+tightfig
+print('-depsc2', '../figures/dofVsGamma.eps')
 
 return
 % Best fit to a straight line, using the estimate of the standard error for

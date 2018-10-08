@@ -19,6 +19,9 @@ LoadFigureDefaults
 
 slope = -2;
 numDerivs = 1;
+S = 3;
+T = 3;
+K = S+1;
 
 if slope == -2
     data = load('sample_data/SyntheticTrajectories.mat');
@@ -108,15 +111,15 @@ for i=1:length(result_stride)
     y_obs = data.y(indices) + epsilon_y;
     t_obs = data.t(indices);
     sigma = data.position_error;
-    
-    S = 3;
-    T = 3;
-    K = S+1;
-    
+        
     spline_x = TensionSpline(t_obs,x_obs,sigma,'S', S, 'T', T, 'knot_dof', 'auto');
     spline_y = TensionSpline(t_obs,y_obs,sigma,'S', S, 'T', T, 'knot_dof', 'auto');
-    TensionSpline.MinimizeExpectedMeanSquareError(spline_x);
-    TensionSpline.MinimizeExpectedMeanSquareError(spline_y);
+%     TensionSpline.MinimizeExpectedMeanSquareError(spline_x);
+%     TensionSpline.MinimizeExpectedMeanSquareError(spline_y);
+    
+    TensionSpline.MinimizeMeanSquareError(spline_x,data.t(indicesAll),data.x(indicesAll));
+    TensionSpline.MinimizeMeanSquareError(spline_y,data.t(indicesAll),data.y(indicesAll));
+    
     
     x_smooth = spline_x(t(indicesAll));
     y_smooth = spline_y(t(indicesAll));
@@ -170,33 +173,9 @@ subplot(sp2)
 ylabel('coherence', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 mylegend = legend(plotHandles,'signal', 'noise', sprintf('stride 1 (%.2f dof)',dof(1)), sprintf('stride 10 (%.2f dof)',dof(2)), sprintf('stride 100 (%.2f dof)',dof(3)),'Location','southwest');
-
-
-
-
-
-% f_smooth = 0.5/(t_obs(2)-t_obs(1));
-% plot([f_smooth f_smooth]*timescale,ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
-
-
-% dt_gamma1 = 3*position_error/sigma_u;
-% f_gamma1 = timescale/dt_gamma1;
-% % plot([f_gamma1 f_gamma1],ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
-% % 
-% dt_gamma10 = 3*position_error/(sigma_u*10);
-% f_gamma10 = timescale/dt_gamma10;
-% % plot([f_gamma10 f_gamma10],ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
-% % 
-% dt_gamma01 = 3*position_error/(sigma_u*0.1);
-% f_gamma01 = timescale/dt_gamma01;
-% % plot([f_gamma01 f_gamma01],ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
-
 xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 
 
-print('-depsc2', sprintf('../figures/synthetic_process_and_spectrum_slope%ddegree%d.eps',abs(slope),S))
+% print('-depsc2', sprintf('../figures/synthetic_process_and_spectrum_slope%ddegree%d.eps',abs(slope),S))
 return
 
-dof1 = 1 + 3*position_error/(sigma_u*dt);
-dof10 = 1 + 3*position_error/(sigma_u*10*dt);
-dof100 = 1 + 3*position_error/(sigma_u*100*dt);

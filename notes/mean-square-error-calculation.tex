@@ -7,7 +7,10 @@
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{epstopdf}
+\usepackage{tensor}
 \DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+\DeclareMathOperator{\Tr}{Tr}
 
 \title{Notes on the MSE calculation}
 \author{Jeffrey J. Early}
@@ -79,5 +82,46 @@ Ultimately I get that,
 \begin{equation}
     MSE(\lambda) = || D(I-S)x ||^2 - \sigma^2 \Tr \left(D - DS \right)^2 + \sigma^2 \Tr (DS)^2 
 \end{equation}
+
+%%%%%%%%%%%%%%%%%%%%%%
+%
+\section{Unknown error} \label{sec:unknown_error}
+%
+%%%%%%%%%%%%%%%%%%%%%%
+
+Just eliminate $d$ from the sample variance and sample mean equations, so that,
+\begin{align}
+    \left( 1 - \frac{1}{N} \Tr \left( \mathbf{S_\lambda} \right) \right) \sigma^2 =  \frac{1}{N} || \left( \mathbf{I} - \mathbf{S_\lambda} \right) \mathbf{x} ||^2
+\end{align}
+or
+\begin{equation}
+    \sigma^2 = \frac{ \frac{1}{N}|| \left( \mathbf{I} - \mathbf{S_\lambda} \right) \mathbf{x} ||^2}{1-\frac{1}{N}\Tr \left( \mathbf{S_\lambda} \right)}
+\end{equation}
+Now the MSE becomes,
+\begin{align}
+\nonumber
+    \textrm{MSE}(\lambda) =& \frac{1}{N} || \left( \mathbf{S_\lambda} - I \right) \mathbf{x} ||^2 \\
+    & + \left( \frac{\frac{1}{N}|| \left( \mathbf{I} - \mathbf{S_\lambda} \right) \mathbf{x} ||^2}{1-\frac{1}{N}\Tr \left( \mathbf{S_\lambda} \right)} \right) \left( \frac{2}{N} \Tr \mathbf{S_\lambda} -1 \right) \\
+    =& \frac{1}{N}|| \left( \mathbf{I} - \mathbf{S_\lambda} \right) \mathbf{x} ||^2 \left( \frac{ \frac{1}{N} \Tr \mathbf{S_\lambda}}{1-\frac{1}{N}\Tr \left( \mathbf{S_\lambda} \right)} \right)
+\end{align}
+
+Alternatively, if we normalize the MSE by $\sigma^2$, then
+\begin{align}
+   \frac{1}{\sigma^2} \textrm{MSE}(\lambda) =& \frac{1}{N}\Tr \left( \mathbf{S_\lambda} \right)
+\end{align}
+which, duh, should have been obvious from my earlier calculation that the MSE is $\sigma^2/d$.
+
+If the error $\sigma$ is not known, we can estimate it. For each value of sigma.
+
+At one extreme the signal could be all noise
+\begin{equation}
+    \sigma_{\textrm{max}} = \sqrt{\frac{1}{N} \sum (x_i-\bar{x})^2}
+\end{equation}
+and thus our total degrees of freedom is $d=N$. At the other extreme, the noise is effectively zero, in that it is much less than the mean distance traversed,
+\begin{equation}
+    \sigma_{\textrm{min}} = \frac{1}{50} \sqrt{\frac{1}{N-1} \sum (x_i-x_{i-1})^2}
+\end{equation}
+which is equivalent to setting $\Gamma = 0.1$
+
 
 \end{document}  
