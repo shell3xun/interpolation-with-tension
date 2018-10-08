@@ -276,7 +276,7 @@ A second implication is that the tension spline can be easily modified to accomm
 %%%%%%%%%%%%%%%%%%%%%%
 
 \begin{figure*}[t]
-  \centerline{\includegraphics[width=33pc,angle=0]{figures/synthetic_process_and_spectrum}}
+  \centerline{\includegraphics[width=33pc,angle=0]{figures/synthetic_process_and_spectrum_slope2degree3}}
   
   \caption{The upper panel shows a small portion of the decimated signal generated from the Matern process where, using \ref{gamma_equation}, $\Gamma = 3$. The bolded points are further decimated and give $\Gamma=0.3$. The lower panel shows the uncontaminated velocity spectrum of the signal (black) and velocity spectrum of the noise (red). The observed signal is the sum of the two. }
   \label{synthetic_process_and_spectrum}
@@ -339,67 +339,9 @@ Matching the degrees-of-freedom is almost the same as minimizing the least squar
 \begin{equation}
     \textrm{MSE}(\lambda) = \frac{1}{N} || \mathbf{S_\lambda}\mathbf{x} - \mathbf{x}_{\textrm{true}} ||^2
 \end{equation}
-Using our definitions,
 \begin{align}
-    \textrm{MSE}(\lambda) =& \frac{1}{N} || \left( \mathbf{S_\lambda} - I \right) \mathbf{x} ||^2 + \frac{2 \sigma^2}{N}  \Tr \mathbf{S_\lambda} - \sigma^2 \\
-    =&  \left(1-\frac{1}{d_{\textrm{var}}} \right)\sigma^2 + \frac{2 \sigma^2}{d_\textrm{mean}} - \sigma^2 \\
-    =& \sigma^2 \left( \frac{2}{d_\textrm{mean}} -\frac{1}{d_{\textrm{var}}} \right)
+    \textrm{MSE}(\lambda) =& \frac{1}{N} || \left( \mathbf{S_\lambda} - I \right) \mathbf{x} ||^2 + \frac{2 \sigma^2}{N}  \Tr \mathbf{S_\lambda} - \sigma^2
 \end{align}
-
-If we can assume that the DOF are the same, then we find that,
-\begin{equation}
-    \textrm{MSE} = \frac{\sigma^2}{d}
-\end{equation}
-which is a fairly intuitive result.
-
-Key to note here is that the tension parameter in terms of degrees of freedom, has a minimum of $d=1$, and starts to asymptote much past $d=10$. So the range of tension parameters to consider is actually quite small.
-
-Ultimately we want to reduce the MSE of all order of the spline fit. If the higher order information is all garbage, then we should know that.
-
-Roughly speaking, this means we simply compute the MSE for velocity, acceleration, etc.
-
-\begin{align}
-    \textrm{MSE}(\lambda) =& \frac{1}{N} || \mathbf{S_\lambda}\mathbf{x} - \mathbf{x}_{\textrm{true}} ||^2 \\
-    =& \frac{1}{N} \left[ \mathbf{S}\indices{^i_j} x^j - g^i \right]^2 \\
-    =& \frac{1}{N} \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j + \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 \\
-    =& \frac{1}{N} \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j + \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 \\ \nonumber
-    =& \frac{1}{N} \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right]^2  + \frac{1}{N} \left[ \mathbf{S}\indices{^i_j} \epsilon^j \right]^2\\
-    & +\frac{2}{N} \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right] \left[ \mathbf{S}\indices{^i_j} \epsilon^j \right]
-\end{align}
-Consider,
-\begin{align}
-    \left[\mathbf{S}\indices{^i_j} \epsilon^j\right]^2 =& \mathbf{S}\indices{^i_j} \epsilon^j \mathbf{S}\indices{^i_k} \epsilon^k \\
-    =& \mathbf{S}\indices{^i_j}\mathbf{S}\indices{^i_k} \epsilon^j \epsilon^k \\
-    =& \mathbf{S}\indices{^i_j}\mathbf{S}\indices{^i_j} \epsilon^j \epsilon^j \\
-    =& \sigma^2 \mathbf{S}\indices{^i_j}\mathbf{S}\indices{^i_j} \\
-    =& E\left[\sum_i \left( \mathbf{S}\indices{^i_j} \epsilon^j \right)^2 \right]
-\end{align}
-So this is the sum of the square of all the components in the matrix, which is the the trace of the of the matrix.
-Now, under expectation we have that,
-\begin{align}
-    \textrm{MSE}(\lambda) =& \frac{1}{N} \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right]^2  + \frac{\sigma^2}{N} \mathbf{S}\indices{^i_j} \mathbf{S}\indices{^j_i} \\
-    =& \frac{1}{N} \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) \left(x^j-\epsilon^j\right)  \right]^2  + \frac{\sigma^2}{N} \mathbf{S}\indices{^i_j} \mathbf{S}\indices{^j_i}
-\end{align}
-
-If we include a derivative in there,
-\begin{align}
-    \textrm{MSE}(\lambda) =& \frac{1}{N} \left[ D\indices{^k_i} \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right]^2  + \frac{1}{N} \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2\\
-    & +\frac{2}{N} \left[ D\indices{^k_i} \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right] \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]
-\end{align}
-The last term vanishes under expectation, as usual. The second to last term looks the same as before, in the sense that the matrix operation and the derivative can be combined, and so nothing really changed.
-\begin{align}
-    \textrm{MSE}(\lambda) =& \frac{1}{N} \left[ D\indices{^k_i} \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right]^2  + \frac{1}{N} \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 \\ \nonumber
-    =& \frac{1}{N} \left[ D\indices{^k_i} \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) \left(x^j-\epsilon^j\right)  \right]^2  + \frac{1}{N} \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2\\
-    =& \frac{1}{N}\left[ A\indices{^k_j} \left(x^j-\epsilon^j\right) \right]^2 + \frac{1}{N} \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 \\
-    =& \frac{1}{N}\left[ A\indices{^k_j} x^j-A\indices{^k_j}\epsilon^j \right]^2 + \frac{1}{N} \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 \\
-    =& \left[ A\indices{^k_j} x^j\right]^2 + \left[ A\indices{^k_j}\epsilon^j \right]^2 - 2 \left[ A\indices{^k_j} x^j\right]\left[ A\indices{^k_j}\epsilon^j \right] \\ \nonumber
-    & +  \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2
-\end{align}
-
-Ultimately I get that,
-\begin{equation}
-    MSE(\lambda) = || D(I-S)x ||^2 - \sigma^2 \Tr \left(D - DS \right)^2 + \sigma^2 \Tr (DS)^2 
-\end{equation}
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
@@ -528,20 +470,30 @@ and therefore has finite amplitude low frequency and power-law fall off at high 
 For these experiments we choose a spline of degree $S=3$ and apply tension on the second derivative (acceleration). To estimate the tension parameter $\lambda_2$ from equation \ref{lambda} we therefore need an estimate of both $u_{\textrm{rms}}$ and $a_{\textrm{rms}}$. Computing this directly from the observed signal in the time domain is problematic because, given frequent enough sampling, the noise will dominate the estimate. Instead we estimate these values in the frequency domain summing the power in the frequency bins that more than 10 times the expected value of the noise. Because each frequency bin in a periodigram follows a $\chi^2$ distribution for two degrees of freedom, this only adds observed power that is likely to be true signal.
 
 \begin{table}[ht]
-\caption{RMS error and effective degrees-of-freedom for a range of strides (subsampled signal). The first column shows the optimal, best-case scenario found using the uncontaminated signal. This is the lower bound on the error. The iterated estimated found by requiring that equation \ref{iterated_tension} is true. The initial estimate is found using $\lambda_2$ from equation \ref{lambda} directly. }
+\caption{Mean square error and effective degrees-of-freedom for a range of strides (subsampled signal). The first column shows the optimal, best-case scenario found using the uncontaminated signal with 1 dof for each point. The second column shows optimal value using a reduced number of coefficients. This is the lower bound on the error. The iterated estimated found by requiring that equation \ref{iterated_tension} is true. The initial estimate is found using $\lambda_2$ from equation \ref{lambda} directly. }
 \label{fit_results}
 \centering
-\begin{tabular}{c | ccc} stride & optimal & iterated estimate & initial estimate \\ \hline \hline 
-1 & 1.92 m (33.6) &  1.92 m (32.4) &  1.99 m (43.6) \\ 
-2 & 2.29 m (20.4) &  2.39 m (15.9) &  2.76 m (32.2) \\ 
-4 & 2.83 m (11.5) &  2.94 m (8.84) &  4.15 m (22.1) \\ 
-8 & 3.85 m (7.29) &  4.11 m (5.13) &  4.71 m (11.3) \\ 
-16 & 4.72 m (4.08) &  5.05 m (3.01) &  5.89 m (6.60) \\ 
-32 & 6.22 m (2.46) &  6.44 m (1.97) &  6.81 m (3.32) \\ 
-64 & 7.91 m (1.44) &  7.93 m (1.53) &  8.19 m (1.75) \\ 
-128 & 11.5 m (1.06) &  12.0 m (1.25) &  11.5 m (1.10) \\ 
-256 & 23.1 m (1.00) &  23.1 m (1.02) &  23.1 m (1.01) \\ 
-512 & 58.4 m (1.02) &  58.4 m (1.00) &  58.5 m (1.00) \\ 
+\begin{tabular}{c | cccc} stride & optimal full dof & optimal reduced dof & initial estimate & blind optimal \\ \hline \hline 
+2 & 5.18 m$^2$ (20.4) &  -0.1\% (20.6) &  +52.0\% (22.5) &  +1.3\% (20.0) \\ 
+8 & 15.0 m$^2$ (7.17) &  +0.2\% (7.05) &  +69.2\% (11.3) &  +0.4\% (7.33) \\ 
+32 & 41.5 m$^2$ (2.34) &  -0.0\% (2.50) &  +15.8\% (3.27) &  +0.6\% (2.61) \\ 
+128 & 88.9 m$^2$ (1.13) &  -0.0\% (1.16) &  +5.5\% (1.03) &  +1.4\% (1.07) \\ 
+\end{tabular} 
+
+
+\begin{tabular}{c | cccc} stride & optimal full dof & optimal reduced dof & initial estimate & blind optimal \\ \hline \hline 
+2 & 2.73 m$^2$ (30.6) &  -0.1\% (31.6) &  +42.3\% (32.8) &  +2.9\% (30.3) \\ 
+8 & 8.48 m$^2$ (11.7) &  -0.0\% (11.8) &  +37.7\% (17.1) &  +0.7\% (12.3) \\ 
+32 & 25.4 m$^2$ (3.98) &  +0.1\% (4.07) &  +3.8\% (4.19) &  +0.5\% (3.87) \\ 
+128 & 73.7 m$^2$ (1.31) &  +0.0\% (1.30) &  +25.1\% (1.06) &  +1.2\% (1.32) \\ 
+\end{tabular} 
+
+
+\begin{tabular}{c | cccc} stride & optimal full dof & optimal reduced dof & initial estimate & blind optimal \\ \hline \hline 
+2 & 1.78 m$^2$ (53.9) &  -0.2\% (57.3) &  +148.6\% (24.0) &  +5.2\% (45.2) \\ 
+8 & 5.61 m$^2$ (16.1) &  -0.2\% (17.4) &  +33.0\% (19.2) &  +0.8\% (15.0) \\ 
+32 & 19.1 m$^2$ (5.47) &  +0.1\% (5.43) &  +2.0\% (5.18) &  +1.3\% (4.63) \\ 
+128 & 60.6 m$^2$ (1.62) &  -0.0\% (1.63) &  +23.3\% (1.22) &  +1.5\% (1.69) \\ 
 \end{tabular} 
 
 \end{table}
