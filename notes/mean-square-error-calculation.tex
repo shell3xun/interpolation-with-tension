@@ -1,0 +1,83 @@
+\documentclass[11pt]{article}
+\usepackage{geometry}                % See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   % ... or a4paper or a5paper or ... 
+%\geometry{landscape}                % Activate for for rotated page geometry
+\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{epstopdf}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+\title{Notes on the MSE calculation}
+\author{Jeffrey J. Early}
+%\date{}                                           % Activate to display a given date or no date
+
+\begin{document}
+\maketitle
+%\section{}
+%\subsection{}
+
+Using our definitions,
+\begin{align}
+    \textrm{MSE}(\lambda) =& \frac{1}{N} || \left( \mathbf{S_\lambda} - I \right) \mathbf{x} ||^2 + \frac{2 \sigma^2}{N}  \Tr \mathbf{S_\lambda} - \sigma^2 \\
+    =&  \left(1-\frac{1}{d_{\textrm{var}}} \right)\sigma^2 + \frac{2 \sigma^2}{d_\textrm{mean}} - \sigma^2 \\
+    =& \sigma^2 \left( \frac{2}{d_\textrm{mean}} -\frac{1}{d_{\textrm{var}}} \right)
+\end{align}
+
+If we can assume that the DOF are the same, then we find that,
+\begin{equation}
+    \textrm{MSE} = \frac{\sigma^2}{d}
+\end{equation}
+which is a fairly intuitive result.
+
+Key to note here is that the tension parameter in terms of degrees of freedom, has a minimum of $d=1$, and starts to asymptote much past $d=10$. So the range of tension parameters to consider is actually quite small.
+
+Ultimately we want to reduce the MSE of all order of the spline fit. If the higher order information is all garbage, then we should know that.
+
+Roughly speaking, this means we simply compute the MSE for velocity, acceleration, etc.
+
+\begin{align}
+    \textrm{MSE}(\lambda) =& \frac{1}{N} || \mathbf{S_\lambda}\mathbf{x} - \mathbf{x}_{\textrm{true}} ||^2 \\
+    =& \frac{1}{N} \left[ \mathbf{S}\indices{^i_j} x^j - g^i \right]^2 \\
+    =& \frac{1}{N} \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j + \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 \\
+    =& \frac{1}{N} \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j + \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 \\ \nonumber
+    =& \frac{1}{N} \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right]^2  + \frac{1}{N} \left[ \mathbf{S}\indices{^i_j} \epsilon^j \right]^2\\
+    & +\frac{2}{N} \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right] \left[ \mathbf{S}\indices{^i_j} \epsilon^j \right]
+\end{align}
+Consider,
+\begin{align}
+    \left[\mathbf{S}\indices{^i_j} \epsilon^j\right]^2 =& \mathbf{S}\indices{^i_j} \epsilon^j \mathbf{S}\indices{^i_k} \epsilon^k \\
+    =& \mathbf{S}\indices{^i_j}\mathbf{S}\indices{^i_k} \epsilon^j \epsilon^k \\
+    =& \mathbf{S}\indices{^i_j}\mathbf{S}\indices{^i_j} \epsilon^j \epsilon^j \\
+    =& \sigma^2 \mathbf{S}\indices{^i_j}\mathbf{S}\indices{^i_j} \\
+    =& E\left[\sum_i \left( \mathbf{S}\indices{^i_j} \epsilon^j \right)^2 \right]
+\end{align}
+So this is the sum of the square of all the components in the matrix, which is the the trace of the of the matrix.
+Now, under expectation we have that,
+\begin{align}
+    \textrm{MSE}(\lambda) =& \frac{1}{N} \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right]^2  + \frac{\sigma^2}{N} \mathbf{S}\indices{^i_j} \mathbf{S}\indices{^j_i} \\
+    =& \frac{1}{N} \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) \left(x^j-\epsilon^j\right)  \right]^2  + \frac{\sigma^2}{N} \mathbf{S}\indices{^i_j} \mathbf{S}\indices{^j_i}
+\end{align}
+
+If we include a derivative in there,
+\begin{align}
+    \textrm{MSE}(\lambda) =& \frac{1}{N} \left[ D\indices{^k_i} \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right]^2  + \frac{1}{N} \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2\\
+    & +\frac{2}{N} \left[ D\indices{^k_i} \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right] \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]
+\end{align}
+The last term vanishes under expectation, as usual. The second to last term looks the same as before, in the sense that the matrix operation and the derivative can be combined, and so nothing really changed.
+\begin{align}
+    \textrm{MSE}(\lambda) =& \frac{1}{N} \left[ D\indices{^k_i} \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j  \right]^2  + \frac{1}{N} \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 \\ \nonumber
+    =& \frac{1}{N} \left[ D\indices{^k_i} \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) \left(x^j-\epsilon^j\right)  \right]^2  + \frac{1}{N} \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2\\
+    =& \frac{1}{N}\left[ A\indices{^k_j} \left(x^j-\epsilon^j\right) \right]^2 + \frac{1}{N} \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 \\
+    =& \frac{1}{N}\left[ A\indices{^k_j} x^j-A\indices{^k_j}\epsilon^j \right]^2 + \frac{1}{N} \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 \\
+    =& \left[ A\indices{^k_j} x^j\right]^2 + \left[ A\indices{^k_j}\epsilon^j \right]^2 - 2 \left[ A\indices{^k_j} x^j\right]\left[ A\indices{^k_j}\epsilon^j \right] \\ \nonumber
+    & +  \left[ D\indices{^k_i} \mathbf{S}\indices{^i_j} \epsilon^j \right]^2
+\end{align}
+
+Ultimately I get that,
+\begin{equation}
+    MSE(\lambda) = || D(I-S)x ||^2 - \sigma^2 \Tr \left(D - DS \right)^2 + \sigma^2 \Tr (DS)^2 
+\end{equation}
+
+\end{document}  
