@@ -58,6 +58,8 @@ Global positioning system receivers (now commonly referred to as `a GPS') are us
 
 Observations from GPS receivers return positions $x_i$ at times $t_i$ that differ from the true positions $x(t_i)$ by some noise $\epsilon_i \equiv x_i - x(t_i)$. The primary goal of \emph{smoothing} is to find the true position $x(t_i)$ not contaminated by the noise, while the primary goal of \emph{interpolating} is to find the true position $x(t)$ between observation times.
 
+The impetus for this manuscript arose from the analysis of position data from nine free floating ocean surface buoys (drifters) equipped with GPS receivers recording locations every 30 minutes. For our analysis we require the position data be evenly spaced and synchronized in time across the drifters (interpolation). The dataset also clearly shows outliers (position jumps of hundreds of meters) that must be removed (smoothing). However, it is also important that the power spectrum is not significantly altered in the process of interpolating and smoothing.
+
 Given the ubiquity of this basic problem, there are certainly many approaches to finding the true path $x(t)$---the approach taken here is to use maximum likelihood. The central idea of maximum likelihood is to ask ``Given a particular path $x(t)$, what is the probability that this dataset $(t_i,x_i)$ could have occurred?'' \cite{press1992-book}. The goal is then to find the path that is most likely to have produced that dataset.
 
 Conceptually there are two major pieces needed to solve this problem,
@@ -343,45 +345,6 @@ Matching the degrees-of-freedom is almost the same as minimizing the least squar
     \textrm{MSE}(\lambda) =& \frac{1}{N} || \left( \mathbf{S_\lambda} - I \right) \mathbf{x} ||^2 + \frac{2 \sigma^2}{N}  \Tr \mathbf{S_\lambda} - \sigma^2
 \end{align}
 
-%%%%%%%%%%%%%%%%%%%%%%
-%
-\section{Unknown error} \label{sec:unknown_error}
-%
-%%%%%%%%%%%%%%%%%%%%%%
-
-Just eliminate $d$ from the sample variance and sample mean equations, so that,
-\begin{align}
-    \left( 1 - \frac{1}{N} \Tr \left( \mathbf{S_\lambda} \right) \right) \sigma^2 =  \frac{1}{N} || \left( \mathbf{I} - \mathbf{S_\lambda} \right) \mathbf{x} ||^2
-\end{align}
-or
-\begin{equation}
-    \sigma^2 = \frac{ \frac{1}{N}|| \left( \mathbf{I} - \mathbf{S_\lambda} \right) \mathbf{x} ||^2}{1-\frac{1}{N}\Tr \left( \mathbf{S_\lambda} \right)}
-\end{equation}
-Now the MSE becomes,
-\begin{align}
-\nonumber
-    \textrm{MSE}(\lambda) =& \frac{1}{N} || \left( \mathbf{S_\lambda} - I \right) \mathbf{x} ||^2 \\
-    & + \left( \frac{\frac{1}{N}|| \left( \mathbf{I} - \mathbf{S_\lambda} \right) \mathbf{x} ||^2}{1-\frac{1}{N}\Tr \left( \mathbf{S_\lambda} \right)} \right) \left( \frac{2}{N} \Tr \mathbf{S_\lambda} -1 \right) \\
-    =& \frac{1}{N}|| \left( \mathbf{I} - \mathbf{S_\lambda} \right) \mathbf{x} ||^2 \left( \frac{ \frac{1}{N} \Tr \mathbf{S_\lambda}}{1-\frac{1}{N}\Tr \left( \mathbf{S_\lambda} \right)} \right)
-\end{align}
-
-Alternatively, if we normalize the MSE by $\sigma^2$, then
-\begin{align}
-   \frac{1}{\sigma^2} \textrm{MSE}(\lambda) =& \frac{1}{N}\Tr \left( \mathbf{S_\lambda} \right)
-\end{align}
-which, duh, should have been obvious from my earlier calculation that the MSE is $\sigma^2/d$.
-
-If the error $\sigma$ is not known, we can estimate it. For each value of sigma.
-
-At one extreme the signal could be all noise
-\begin{equation}
-    \sigma_{\textrm{max}} = \sqrt{\frac{1}{N} \sum (x_i-\bar{x})^2}
-\end{equation}
-and thus our total degrees of freedom is $d=N$. At the other extreme, the noise is effectively zero, in that it is much less than the mean distance traversed,
-\begin{equation}
-    \sigma_{\textrm{min}} = \frac{1}{50} \sqrt{\frac{1}{N-1} \sum (x_i-x_{i-1})^2}
-\end{equation}
-which is equivalent to setting $\Gamma = 0.1$
 
 
 
@@ -400,6 +363,13 @@ The approach taken here is to use the definition of $\lambda_m$ from equation \r
 %%%%%%%%%%%%%%%%%%%%%%
 
 We argue that the degrees of freedom, and therefore the tension, should vary based on the relative size of the measurement errors to the speed of motion. For example, if the position errors are only $1$ meter, but particle typically travels $10$ meters between measurements, then it is hardly justifiable to increase the tension so that the smoothing spline misses the observation points by $1$ meter. There is not enough statistical evidence to suggest that the particle didn't go right through the observation point. On the other hand, if the position errors are  $1$ meter, but particle typically travels $10$ centimeters between measurements, nearby measurements provide more information about the particle's true position during that time, so our estimate of the particles true position is closer to a mean of the nearby observations.
+
+\begin{figure*}[t]
+  \centerline{\includegraphics[width=39pc,angle=0]{figures/dofVsGamma}}
+  
+  \caption{Degrees-of-freedom from the standard error vs $\Gamma$}
+  \label{dofVsGamma}
+\end{figure*}
 
 This idea can be made more rigorous by noting that one would consider change in position, $\Delta x$, statistically significant if exceeds the position errors, $\sigma_x$ by 2-3 factors. Assuming the physical process has a characteristic velocity scale, $u_{\textrm{rms}}$, we use this concept to define $\Gamma$ as
 \begin{equation}
@@ -473,23 +443,18 @@ For these experiments we choose a spline of degree $S=3$ and apply tension on th
 \caption{Mean square error and effective degrees-of-freedom for a range of strides (subsampled signal). The first column shows the optimal, best-case scenario found using the uncontaminated signal with 1 dof for each point. The second column shows optimal value using a reduced number of coefficients. This is the lower bound on the error. The iterated estimated found by requiring that equation \ref{iterated_tension} is true. The initial estimate is found using $\lambda_2$ from equation \ref{lambda} directly. }
 \label{fit_results}
 \centering
-\begin{tabular}{c | cccc} stride & optimal full dof & optimal reduced dof & initial estimate & blind optimal \\ \hline \hline 
+\begin{tabular}{r | llll} stride & full dof & reduced dof & blind initial & blind optimal \\ \hline \hline 
+-2 slope &&&&  \\ \hline 
 2 & 5.18 m$^2$ (20.4) &  -0.1\% (20.6) &  +52.0\% (22.5) &  +1.3\% (20.0) \\ 
 8 & 15.0 m$^2$ (7.17) &  +0.2\% (7.05) &  +69.2\% (11.3) &  +0.4\% (7.33) \\ 
 32 & 41.5 m$^2$ (2.34) &  -0.0\% (2.50) &  +15.8\% (3.27) &  +0.6\% (2.61) \\ 
 128 & 88.9 m$^2$ (1.13) &  -0.0\% (1.16) &  +5.5\% (1.03) &  +1.4\% (1.07) \\ 
-\end{tabular} 
-
-
-\begin{tabular}{c | cccc} stride & optimal full dof & optimal reduced dof & initial estimate & blind optimal \\ \hline \hline 
+-3 slope &&&&  \\ \hline 
 2 & 2.73 m$^2$ (30.6) &  -0.1\% (31.6) &  +42.3\% (32.8) &  +2.9\% (30.3) \\ 
 8 & 8.48 m$^2$ (11.7) &  -0.0\% (11.8) &  +37.7\% (17.1) &  +0.7\% (12.3) \\ 
 32 & 25.4 m$^2$ (3.98) &  +0.1\% (4.07) &  +3.8\% (4.19) &  +0.5\% (3.87) \\ 
 128 & 73.7 m$^2$ (1.31) &  +0.0\% (1.30) &  +25.1\% (1.06) &  +1.2\% (1.32) \\ 
-\end{tabular} 
-
-
-\begin{tabular}{c | cccc} stride & optimal full dof & optimal reduced dof & initial estimate & blind optimal \\ \hline \hline 
+-4 slope &&&&  \\ \hline 
 2 & 1.78 m$^2$ (53.9) &  -0.2\% (57.3) &  +148.6\% (24.0) &  +5.2\% (45.2) \\ 
 8 & 5.61 m$^2$ (16.1) &  -0.2\% (17.4) &  +33.0\% (19.2) &  +0.8\% (15.0) \\ 
 32 & 19.1 m$^2$ (5.47) &  +0.1\% (5.43) &  +2.0\% (5.18) &  +1.3\% (4.63) \\ 
@@ -635,6 +600,7 @@ Once the outliers are removed, the final fits can be performed using \ref{lambda
 
 - we avoided autocorrelation, although it's very addressable.
 - method has strong limitations: stationarity assumptions in particular.
+- notice that ultimately we avoid using any interpolation from the interpolating spline, in the sense that we're not using information between the data points. That said, we're still using the 
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
