@@ -1,9 +1,17 @@
 scaleFactor = 1;
 LoadFigureDefaults
 
-shouldLoadExistingTable = 1;
+shouldUseStudentTDistribution = 1;
+shouldLoadExistingTable = 0;
+
+if shouldUseStudentTDistribution == 1
+    filename = 'MSEComparisonTableStudentT.mat';
+else
+    filename = 'MSEComparisonTable.mat';
+end
+
 if shouldLoadExistingTable == 1
-    load('MSEComparisonTable.mat');
+    load(filename);
 else
     slopes = [-2; -3; -4];
     totalSlopes = length(slopes);
@@ -61,6 +69,7 @@ else
             data = load('sample_data/SyntheticTrajectoriesSlope4.mat');
             outputFile = 'OptimalParametersSlope4.mat';
         end
+        sigma = data.position_error;
         dt = data.t(2)-data.t(1);
         u = diff(data.x)/dt;
         a = diff(diff(data.x))/(dt^2);
@@ -84,20 +93,28 @@ else
             else
                 indicesAll = 1:max(indices);
             end
-            sigma = data.position_error;
             
             for iEnsemble = 1:totalEnsembles
                 fprintf('..%d',iEnsemble);
                 
-                epsilon_x = sigma*randn(length(indices),1);
+                if shouldUseStudentTDistribution == 1
+                    nu = 4.5; sigma =  8.5;
+                    variance_of_the_noise = sigma*sigma*nu/(nu-2);
+                    w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
+                    epsilon_x = randt(sigma,nu,length(indices));
+                else
+                    epsilon_x = sigma*randn(length(indices),1);
+                    variance_of_the_noise = sigma*sigma;
+                    w = [];
+                end 
                 x_obs = data.x(indices) + epsilon_x;
                 t_obs = data.t(indices);
                 
                 % Compute the expected tension before any fitting
-                [lambda, expectedDOF(iStride,iSlope,iEnsemble), u_estimate_spectral(iStride,iSlope,iEnsemble), a_estimate_spectral(iStride,iSlope,iEnsemble)] = TensionSpline.ExpectedInitialTension(t_obs,x_obs,sigma,T);
+                [lambda, expectedDOF(iStride,iSlope,iEnsemble), u_estimate_spectral(iStride,iSlope,iEnsemble), a_estimate_spectral(iStride,iSlope,iEnsemble)] = TensionSpline.ExpectedInitialTension(t_obs,x_obs,sqrt(variance_of_the_noise),T);
                 
                 % Fit using 1 dof for each data point
-                spline_x = TensionSpline(t_obs,x_obs,sigma, 'lambda', lambda, 'S', S, 'T', T, 'knot_dof', 1);
+                spline_x = TensionSpline(t_obs,x_obs,sqrt(variance_of_the_noise), 'lambda', lambda, 'S', S, 'T', T, 'knot_dof', 1, 'weight_function', w);
                 TensionSpline.MinimizeMeanSquareError(spline_x,data.t(indicesAll),data.x(indicesAll));
                 compute_ms_error = @() (mean(mean(  (data.x(indicesAll) - spline_x(data.t(indicesAll))).^2,2 ),1));
                 
@@ -105,7 +122,7 @@ else
                 dof_se_full_dof_true_optimal(iStride,iSlope,iEnsemble) = spline_x.DOFFromVarianceOfTheMean;
                 
                 % Fit using the automatic knot dof algorithm
-                spline_x = TensionSpline(t_obs,x_obs,sigma, 'lambda', lambda, 'S', S, 'T', T, 'knot_dof', 'auto');
+                spline_x = TensionSpline(t_obs,x_obs,sqrt(variance_of_the_noise), 'lambda', lambda, 'S', S, 'T', T, 'knot_dof', 'auto', 'weight_function', w);
                 compute_ms_error = @() (mean(mean(  (data.x(indicesAll) - spline_x(data.t(indicesAll))).^2,2 ),1));
                 reduced_dof_knot_dof(iStride,iSlope,iEnsemble) = spline_x.knot_dof;
                 
@@ -128,7 +145,7 @@ else
     end
     
     
-    save('MSEComparisonTable.mat', 'S', 'T', 'slopes', 'result_stride', 'u_rms_true', 'a_rms_true', 'u_estimate_spectral', 'a_estimate_spectral', 'expectedDOF','reduced_dof_knot_dof','mse_full_dof_true_optimal','mse_reduced_dof_true_optimal','mse_reduced_dof_blind_initial','mse_reduced_dof_blind_optimal','dof_se_full_dof_true_optimal','dof_se_reduced_dof_true_optimal','dof_se_reduced_dof_blind_initial','dof_se_reduced_dof_blind_optimal');
+    save(filename, 'S', 'T', 'slopes', 'result_stride', 'u_rms_true', 'a_rms_true', 'u_estimate_spectral', 'a_estimate_spectral', 'expectedDOF','reduced_dof_knot_dof','mse_full_dof_true_optimal','mse_reduced_dof_true_optimal','mse_reduced_dof_blind_initial','mse_reduced_dof_blind_optimal','dof_se_full_dof_true_optimal','dof_se_reduced_dof_true_optimal','dof_se_reduced_dof_blind_initial','dof_se_reduced_dof_blind_optimal');
 end
 
 reduced_dof_knot_dof_mean = mean(reduced_dof_knot_dof,3);

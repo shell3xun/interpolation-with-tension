@@ -172,6 +172,7 @@ ax.ColorOrderIndex = ax.ColorOrderIndex-1;
 end
 xlabel('\Gamma', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 ylabel('dof', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
+xlog, ylog
 leg = legend(plotHandles,'-2 slope','-3 slope','-4 slope');
 leg.FontSize = figure_legend_size;
 leg.FontName = figure_font;
