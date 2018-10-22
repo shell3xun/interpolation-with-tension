@@ -6,6 +6,8 @@ filename = 'OptimalTensionOrderTable.mat';
 
 if shouldLoadExistingTable == 1
     load(filename);
+    
+    totalSlopes = length(slopes);
 else
     slopes = [-2; -3; -4];
     S_range = 1:5;
@@ -121,11 +123,48 @@ min_rms_error = min(min(rms_error_obs_optimal_obs,[],3),[],4);
 % now we normalize them (min error should be 1.0 for each ensemble)
 rel_rms_error = rms_error_obs_optimal_obs./min_rms_error;
 
+pct_range = 0.6827; % Chosen to match 1-sigma for a Gaussian (these are not Gaussian).
+rel_rms_error_SvsT = zeros(length(S_range),length(S_range));
+rel_rms_error_std_SvsT = zeros(length(S_range),length(S_range));
+rel_rms_error_SvsT_pct_low = zeros(length(S_range),length(S_range));
+rel_rms_error_SvsT_pct_high = zeros(length(S_range),length(S_range));
+for iS = 1:length(S_range)
+    for iT=1:length(S_range)
+        values = sort(reshape(rel_rms_error(:,:,iS,iT,:),1,[]));
+        rel_rms_error_SvsT(iS,iT) = mean(values);
+        rel_rms_error_std_SvsT(iS,iT) = std(values);
+        rel_rms_error_SvsT_pct_low(iS,iT) = values(ceil( ((1-pct_range)/2)*length(values)));
+        rel_rms_error_SvsT_pct_high(iS,iT) = values(floor( ((1+pct_range)/2)*length(values)));
+    end
+end
+
+fprintf('\n\n');
+fprintf('\\begin{tabular}{l *{%d}{l}}\n',length(S_range));
+fprintf('\\toprule & \\multicolumn{%d}{c}{S} \\\\ \n',length(S_range));
+fprintf('\\cmidrule(lr){2-%d} \n',length(S_range)+1);
+fprintf('T ');
+for iS = 1:length(S_range)
+    fprintf('& %d ',iS);
+end
+fprintf('\\\\ \\midrule \n');
+for iT = 1:length(S_range)
+    fprintf('%d ',iT);
+    for iS = 1:length(S_range)
+        if isnan(rel_rms_error_SvsT_pct_low(iS,iT))
+            fprintf('& ');
+        else
+            fprintf('& %.1f-%.1f\\%% ', 100*(rel_rms_error_SvsT_pct_low(iS,iT)-1),100*(rel_rms_error_SvsT_pct_high(iS,iT)-1) );
+        end
+    end
+    fprintf('\\\\ \n');
+end
+fprintf(' \\bottomrule \n\\end{tabular} \n');
+
 % now compute the ensemble average increase in error
-rel_rms_error = mean(rel_rms_error,5);
+% rel_rms_error = mean(rel_rms_error,5);
 
 % now flatten across stride and slope
-rel_rms_error_SvsT =squeeze(mean(mean(rel_rms_error)));
+% rel_rms_error_SvsT =squeeze(mean(mean(rel_rms_error)));
 
 % fprintf('\n\n');
 % fprintf('\\begin{tabular}{r | llll} stride & full dof & reduced dof & blind initial & blind optimal \\\\ \\hline \\hline \n');
