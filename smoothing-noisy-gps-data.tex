@@ -12,9 +12,9 @@
 
 \title{Smoothing and Interpolating Noisy GPS Data with Tension Splines}
 
-\author{Jeffrey~J.~Early and Adam~Sykulski%
+\author{Jeffrey~J.~Early and Adam~M.~Sykulski%
 \thanks{Jeffrey J. Early is with NorthWest Research Associates, 4118 148th Ave NE, Redmond, WA 98052, USA (email: jearly@nwra.com) } %
-\thanks{Adam Sykulski is with the Department of Statistical Science, University College London, Gower Street, London WC1E 6BT, UK (email: a.sykulski@ucl.ac.uk)}%
+\thanks{Adam M. Sykulski is with the Data Science Institute and the Department of Mathematics and Statistics, Lancaster University, Bailrigg LA1 4YW, UK (email: a.sykulski@lancaster.ac.uk)}%
 \thanks{Manuscript submitted February 29th, 2050.} }
 
 
@@ -23,7 +23,7 @@
 \maketitle
 
 \begin{abstract}
-A technique is developed for smoothing and interpolating noisy GPS trajectory data using B-splines with tension. An interpolating B-spline basis set of arbitrary order is reformulate using knot placement, rather than the traditional approach of adding additional constraints on the coefficients. Adding tension to the interpolating spline to smooth noisy data is shown to be equivalent to a maximum likelihood problem on the velocity statistics of the underlying process. This insight allows for nearly optimal choice in smoothing parameter, and also shows the limitations of smoothing splines. Finally, we show how to modify the smoothing operator to account for the non-Gaussianity of GPS errors and reject outliers.
+A technique is developed for smoothing and interpolating noisy GPS data using B-splines with tension. An interpolating B-spline basis set of arbitrary order is reformulated using knot placement, rather than the traditional approach of adding additional constraints on the coefficients. Adding tension to the interpolating spline to smooth noisy data is shown to be equivalent to a maximum likelihood problem on the velocity statistics of the underlying process. This insight allows for a nearly optimal choice of smoothing parameter, and shows the limitations of smoothing splines. Finally, we show how to modify the smoothing operator to account for the non-Gaussianity of GPS errors and reject outliers.
 
 
 We show how the tension condition routinely employed in smoothing splines can be restated as a maximum likelihood problem and then how the tension parameter can be chosen based on physical reasoning. The GPS errors appear to be non-Gaussian, so we use a t-distribution in the maximum likelihood.
@@ -67,7 +67,7 @@ The approach taken here is to use smoothing splines. Our model for the `true' pa
 \end{equation}
 where $K$ is the order (degree $S=K-1$) of the spline. For $N$ observations we construct $N$ b-splines such that $x(t_i)=x_i$ for appropriately chosen coefficients $\xi_i$. In order to smooth the data we choose coefficients $\xi_i$ that minimize the penalty function,
 \begin{equation}
-\label{smoothing-spline-intro}
+\label{smoothing-spline}
 \phi =  \frac{1}{N}\sum_{i=1}^{N} \left( \frac{x_i - x(t_i)}{\sigma_i} \right) ^2 + \lambda_T \int_{t_1}^{t_N} \left(\frac{d^T x}{dt^T}\right)^2 \, dt
 \end{equation}
 for some tension parameter $\lambda_T$. The resulting path $x(t)$ is known as a smoothing spline and was first introduced in modern form by \cite{reinsch1967-nm}, but according to \cite{deboor1978-book} the idea dates back to \cite{whittaker1923-pems}. The smoothing spline has one free parameter and its optimal value can be found by minimizing the expected mean square error when the variance of the noise is known \cite{craven1979-nm}.
@@ -78,7 +78,7 @@ As a practical matter there are three issues that still need to be addressed bef
     \item how do we modify the spline fit to accommodate the non-Gaussian errors of GPS receivers?
     \item how do we identify and remove outliers?
 \end{enumerate}
-To address these issues, but also serve as a practical guide to other practitioners, we start by reviewing b-splines in section \ref{sec:interpolation} and introduce the canonical interpolating spline that is used as the underlying model for path $x(t)$ (equation \ref{b-spline-model-intro}) throughout this manuscript. Section \ref{sec:maximum_likelihood} takes a broad look at tension splines and the assumptions they make on the underlying physical process. We show that the tension parameter $\lambda_T$ scales with the degrees-of-freedom and root-mean-square value of the tensioned derivative, suggesting that it can be estimated without minimizing the mean-square error. We also show that the penalty function in equation \ref{smoothing-spline-intro} can be formulated as a maximum likelihood problem and that applying tension is equivalent to assuming a Gaussian distribution on the tensioned derivative of the underlying process.
+To address these issues, but also serve as a practical guide to other practitioners, we start by reviewing B-splines in section \ref{sec:interpolation} and introduce the canonical interpolating spline that is used as the underlying model for path $x(t)$ (equation \ref{b-spline-model-intro}) throughout this manuscript. Section \ref{sec:maximum_likelihood} takes a broad look at tension splines and the assumptions they make on the underlying physical process. We show that the tension parameter $\lambda_T$ scales with the degrees-of-freedom and root-mean-square value of the tensioned derivative, suggesting that it can be estimated without minimizing the mean-square error. We also show that the penalty function in equation \ref{smoothing-spline} can be formulated as a maximum likelihood problem and that applying tension is equivalent to assuming a Gaussian distribution on the tensioned derivative of the underlying process.
 
 Section \ref{sec:optimal_parameter} uses synthetic data to test a number of choices that have to be made. We first establish that setting $T=S$ is optimal. We then show that the tension parameter can be chosen \emph{a priori} (without optimization of the mean-square error) when the number of degrees-of-freedom can be estimated from the data. This estimate for the degrees-of-freedom can then be used to reduce the coefficients, $\xi_i$, in the splines fit without sacrificing mean-square-error. Finally, we show the effect of different choices of $S$ on the resulting power spectrum and show how the degrees-of-freedom in the fit can be used to establish the highest resolved frequency.
 
@@ -209,7 +209,7 @@ Maximizing the probability function in equation \ref{max-gaussian} is also the s
 \label{least-squares}
 \phi = \frac{1}{N}\sum_{i=1}^{N} \left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 .
 \end{equation}
-Stated in this way is plain to see that this is the same as asking for the `least-squares' fit of the errors.
+Stated in this way is plain to see that this is the same as asking for the `least-squares' fit of the errors \cite{press1992-book}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -219,10 +219,10 @@ Stated in this way is plain to see that this is the same as asking for the `leas
 The model used here will be the canonical interpolating spline of order $K$ described in section \ref{sec:interpolation}. Of course, we've chosen our knot points such that the model intersects each observations and this certainly maximizes equation \ref{max-gaussian} (and minimize equation \ref{least-squares}) because all the errors are zero, but the resulting distribution of errors (a delta function at zero) doesn't look anything like the assumed Gaussian distribution. Thus, if we want the error distribution that we get out to look like that which we assumed, it also necessary to \emph{constrain} the problem in some way.
 
 The smoothing spline augments the penalty function of equation \ref{least-squares} by adding a global constraint on the $m$-th derivative of the resulting function,
-\begin{equation}
-\label{smoothing-spline}
+\begin{equation*}
+\tag{\ref{smoothing-spline} revisited}
 \phi =  \frac{1}{N}\sum_{i=1}^{N} \left( \frac{x_i - x(t_i)}{\sigma_i} \right) ^2 + \lambda_T \int_{t_1}^{t_N} \left(\frac{d^T x}{dt^T}\right)^2 \, dt.
-\end{equation}
+\end{equation*}
 If $\lambda_T \rightarrow 0$ then this reduces to the least-squares fit in equation \ref{least-squares}, but if $\lambda_T \rightarrow \infty$ then this forces the model to an $T$-th order polynomial (e.g., when $T=2$, the model will forced to be a straight line because it has no second derivative).
 
 The first term of equation \ref{smoothing-spline} is proportional to the sample variance,
@@ -252,7 +252,7 @@ The interpretation of the smoothing spline is therefore that the two terms are b
 \subsection{Smoothing spline maximum likelihood}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The penalty function for the smoothing spline (\ref{smoothing-spline}) can be restated in terms of maximum likelihood. Assume that in addition to knowing about how the measurement errors are distributed like in equation \ref{max-gaussian}, that we also know how the velocity of underlying physical process is distributed. For example, in geophysical turbulence it has been shown that the velocity probability distribution function is like a two-sided exponential \cite{bracco2000-pf}. Here we will consider the case where the velocity PDF is Gaussian. Stated as maximum likelihood, this means that at \emph{any given instant} (not just the times of observation) we expected the model velocity to look Gaussian. We can discretize the problem by sampling the velocity $Q$ at times $t_q = t_1 + q \Delta t_q$ where $\Delta t_q=\frac{t_N-t_1}{Q-1}$ and $q=0..Q-1$. The maximum likelihood is thus stated as,
+The penalty function for the smoothing spline (\ref{smoothing-spline}) can be restated in terms of maximum likelihood. Assume that in addition to knowing about how the measurement errors are distributed like in equation \ref{max-gaussian}, that we also know how the velocity of underlying physical process is distributed. For example, in geophysical turbulence it has been shown that the velocity probability distribution function is like a two-sided exponential \cite{bracco2000-pf}. To recover the smoothing spline, we need to consider the case where the velocity PDF is Gaussian. Stated as maximum likelihood, this means that at \emph{any given instant} (not just the times of observation) we expected the model velocity to look Gaussian. We can discretize the problem by sampling the velocity $Q$ at times $t_q = t_1 + q \Delta t_q$ where $\Delta t_q=\frac{t_N-t_1}{Q-1}$ and $q=0..Q-1$. The maximum likelihood is thus stated as,
 \begin{equation}
 \label{gaussian-max-likelihood}
 \begin{split}
@@ -264,7 +264,7 @@ which is simply the joint probability of the error distribution from equation \r
 \label{smoothing-spline-pdf}
 \phi =\frac{d}{d-1}  \frac{1}{N} \sum^N _{i=1}  \left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 + \frac{1}{\sigma_u^2 (t_N-t_1)} \sum^{Q}_{q=1}  u^2(t_q) \Delta t_q.
 \end{equation}
-where we've renormalized the error PDF and the velocity PDF to have equal weighting regardless of number of points. Apart from the discretization of the integral, equation \ref{smoothing-spline} is the same as the penalty function for a smoothing spline, equation \ref{smoothing-spline-pdf}.
+where we've used the freedom in scaling to renormalize the PDFs. Apart from the discretization of the integral, equation \ref{smoothing-spline} is the same as the penalty function for a smoothing spline, equation \ref{smoothing-spline-pdf}.
 
 The implication of this result is that adding tension to the penalty function is equivalent to assuming that one of the higher order derivatives in the model (e.g., velocity) is Gaussian. This is therefore making an assumption about the underlying \emph{physical process} of the model. This is in contrast to the first term which is entirely a statement about \emph{measurement noise}.
 
@@ -283,7 +283,7 @@ The free parameter in this model, $\lambda_T$, is a relative weighting between t
 \end{align}
 where $||\cdot||^2$ is the Euclidean norm and $\Tr$ indicates the trace.
 
-It's worth noting that a fair amount of the literature on smoothing splines is devoted to minimizing the mean square error when the variance, $\sigma^2$, is \emph{not} known. For example, \cite{wahba1978-jrss-b} and \cite{craven1979-nm} use cross-validation to estimate $\sigma$ and minimize the mean square error. Recent work comparing different estimators shows that no single technique appears to be an optimal estimator \cite{lee2003-csda}. Fortunately for us, the errors in GPS data can be relatively easily establish, as shown in section \ref{sec:drifter_data_set}.
+It's worth noting that a fair amount of the literature on smoothing splines is devoted to minimizing the mean square error when the variance, $\sigma^2$, is \emph{not} known. For example, \cite{wahba1978-jrss-b} and \cite{craven1979-nm} use cross-validation to estimate $\sigma$ and minimize the mean square error. Recent work comparing different estimators shows that no single technique appears to be optimal \cite{lee2003-csda}. Fortunately for us, the errors in GPS data can be relatively easily established, as shown in section \ref{sec:drifter_data_set}.
 
 The mean square error in equation \ref{MSE} is a combination of the sample variance and the variance of the mean. The first terms in equation \ref{MSE} is the sample variance and can be related to degrees of freedom using equation \ref{sample_variance_variance}. We use this to define the degrees of freedom from the sample variance, $d_{\textrm{var}}$ with
 \begin{equation}
@@ -297,7 +297,7 @@ The second term is proportional to twice squared standard error. As shown in \ci
 \end{equation}
 If one assumes that $d_{\textrm{var}} = d_{\textrm{SE}}$, then the expected mean square error is equal to $\sigma^2/d$.
 
-These measures of degrees-of-freedom can be used to estimate the value of $\lambda_T$ necessary for optimal tension without minimized the expected mean-square error. 
+These measures of degrees-of-freedom can be used to estimate the value of $\lambda_T$ necessary for optimal tension without minimizing the expected mean-square error. 
 
 % In the 50 years since \cite{reinsch1967-nm} was published, a number of different methods have been proposed for choosing the optimal value of $\lambda_m$ in equation \ref{smoothing-spline}. One approach is cross-validation \cite{wahba1978-jrss-b,craven1979-nm} which is essentially a form of bootstrapping, where the optimal parameter is determined by minimizing the error with data points not included in the fit. Another approach is to determine the number of degrees of freedom expected in the sample variance of equation \ref{sample_variance}. Both \cite{reinsch1967-nm} and \cite{teanby2007-mg} argue that the tension should be adjusted so that the sample variance is roughly the expected variance, $\hat{\sigma}^2 \sim \sigma^2$, but according to \cite{wahba1990-siam} this appears to overestimate the number of degrees of freedom, consistent with the argument in section \ref{sec:sample_variance}. Other techniques for determining the degrees of freedom have been proposed, see for example \cite{cantoni2002-biom}. Recent work comparing different estimators shows that no single technique appears to be an optimal estimator \cite{lee2003-csda}.
 
@@ -309,7 +309,9 @@ These measures of degrees-of-freedom can be used to estimate the value of $\lamb
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
-With a model path (equation \ref{b-spline-model-intro}), a smoothing spline penalty function (equation \ref{smoothing-spline}), and a minimization condition (equation \ref{MSE}), we have all the primary pieces in place to create a smoothing spline interpolant to the data. However, there are a number of outstanding issues. In this section we use synthetically generated data to represented our physical process, and then contaminate the process with Gaussian noise. We use this synthetically generated data to examine a number of different practical choices...
+With a model path (equation \ref{b-spline-model-intro}), a smoothing spline penalty function (equation \ref{smoothing-spline}), and a minimization condition (equation \ref{MSE}), we have all the primary pieces in place to create a smoothing spline interpolant to the data. However, there are a number of choices that still have to be made. In this section we use synthetically generated data to represented our physical process, and then contaminate the process with Gaussian noise. We use this synthetically generated data to test our ability to recover the signal and examine the effects of changing the spline order and tension order on the mean-square error and the resulting spectrum.
+
+The results of this section are empirical, and it's important to acknowledge upfront that any conclusions reached \emph{may} depend on our particular choice of physical model that generates the signal. Nevertheless, our hope is that the conclusions here are `O(1)' correct, and applicable, at least, to our GPS tracked drifter dataset.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Synthetic Data} \label{sec:synthetic_data}
@@ -328,7 +330,7 @@ S(\omega) = \frac{A^2}{(\omega^2 + \lambda^2)^{p/2}}
 \end{equation}
 which has finite amplitude low frequency and power-law fall off at high frequencies, two physically realistic properties. The Matern is a Gaussian process, which in the context of equation \ref{gaussian-max-likelihood} means that we are setting the velocity to a Gaussian distribution.
 
-For these experiments we choose values of $p=2,3,4$ so that the high frequency spectrum is proportional to $\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$. The Matern is used to generate the \emph{velocity} of the signal and integrated to get the positions and the positions are then contaminated with Gaussian noise. Parameters are chosen such that $u_{\textrm{rms}}=0.20$ m/s and the noise has $\sigma=10$ meters. Figure \ref{synthetic_process_and_spectrum} shows an example of the velocity spectra of the signal with $\omega=-2$ and the Gaussian noise.
+For these experiments we choose values of $p=2,3,4$ so that the high frequency spectrum is proportional to $\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$. The Matern is used to generate the \emph{velocity} of the signal and integrated to get the positions which are then contaminated with Gaussian noise. Parameters are chosen such that $u_{\textrm{rms}}=0.20$ m/s and the noise has $\sigma=10$ meters. Figure \ref{synthetic_process_and_spectrum} shows an example of the velocity spectra of the signal with $\omega=-2$ and the Gaussian noise.
 
 For all of these experiments we use a range of \emph{strides}, that is, subsampled versions of the underlying process as input into the spline fits. This lets us evaluate the quality of fit against the interpolated values, and not just the points of observation.
 
@@ -406,9 +408,19 @@ $\omega^{-4}$ & +46.3\% & +7.6\% & +7.3\% & +7.2\%  \\
 \end{tabular} 
 \end{table}
 
-As noted in \cite{craven1979-nm}, the degree of the spline sets its roughness. In terms of the power spectrum, this corresponds to the high frequency slope. Indeed, setting $S=1$ produces a high frequency fall off in the spline fit of $\omega=-2$. Although this would appear to be a desirable feature when fitting to a process with slope $\omega=-2$, table XX shows that this increases the mean-square error.
+As noted in \cite{craven1979-nm}, the degree of the spline sets its roughness. In terms of the power spectrum, this corresponds to the high frequency slope as can be seen in figure \ref{varied_slope} which shows fits with $S=1$, $S=2$, and $S=3$. Setting $S=1$ produces a high frequency fall off in the spline fit of $\omega=-2$. Although this would appear to be a desirable feature when fitting to a process with slope $\omega=-2$, the mean square error is consistently higher.
 
-To unpack this a little further, consider the frequency spectrum of the 
+\begin{figure}
+  \centerline{\includegraphics[width=19pc,angle=0]{figures/synthetic_process_and_spectrum_slope2degreeVaried}}
+  
+  \caption{Degrees-of-freedom from the standard error vs $\Gamma$}
+  \label{varied_slope}
+\end{figure}
+
+Finally, we compare the coherence of the spline fits to the true signal. Varying the slope as in figure \ref{varied_slope} shows no discernible difference in the coherence. However, figure \ref{synthetic_process_and_spectrum} shows that we can predict almost exactly where the coherence drops below 0.5, simply by using the resulting degrees-of-freedom. So, the loss-of-coherence occurs at,
+\begin{equation}
+    f = \frac{1}{2 d \Delta t}
+\end{equation}
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Optimal fits} \label{optimal_fits}
