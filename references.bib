@@ -1,4 +1,4 @@
-%% Created using Papers on Tue, 28 Aug 2018.
+%% Created using Papers on Mon, 22 Oct 2018.
 %% http://papersapp.com/papers/
 
 @article{whittaker1923-pems,
@@ -110,6 +110,14 @@ number = {3},
 pages = {513--527}
 }
 
+@booklet{eggermonth2001-book,
+title = {{Maximum penalized likelihood estimation}},
+author = {Eggermont, PPB and LaRiccia, V N},
+howpublished = {Springer New York},
+address = {New York, NY},
+year = {2001}
+}
+
 @techreport{faa2016-report,
 author = {{WAAS T{\&}E Team}},
 title = {{Global Positioning System (GPS) Standard Positioning Service (SPS) Performance Analysis Report}},
@@ -188,6 +196,24 @@ number = {9},
 pages = {1381--1388}
 }
 
+@article{sykulski2016-jrssc,
+author = {Sykulski, Adam M and Olhede, Sofia C and Lilly, Jonathan M. and Danioux, Eric},
+title = {{Lagrangian time series models for ocean surface drifter trajectories}},
+journal = {Journal of the Royal Statistical Society: Series C (Applied Statistics)},
+year = {2016},
+volume = {65},
+number = {1},
+pages = {29--50}
+}
+
+@article{Mallows:1973wo,
+author = {Mallows, C L},
+title = {{Some Comments on C<sub>P</sub> }},
+journal = {Technometrics},
+year = {1973},
+pages = {87--94}
+}
+
 @article{lee2003-csda,
 author = {Lee, Thomas C. M.},
 title = {{Smoothing parameter selection for smoothing splines: a simulation study}},
@@ -219,7 +245,12 @@ edition = {2nd}
 author = {Anderssen, R S and Technometrics, P Bloomfield and {1974}},
 title = {{A time series approach to numerical differentiation}},
 journal = {Taylor {\&} Francis
-}
+},
+year = {1974},
+volume = {16},
+number = {1},
+pages = {69--75},
+month = feb
 }
 
 @article{craven1979-nm,
@@ -229,7 +260,29 @@ journal = {Numer. Math.},
 year = {1979},
 volume = {31},
 number = {4},
-pages = {377--403}
+pages = {377--403},
+annote = {The condition implied by equation 1.4 is, of course, bad. He's requiring the sample variance equal the variance...this will be over tensioned.
+
+The mean square error in 1.5 does NOT include interpolated points, only observed points.
+
+1.6 -> 1.7 follows because,
+ER = || A y - g ||^2,
+ER = || A (g+\epsilon) - g ||^2
+ER = || (A - I) g  + A \epsilon ||^2
+ER = || (A - I) g ||^2 + 2 || (A-I) g A \epsilon || + || A \epsilon ||^2
+ER = || (A - I) g ||^2 + \sigma^2 Tr A^2
+
+If your solution is I, then the lh term is zero, and the rhs is just the variance.
+
+To get to theorem 1.1, you do the same process again and substitute g = y-\epsilon. But, this seems recursive. In fact,
+(I-A)^2 = I - 2 A + A^2
+so,
+-Tr( I - 2 A + A^2) + Tr(A^2) = -N + 2 Tr(A) 
+
+So, I'd argue,
+(1/N) || (I - A) y ||^2  - sigma^2 + sigma^2/N Tr(A)
+
+}
 }
 
 @book{deboor1978-book,
@@ -357,6 +410,24 @@ number = {4},
 pages = {419--434},
 month = aug,
 annote = {Teanby applies tension to the spline in terms of Hooke's law in order to prevent large overshoots. This is quite similar to my idea of minimizing the Lagrangian along the curve as well.}
+}
+
+@article{lilly2017-npg,
+author = {Lilly, Jonathan M. and Sykulski, Adam M and Early, Jeffrey J. and Olhede, Sofia C},
+title = {{Fractional Brownian motion, the Mat{\'e}rn process, and stochastic modeling of turbulent dispersion}},
+journal = {Nonlin. Processes Geophys.},
+year = {2017},
+volume = {24},
+number = {3},
+pages = {481--514},
+month = aug
+}
+
+@techreport{Hudson:1974uv,
+author = {Hudson, Harold Malcolm},
+title = {{Empirical Bayes Estimation}},
+year = {1974},
+month = may
 }
 
 @article{Simon:2004ii,
