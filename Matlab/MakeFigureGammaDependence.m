@@ -118,30 +118,30 @@ else
     save('DegreesOfFreedomEstimates.mat','result_stride', 'slopes', 'ensembles', 'measured_dof_mse','measured_dof_se','measured_dof_var','gamma','measured_dof_mse_mean','measured_dof_mse_median','measured_dof_mse_std','measured_dof_se_mean','measured_dof_se_median', 'measured_dof_se_std','measured_dof_var_mean','measured_dof_var_median','measured_dof_var_std','gamma_mean');
 end
 
-figure
-
-subplot(3,1,1)
-for iSlope = 1:totalSlopes
-    scatter(gamma(:,iSlope),measured_dof_mse(:,iSlope)), hold on
-end
-xlabel('dof from \Gamma')
-ylabel('mse dof')
-
-
-subplot(3,1,2)
-for iSlope = 1:totalSlopes
-    scatter(gamma(:,iSlope),measured_dof_se(:,iSlope)), hold on
-end
-xlabel('dof from \Gamma')
-ylabel('se dof')
-
-
-subplot(3,1,3)
-for iSlope = 1:totalSlopes
-    scatter(gamma(:,iSlope),measured_dof_var(:,iSlope)), hold on
-end
-xlabel('dof from \Gamma')
-ylabel('var dof')
+% figure
+% 
+% subplot(3,1,1)
+% for iSlope = 1:totalSlopes
+%     scatter(gamma(:,iSlope),measured_dof_mse(:,iSlope)), hold on
+% end
+% xlabel('dof from \Gamma')
+% ylabel('mse dof')
+% 
+% 
+% subplot(3,1,2)
+% for iSlope = 1:totalSlopes
+%     scatter(gamma(:,iSlope),measured_dof_se(:,iSlope)), hold on
+% end
+% xlabel('dof from \Gamma')
+% ylabel('se dof')
+% 
+% 
+% subplot(3,1,3)
+% for iSlope = 1:totalSlopes
+%     scatter(gamma(:,iSlope),measured_dof_var(:,iSlope)), hold on
+% end
+% xlabel('dof from \Gamma')
+% ylabel('var dof')
 
 
 FigureSize = [50 50 figure_width_1col+7 150*scaleFactor];
