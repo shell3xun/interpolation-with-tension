@@ -172,10 +172,11 @@ ylabel('power (m^2/s)', 'FontSize', figure_axis_label_size, 'FontName', figure_f
 subplot(sp2)
 ylabel('coherence', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
-mylegend = legend(plotHandles,'signal', 'noise', sprintf('stride 1 (%.2f dof)',dof(1)), sprintf('stride 10 (%.2f dof)',dof(2)), sprintf('stride 100 (%.2f dof)',dof(3)),'Location','southwest');
+mylegend = legend(plotHandles,'signal', 'noise', sprintf('stride 1 (n^{SE}_{eff}=%.2f)',dof(1)), sprintf('stride 10 (n^{SE}_{eff}=%.2f)',dof(2)), sprintf('stride 100 (n^{SE}_{eff}=%.2f)',dof(3)),'Location','southwest');
 xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 
+packfig(2,1)
 
-% print('-depsc2', sprintf('../figures/synthetic_process_and_spectrum_slope%ddegree%d.eps',abs(slope),S))
+print('-depsc2', sprintf('../figures/synthetic_process_and_spectrum_slope%ddegree%d.eps',abs(slope),S))
 return
 
