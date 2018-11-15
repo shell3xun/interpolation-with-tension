@@ -171,7 +171,7 @@ ax.ColorOrderIndex = ax.ColorOrderIndex-1;
     plot(x, exp(b(iSlope))*(x).^m(iSlope));
 end
 xlabel('\Gamma', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
-ylabel('dof', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
+ylabel('n^{SE}_{eff}', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 xlog, ylog
 leg = legend(plotHandles,'-2 slope','-3 slope','-4 slope');
 leg.FontSize = figure_legend_size;
