@@ -326,7 +326,7 @@ The results of this section are empirical, and it's important to acknowledge upf
 \begin{figure}
   \centerline{\includegraphics[width=19pc,angle=0]{figures/synthetic_process_and_spectrum_slope2degreeVaried}}
   
-  \caption{The upper panel shows the uncontaminated velocity spectrum of the signal (black) and velocity spectrum of the noise (red). The observed signal is the sum of the two. The blue, red, and orange lines show the spectrum of the tension spline best fit to the observations with all, 1/10th and 1/100th the data, respectively.}
+  \caption{The upper panel shows the uncontaminated velocity spectrum of the signal (black) and velocity spectrum of the noise (red). The observed signal is the sum of the two. The blue, red, and orange lines show the spectrum of the tension spline best fit to the observations with $S=1$, $S=2$, and $S=3$, respectively. The bottom panel shows the coherence between the smoothed signals and the true signal.}
   \label{varied_slope}
 \end{figure}
 
@@ -373,7 +373,7 @@ The other significant conclusion from table \ref{optimal_T} is that applying ten
 \subsection{Spline degree, $S$} \label{spline_degree}
 %%%%%%%%%%%%%%%%%%%%%%
 
-Using the same method described in section \ref{tension_degree}, we can find the optimal value of $S$ for each stride and slope repeated with a number of ensembles. The average increase in mean-square error from the optimal fit for a given ensemble is shown in table \ref{optimal_S}. The key take-away is that as long as $S > 1$, the spline fits are indistinguishable in a mean square error sense. Table \ref{optimal_S} also shows that there is also no single optimal choice of spline degree $S$ across stride and ensemble.
+Using the same method described in section \ref{tension_degree}, we vary $S=1..4$ and find optimal tension spline fit for each stride and slope repeated with a number of ensembles. The average increase in mean-square error from the optimal fit for a given ensemble is shown in table \ref{optimal_S}. The key take-away is that as long as $S > 1$, the spline fits are indistinguishable in a mean square error sense. Table \ref{optimal_S} also shows that there is also no single optimal choice of spline degree $S$ across stride and ensemble.
 
 \begin{table}[ht]
 \caption{Average increase in mean-square error from the optimal fit for a given ensemble.}
@@ -388,17 +388,22 @@ $\omega^{-4}$ & +46.3\% & +7.6\% & +7.3\% & +7.2\%  \\
 
 As noted in \cite{craven1979-nm}, the degree of the spline sets its roughness. In terms of the power spectrum, this corresponds to the high frequency slope as can be seen in figure \ref{varied_slope} which shows fits with $S=1$, $S=2$, and $S=3$. Setting $S=1$ produces a high frequency fall off in the spline fit of $\omega^{-2}$. Although this would appear to be a desirable feature when fitting to a process with slope $\omega^{-2}$, the mean square error is consistently higher.
 
+The bottom panel of figure \ref{varied_slope} shows the coherence between the spline fit and the true signal. There is no discernible difference in coherence between spline fits with $S=1$, $S=2$, and $S=3$. The coherence quickly drops to near zero at the same frequency in all three cases. The implication here is that the spline fits are essentially producing noise at frequencies above the loss-of-coherence. This is why the shallower slopes (with more variance at high, incoherent frequencies) have a larger mean square error.
+
+The loss-of-coherence defines the time scale below which the tension spline is not providing useful information. A reasonable hypothesis is that this scale is related to the effective sample size, $n_{\textrm{eff}}$ because the effective sample size indicates how many points are being used to estimate the true value. So, the loss-of-coherence occurs at what we define as,
+\begin{equation}
+\label{effective-nyquist}
+    f_s^{\textrm{eff}} \equiv \frac{1}{2 n_{\textrm{eff}} \Delta t}.
+\end{equation}
+Figure \ref{synthetic_process_and_spectrum} shows the power spectrum and coherence of optimal tension fits for three different strides of the data. In all three cases equation \ref{effective-nyquist} is indicates almost exactly where the coherence drops below 0.5.
+
 \begin{figure}
   \centerline{\includegraphics[width=19pc,angle=0]{figures/synthetic_process_and_spectrum_slope2degree3}}
   
-  \caption{The upper panel shows the uncontaminated velocity spectrum of the signal (black) and velocity spectrum of the noise (red). The observed signal is the sum of the two. The blue, red, and orange lines show the spectrum of the tension spline best fit to the observations with all, 1/10th and 1/100th the data, respectively. }
+  \caption{The upper panel shows the uncontaminated velocity spectrum of the signal (black) and velocity spectrum of the noise (red). The observed signal is the sum of the two. The blue, red, and orange lines show the spectrum of the tension spline best fit to the observations with all, 1/10th and 1/100th the data, respectively. The bottom panel shows the coherence between the smoothed signals and the true signal.}
   \label{synthetic_process_and_spectrum}
 \end{figure}
 
-Finally, we compare the coherence of the spline fits to the true signal. Varying the slope as in figure \ref{varied_slope} shows no discernible difference in the coherence. However, figure \ref{synthetic_process_and_spectrum} shows that we can predict almost exactly where the coherence drops below 0.5, simply by using the resulting degrees-of-freedom. So, the loss-of-coherence occurs at,
-\begin{equation}
-    f = \frac{1}{2 n_{\textrm{eff}} \Delta t}
-\end{equation}
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Reduced spline coefficients} \label{reduced_coefficients}
@@ -406,7 +411,7 @@ Finally, we compare the coherence of the spline fits to the true signal. Varying
 
 One practical consideration when working with large datasets is that the computational cost of creating the spline fit may be limited by the rate of solving for the spline coefficients. It is therefore beneficial to reduce knot points (and therefore total splines) when possible. A reasonable hypothesis is to suppose that when the effective sample size is large, as measured by equation \ref{dof_se}, that we may be able to avoid placing a knot point at every data point---essentially `skipping' data points.
 
-To test this idea, we find the optimal fit over a range of different strides (which varies the effective sample size) and increase the number of knot points that are skipped until the mean square error starts to rise. We find that we can safely skip $\textrm{max}(1,\textrm{floor}(2n_{\textrm{eff}}/3))$ knot points without sacrificing any precision. In fact, in some cases the optimal mean square error improves with fewer knot points.
+To test this idea, we find the optimal fit over a range of different strides (which varies the effective sample size) and increase the number of knot points that are skipped until the mean square error starts to rise. We find that we can safely skip $\textrm{max}(1,\textrm{floor}(2n_{\textrm{eff}}/3))$ knot points without sacrificing any precision. In fact, as can be seen in table \ref{fit_results}, in some cases the optimal mean square error improves with fewer knot points.
 
 This means that when handling large datasets, we can reduce the number of splines being used if the effective sample size is large, and we can simply `chunk' the data (split it into multiple independent pieces) if the effective sample size is small.
 
@@ -416,7 +421,7 @@ This means that when handling large datasets, we can reduce the number of spline
 
 To estimate the value of $\lambda_T$ from equation \ref{lambda}, we require an estimate of the mean-square value of a derivative of the process, $x_{\textrm{rms}}^{(T)}$ as well as an estimate of the effective sample size, $n_{\textrm{eff}}$. Assuming one can make an estimate of $x_{\textrm{rms}}^{(m)}$ from the signal (see appendix \ref{sec:variance_estimate}), we just need a method for estimating the effective sample size.
 
-We argue that the effective sample size should vary based on the relative size of the measurement errors to the speed of motion. For example, if the position errors are only $1$ meter, but particle typically travels $10$ meters between measurements, then it is hardly justifiable to increase the tension so that the smoothing spline misses the observation points by $1$ meter. There is not enough statistical evidence to suggest that the particle didn't go right through the observation point. On the other hand, if the position errors are $1$ meter, but particle typically travels $10$ centimeters between measurements, nearby measurements provide more information about the particle's true position during that time, so our estimate of the particle's true position is closer to a mean of the nearby observations.
+We argue that the effective sample size should vary based on the relative size of the measurement errors to the speed of motion. For example, if the position errors are only $1$ meter, but a particle typically travels $10$ meters between measurements, then it is hardly justifiable to increase the tension so that the smoothing spline misses the observation points by $1$ meter. There is not enough statistical evidence to suggest that the particle didn't go right through the observation point. On the other hand, if the position errors are $1$ meter, but particle typically travels $10$ centimeters between measurements, nearby measurements provide more information about the particle's true position during that time, so our estimate of the particle's true position is closer to a mean of the nearby observations.
 
 This idea can be made more rigorous by noting that one would consider change in position, $\Delta x$, statistically significant if it exceeds the position errors, $\sigma_x$ by some factor.  Assuming the physical process has a characteristic velocity scale, $u_{\textrm{rms}}$, we use this concept to define $\Gamma$ as
 \begin{equation}
@@ -425,7 +430,7 @@ This idea can be made more rigorous by noting that one would consider change in 
 \end{equation}
 where $\sigma_x$ is the standard deviation of positioning noise and $\Delta t$ is the typical time between observations. This argument suggests that the effective sample size should be proportional to $\Gamma$, i.e.,
 \begin{equation}
-n_{\textrm{eff}} = C \cdot \Gamma^m
+n_{\textrm{eff}}^\Gamma = C \cdot \Gamma^m
 \end{equation}
 where $C$ and $m$ are unknown constants. Intuitively this means that as long as the particle didn't move too far between observations, nearby observations help to estimate the true position of the particle.
 
