@@ -1,7 +1,7 @@
 scaleFactor = 1;
 LoadFigureDefaults
 
-shouldUseStudentTDistribution = 1;
+shouldUseStudentTDistribution = 0;
 shouldLoadExistingTable = 0;
 
 if shouldUseStudentTDistribution == 1
@@ -16,8 +16,8 @@ else
     slopes = [-2; -3; -4];
     totalSlopes = length(slopes);
     
-    S = 2;
-    T = 2;
+    S = 3;
+    T = S;
     K = S+1;
     
     result_stride = 2*[1;4;16;64];
