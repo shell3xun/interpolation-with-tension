@@ -2,7 +2,7 @@ scaleFactor = 1;
 LoadFigureDefaults
 
 shouldUseStudentTDistribution = 0;
-shouldLoadExistingTable = 0;
+shouldLoadExistingTable = 1;
 
 if shouldUseStudentTDistribution == 1
     filename = 'MSEComparisonTableStudentT.mat';
@@ -16,7 +16,7 @@ else
     slopes = [-2; -3; -4];
     totalSlopes = length(slopes);
     
-    S = 3;
+    S = 2;
     T = S;
     K = S+1;
     
@@ -166,7 +166,7 @@ fprintf('\n\n');
 fprintf('\\begin{tabular}{r | llll} stride & full dof & reduced dof & blind initial & blind optimal \\\\ \\hline \\hline \n');
 for iSlope = 1:length(slopes)
     
-    fprintf('%d slope &&&&  \\\\ \\hline \n',slopes(iSlope));
+    fprintf('$\\omega^{%d}$ &&&&  \\\\ \\hline \n',slopes(iSlope));
     for iStride=1:length(result_stride)
 %         fprintf('%d & %#.3g m^2 (%#.3g) &  %#.3g m^2 (%#.3g) &  %#.3g m^2 (%#.3g) &  %#.3g m^2 (%#.3g) \\\\ \n', result_stride(iStride), mse_full_dof_true_optimal_mean(iStride,iSlope), dof_se_full_dof_true_optimal(iStride,iSlope), dmse_reduced_dof_true_optimal_mean(iStride,iSlope), dof_se_reduced_dof_true_optimal(iStride,iSlope), dmse_reduced_dof_blind_initial_mean(iStride,iSlope), dof_se_reduced_dof_blind_initial(iStride,iSlope), dmse_reduced_dof_blind_optimal_mean(iStride,iSlope), dof_se_reduced_dof_blind_optimal(iStride,iSlope) )  ;
         fprintf('%d & %#.3g m$^2$ (%#.3g) &  %+.1f\\%% (%#.3g) &  %+.1f\\%% (%#.3g) &  %+.1f\\%% (%#.3g) \\\\ \n', result_stride(iStride), mse_full_dof_true_optimal_mean(iStride,iSlope), dof_se_full_dof_true_optimal(iStride,iSlope), 100*dmse_reduced_dof_true_optimal_mean(iStride,iSlope)./mse_full_dof_true_optimal_mean(iStride,iSlope), dof_se_reduced_dof_true_optimal(iStride,iSlope), 100*dmse_reduced_dof_blind_initial_mean(iStride,iSlope)./mse_full_dof_true_optimal_mean(iStride,iSlope), dof_se_reduced_dof_blind_initial(iStride,iSlope), 100*dmse_reduced_dof_blind_optimal_mean(iStride,iSlope)./mse_full_dof_true_optimal_mean(iStride,iSlope), dof_se_reduced_dof_blind_optimal(iStride,iSlope) )  ;

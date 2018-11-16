@@ -23,7 +23,7 @@ end
 
 S = 3; % order of the spline
 K = S+1;
-T = 2; % order of the tension
+T = S; % order of the tension
 nu = 4.5; sigma =  8.5;
 variance_of_the_noise = sigma*sigma*nu/(nu-2);
 w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
@@ -120,6 +120,12 @@ if max(t) > max(tq)
     tq(end+1) = max(t);
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+spline_x_gaussian = TensionSpline(t,x,10,'S',S,'lambda',spline_x.lambda);
+TensionSpline.MinimizeExpectedMeanSquareError(spline_x_gaussian);
+spline_x_studentt = TensionSpline(t,x,sqrt(variance_of_the_noise),'S',S,'weightFunction',w,'lambda',spline_x.lambda);
+TensionSpline.MinimizeExpectedMeanSquareError(spline_x_studentt);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Position fit figure
@@ -155,6 +161,8 @@ fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
 s = 1/1000; % scale
 plot(tq/3600,s*spline_x(tq), 'LineWidth', 0.5*scaleFactor, 'Color',0.4*[1.0 1.0 1.0]), hold on
+plot(tq/3600,s*spline_x_gaussian(tq), '--', 'LineWidth', 0.5*scaleFactor, 'Color',0.4*[1.0 1.0 1.0])
+plot(tq/3600,s*spline_x_studentt(tq), '.',  'LineWidth', 0.5*scaleFactor, 'Color',0.4*[1.0 1.0 1.0]), hold on
 scatter(drifters.t{choiceDrifter}(rejectedPointIndices_x{choiceDrifter})/3600,s*drifters.x{choiceDrifter}(rejectedPointIndices_x{choiceDrifter}),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
 scatter(drifters.t{choiceDrifter}/3600,s*drifters.x{choiceDrifter},(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 xlabel('t (hours)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
