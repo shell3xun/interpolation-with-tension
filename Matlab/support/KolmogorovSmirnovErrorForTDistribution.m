@@ -22,5 +22,7 @@ y = gps_cdf(x);
 D = max(abs(y-y_data));
 
 totalError = (sqrt(n) + 0.12 + 0.11/sqrt(n))*D;
+
+
 end
 

@@ -126,6 +126,11 @@ TensionSpline.MinimizeExpectedMeanSquareError(spline_x_gaussian);
 spline_x_studentt = TensionSpline(t,x,sqrt(variance_of_the_noise),'S',S,'weightFunction',w,'lambda',spline_x.lambda);
 TensionSpline.MinimizeExpectedMeanSquareError(spline_x_studentt);
 
+spline_y_gaussian = TensionSpline(t,y,10,'S',S,'lambda',spline_x.lambda);
+TensionSpline.MinimizeExpectedMeanSquareError(spline_y_gaussian);
+spline_y_studentt = TensionSpline(t,y,sqrt(variance_of_the_noise),'S',S,'weightFunction',w,'lambda',spline_x.lambda);
+TensionSpline.MinimizeExpectedMeanSquareError(spline_y_studentt);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Position fit figure
@@ -160,9 +165,9 @@ fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
 s = 1/1000; % scale
-plot(tq/3600,s*spline_x(tq), 'LineWidth', 0.5*scaleFactor, 'Color',0.4*[1.0 1.0 1.0]), hold on
-plot(tq/3600,s*spline_x_gaussian(tq), '--', 'LineWidth', 0.5*scaleFactor, 'Color',0.4*[1.0 1.0 1.0])
-plot(tq/3600,s*spline_x_studentt(tq), '.',  'LineWidth', 0.5*scaleFactor, 'Color',0.4*[1.0 1.0 1.0]), hold on
+plot(tq/3600,s*spline_x(tq), 'LineWidth', 1.0*scaleFactor, 'Color',0.0*[1.0 1.0 1.0]), hold on
+plot(tq/3600,s*spline_x_gaussian(tq), 'LineWidth', 0.5*scaleFactor, 'Color',0.5*[1.0 1.0 1.0])
+% plot(tq/3600,s*spline_x_studentt(tq), 'LineWidth', 2.5*scaleFactor, 'Color',0.4*[0.0 1.0 0.0]), hold on
 scatter(drifters.t{choiceDrifter}(rejectedPointIndices_x{choiceDrifter})/3600,s*drifters.x{choiceDrifter}(rejectedPointIndices_x{choiceDrifter}),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
 scatter(drifters.t{choiceDrifter}/3600,s*drifters.x{choiceDrifter},(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 xlabel('t (hours)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
@@ -181,6 +186,33 @@ if shouldSaveFigures == 1
 print('-depsc2', 'figures/tdistributionfit.eps')
 end
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Position fit figure - Y
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+FigureSize = [50 50 figure_width_2col+8 150*scaleFactor];
+
+fig1 = figure('Units', 'points', 'Position', FigureSize);
+set(gcf,'PaperPositionMode','auto')
+set(gcf, 'Color', 'w');
+fig1.PaperUnits = 'points';
+fig1.PaperPosition = FigureSize;
+fig1.PaperSize = [FigureSize(3) FigureSize(4)];
+
+s = 1/1000; % scale
+plot(tq/3600,s*spline_y(tq), 'LineWidth', 1.0*scaleFactor, 'Color',0.0*[1.0 1.0 1.0]), hold on
+plot(tq/3600,s*spline_y_gaussian(tq), 'LineWidth', 0.5*scaleFactor, 'Color',0.5*[1.0 1.0 1.0])
+% plot(tq/3600,s*spline_x_studentt(tq), 'LineWidth', 2.5*scaleFactor, 'Color',0.4*[0.0 1.0 0.0]), hold on
+scatter(drifters.t{choiceDrifter}(rejectedPointIndices_y{choiceDrifter})/3600,s*drifters.y{choiceDrifter}(rejectedPointIndices_y{choiceDrifter}),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
+scatter(drifters.t{choiceDrifter}/3600,s*drifters.y{choiceDrifter},(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
+xlabel('t (hours)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
+ylabel('x (km)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
+
+xlim([124 149])
+% ylim([5.58 9.18])
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
