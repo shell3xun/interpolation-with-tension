@@ -38,12 +38,12 @@ x = drifters.x{choiceDrifter};
 y = drifters.y{choiceDrifter};
 t = drifters.t{choiceDrifter};
 
-spline_x = TensionSpline(t,x,sqrt(variance_of_the_noise), 'S', S, 'T', T,'weightFunction',w);
-spline_y = TensionSpline(t,y,sqrt(variance_of_the_noise), 'S', S, 'T', T,'weightFunction',w);
+spline_x = TensionSpline(t,x,sqrt(variance_of_the_noise), 'S', S, 'T', T,'weightFunction',w,'lambda',Lambda.fullTensionExpected);
+spline_y = TensionSpline(t,y,sqrt(variance_of_the_noise), 'S', S, 'T', T,'weightFunction',w,'lambda',Lambda.fullTensionExpected);
 
 % Now we set a threshold for what constitutes an outlier. In this case we
 % choose points that have 1 in 10000 odds of occurring.
-outlierThreshold = 0.0001;
+outlierThreshold = 0.0036;
 gps_cdf = @(z) abs(tcdf(z/sigma,nu) - outlierThreshold/2);
 range(1) = fminsearch( gps_cdf, -50, optimset('TolX', 0.001, 'TolFun', 0.001) );
 range(2) = -range(1); % it's symmetric
