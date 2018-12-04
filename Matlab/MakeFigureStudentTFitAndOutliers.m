@@ -1,3 +1,7 @@
+%%%%%%%
+%
+% OLD --- use MakeFigureGPSFitAndOutliers.m
+
 % Site 1 or site 2?
 Site = 1;
 
