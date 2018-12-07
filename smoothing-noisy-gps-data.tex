@@ -81,7 +81,7 @@ As a practical matter there are three issues that still need to be addressed bef
 \end{enumerate}
 To address these issues, but also serve as a practical guide to other practitioners, we start by reviewing B-splines in section \ref{sec:interpolation} and introduce the canonical interpolating spline that is used as the underlying model for path $x(t)$ (equation \ref{b-spline-model-intro}) throughout this manuscript. Section \ref{sec:maximum_likelihood} takes a broad look at tension splines and the assumptions they make on the underlying physical process. We show that the tension parameter $\lambda_T$ scales with the degrees-of-freedom and root-mean-square value of the tensioned derivative, suggesting that it can be estimated without minimizing the mean-square error. We also show that the penalty function in equation \ref{smoothing-spline} can be formulated as a maximum likelihood problem and that applying tension is equivalent to assuming a Gaussian distribution on the tensioned derivative of the underlying process.
 
-Section \ref{sec:optimal_parameter} uses synthetic data to test a number of choices that have to be made. We first establish that setting $T=S$ is optimal. We then show that the tension parameter can be chosen \emph{a priori} (without optimization of the mean-square error) when the number of degrees-of-freedom can be estimated from the data. This estimate for the degrees-of-freedom can then be used to reduce the coefficients, $\xi^i$, in the splines fit without sacrificing mean-square-error. Finally, we show the effect of different choices of $S$ on the resulting power spectrum and show how the degrees-of-freedom in the fit can be used to establish the highest resolved frequency.
+Section \ref{sec:spline_order_tension_order_spectrum} uses synthetic data to test a number of choices that have to be made. We first establish that setting $T=S$ is optimal. We then show that the tension parameter can be chosen \emph{a priori} (without optimization of the mean-square error) when the number of degrees-of-freedom can be estimated from the data. This estimate for the degrees-of-freedom can then be used to reduce the coefficients, $\xi^i$, in the splines fit without sacrificing mean-square-error. Finally, we show the effect of different choices of $S$ on the resulting power spectrum and show how the degrees-of-freedom in the fit can be used to establish the highest resolved frequency.
 
 The second half of the manuscript addresses issues specific to GPS positions errors. In section \ref{sec:drifter_data_set} we show that the GPS errors are not Gaussian distributed, but t-distributed and show how to modify the technique for a t-distribution. In section \ref{sec:outliers} we show how outliers can be removed from the dataset before fitting with a tension spline.
 
@@ -236,7 +236,7 @@ which is expected to scale like
 \label{sample_variance_variance}
 \hat{\sigma}^2 = \frac{n_{\textrm{eff}}-1}{n_{\textrm{eff}}} \sigma^2
 \end{equation}
-where $n_{\textrm{eff}}$ is effective sample size. For a large number of sample size the sample variance matches the true variance, but as will be discussed in section \ref{sec:optimal_parameter} this distinction is key to optimal parameter choice.
+where $n_{\textrm{eff}}$ is effective sample size. For a large number of sample size the sample variance matches the true variance, but as will be discussed in section \ref{sec:spline_order_tension_order_spectrum} this distinction is key to optimal parameter choice.
 
 There is a very simple physical interpretation for the second term in equation \ref{smoothing-spline}. Consider the case where $T=1$ so that the smoothing spline is a constraint on velocity. When averaged over the integration time, the integral produces the root mean square velocity, $u_{\textrm{rms}}$, which means that the second term scales like $u_{\textrm{rms}}^2 (t_N-t_1)$. In general, where $x^{(T)}_{\textrm{rms}}$ is the root-mean-square of the $T$-th derivative, this means that
 \begin{equation}
@@ -311,7 +311,7 @@ These measures of effective sample size can be used to estimate the value of $\l
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
-\section{Spline order, tension order, and the spectrum} \label{sec:optimal_parameter}
+\section{Spline order, tension order, and the spectrum} \label{sec:spline_order_tension_order_spectrum}
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
@@ -411,7 +411,7 @@ Figure \ref{synthetic_process_and_spectrum} shows the power spectrum and coheren
 
 One practical consideration when working with large datasets is that the computational cost of creating the spline fit may be limited by the rate of solving for the spline coefficients. It is therefore beneficial to reduce knot points (and therefore total splines) when possible. A reasonable hypothesis is to suppose that when the effective sample size is large, as measured by equation \ref{dof_se}, that we may be able to avoid placing a knot point at every data point---essentially `skipping' data points.
 
-To test this idea, we find the optimal fit over a range of different strides (which varies the effective sample size) and increase the number of knot points that are skipped until the mean square error starts to rise. We find that we can safely skip $\textrm{max}(1,\textrm{floor}(2n_{\textrm{eff}}/3))$ knot points without sacrificing any precision. In fact, as can be seen in table \ref{fit_results}, in some cases the optimal mean square error improves with fewer knot points.
+To test this idea, we find the optimal fit over a range of different strides (which varies the effective sample size) and increase the number of knot points that are skipped until the mean square error starts to rise. We find that we can safely skip $\textrm{max}(1,\textrm{floor}(2n_{\textrm{eff}}/3))$ knot points without sacrificing any precision. In fact, as can be seen in table \ref{fit_results_gaussian}, in some cases the optimal mean square error improves with fewer knot points. The `full dof' column indicates a fit where one knot point is created for every observation point, whereas the `reduced dof' indicates a fit where the number of knot points is reduced.
 
 This means that when handling large datasets, we can reduce the number of splines being used if the effective sample size is large, and we can simply `chunk' the data (split it into multiple independent pieces) if the effective sample size is small.
 
@@ -459,35 +459,31 @@ as an initial estimate for the optimal smoothing parameter where both $x^{(T)}_{
 %%%%%%%%%%%%%%%%%%%%%%
 
 \begin{table}[ht]
-\caption{Mean square error and effective degrees-of-freedom for a range of strides (subsampled signal). The first column shows the optimal, best-case scenario found using the uncontaminated signal with 1 dof for each point. The second column shows optimal value using a reduced number of coefficients. This is the lower bound on the error. The iterated estimated found by requiring that equation \ref{iterated_tension} is true. The initial estimate is found using $\lambda_2$ from equation \ref{lambda} directly. }
-\label{fit_results}
+\caption{Mean square error and effective sample size for a range of strides. The first column shows the optimal, best-case scenario found using the uncontaminated signal with 1 knot point for each point (1 dof). The second column shows the optimal value after reducing the number of knot points using the effective degrees of freedom in section \ref{reduced_coefficients}. The third column uses equation \ref{lambda_initial_guess} to set $\lambda_T$, while the fourth column optimizes using equation \ref{MSE} }
+\label{fit_results_gaussian}
 \centering
 \begin{tabular}{r | llll} stride & full dof & reduced dof & blind initial & blind optimal \\ \hline \hline 
 $\omega^{-2}$ &&&&  \\ \hline 
-2 & 5.18 m$^2$ (20.4) &  -0.1\% (20.6) &  +52.0\% (22.5) &  +1.3\% (20.0) \\ 
-8 & 15.0 m$^2$ (7.17) &  +0.2\% (7.05) &  +69.2\% (11.3) &  +0.4\% (7.33) \\ 
-32 & 41.5 m$^2$ (2.34) &  -0.0\% (2.50) &  +15.8\% (3.27) &  +0.6\% (2.61) \\ 
-128 & 88.9 m$^2$ (1.13) &  -0.0\% (1.16) &  +5.5\% (1.03) &  +1.4\% (1.07) \\ 
+2 & 4.91 m$^2$ (18.5) &  -0.1\% (19.0) &  +58.5\% (17.9) &  +1.3\% (19.6) \\ 
+8 & 14.6 m$^2$ (6.81) &  +0.2\% (7.26) &  +66.0\% (11.9) &  +0.7\% (6.99) \\ 
+32 & 42.2 m$^2$ (2.47) &  +0.0\% (2.58) &  +16.4\% (3.22) &  +0.6\% (2.53) \\ 
+128 & 90.5 m$^2$ (1.07) &  +0.0\% (1.08) &  +4.3\% (1.03) &  +1.3\% (1.09) \\ 
 $\omega^{-3}$ &&&&  \\ \hline 
-2 & 2.73 m$^2$ (30.6) &  -0.1\% (31.6) &  +42.3\% (32.8) &  +2.9\% (30.3) \\ 
-8 & 8.48 m$^2$ (11.7) &  -0.0\% (11.8) &  +37.7\% (17.1) &  +0.7\% (12.3) \\ 
-32 & 25.4 m$^2$ (3.98) &  +0.1\% (4.07) &  +3.8\% (4.19) &  +0.5\% (3.87) \\ 
-128 & 73.7 m$^2$ (1.31) &  +0.0\% (1.30) &  +25.1\% (1.06) &  +1.2\% (1.32) \\ 
+2 & 2.55 m$^2$ (35.1) &  -0.2\% (35.4) &  +78.2\% (41.0) &  +2.3\% (33.9) \\ 
+8 & 8.99 m$^2$ (10.6) &  -0.1\% (11.2) &  +44.6\% (17.4) &  +0.5\% (11.8) \\ 
+32 & 23.9 m$^2$ (4.07) &  -0.0\% (4.05) &  +4.5\% (4.29) &  +0.5\% (3.85) \\ 
+128 & 79.9 m$^2$ (1.35) &  +0.0\% (1.35) &  +22.1\% (1.06) &  +1.5\% (1.33) \\ 
 $\omega^{-4}$ &&&&  \\ \hline 
-2 & 1.78 m$^2$ (53.9) &  -0.2\% (57.3) &  +148.6\% (24.0) &  +5.2\% (45.2) \\ 
-8 & 5.61 m$^2$ (16.1) &  -0.2\% (17.4) &  +33.0\% (19.2) &  +0.8\% (15.0) \\ 
-32 & 19.1 m$^2$ (5.47) &  +0.1\% (5.43) &  +2.0\% (5.18) &  +1.3\% (4.63) \\ 
-128 & 60.6 m$^2$ (1.62) &  -0.0\% (1.63) &  +23.3\% (1.22) &  +1.5\% (1.69) \\ 
+2 & 1.66 m$^2$ (49.8) &  -0.1\% (53.8) &  +61.2\% (19.7) &  +2.9\% (46.7) \\ 
+8 & 5.59 m$^2$ (14.7) &  -0.2\% (14.8) &  +21.2\% (15.7) &  +1.1\% (15.6) \\ 
+32 & 18.7 m$^2$ (4.81) &  +0.0\% (4.76) &  +2.0\% (5.08) &  +0.6\% (5.03) \\ 
+128 & 56.0 m$^2$ (1.73) &  -0.0\% (1.68) &  +24.5\% (1.22) &  +1.4\% (1.64) \\ 
 \end{tabular} 
 
 \end{table}
 
 
-
-
-To test the accuracy of our method we subsample the observed signal to provide a wide range of effective degrees of freedom, with $\Gamma$ ranging from $0.05$-$30$ corresponding to strides ranging from 512 to 1. The true optimal parameter is determined by minimizing the RMS error between smoothed-interpolated signal and the true signal, as shown in table \ref{fit_results}. Because we are interested in interpolation (not just smoothing) the RMS error is computed with all points in the signal, not just those observed in the subsampled signal. This has the result of producing RMS errors that are greater than the standard deviation of the noise (10 meters). The results in table \ref{fit_results} suggest that determining $\lambda$ directly from equation \ref{lambda} and matching degrees-of-freedom with equation \ref{iterated_tension} are both nearly optimal techniques.
-
-
+Table \ref{fit_results_gaussian} summarizes the key results of this section by applying a tension spline with with $S=2$ to the processes with three different slope ($\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$), four different strides (2,8,32,128) and 15 ensembles of noise. The first column shows the average mean square error and effective sample size when the tension spline is applied using the true values to minimize the mean square error---this is the lower bound. The second column shows average increase in mean-square error when reducing the number of spline coefficient as document in section \ref{reduced_coefficients}. There is almost no change mean-square error. The third column uses equation \ref{lambda_initial_guess} from section \ref{interpolation_condition} to provide a (blind) initial guess of the tension parameter. Here the results are mixed---a typical increase in mean-square error is about 50\% when the effective sample size is large. While this might seem large, this is a small fraction of the total variance of the noise, e.g., an optimal mean square error of $4$ m$^2$ increase to $6$ m$^2$ when the total variance is $100$ m$^2$. When the data sets are small (and computation time isn't a limiting factor), nearly optimal fits can be found using equation \ref{MSE}, as shown in the last column of the table.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \section{GPS data set}
@@ -525,7 +521,7 @@ Figure \ref{gaussianfit} shows a 25 hour window of observed GPS positions for on
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
-We characterize the the GPS errors by considering data from a motionless GPS receiver allowed to run for 12 hours. The specific GPS receiver used for this test was not the same as the one used for the drifters but should produce errors similar enough for this analysis. The errors documented in the FAA GPS accuracy report \cite{faa2016-report} are less comparable because they use superior antennas.
+We characterize the the GPS errors by considering data from a motionless GPS receiver allowed to run for 12 hours. The specific GPS receiver used for this test was not the same as the one used for the drifters but should produce errors similar enough for this analysis.
 
 The position recorded by the motionless GPS are assumed to have isotropic errors with mean zero, which means that the positions themselves are the errors. The probability distribution function (PDF) of the combined $x$ and $y$ position errors are shown in figure \ref{motionless_error}.
 
@@ -603,7 +599,7 @@ This operator is again used to compute the standard error from the variances,  $
 
 \begin{table}[ht]
 \caption{Same as above, but with a Student-t distribution }
-\label{fit_results}
+\label{fit_results_tdistribution}
 \centering
 \begin{tabular}{r | llll} stride & full dof & reduced dof & blind initial & blind optimal \\ \hline \hline 
 m=-2 &&&&  \\ \hline 
@@ -634,9 +630,9 @@ The goal here is to remove the outliers---points that do not appear to be of the
 
 To remove the outliers we use the values of $\nu$ and $\sigma_t$ found in section \ref{gps_position_errors} and set the tension of the spline, equation \ref{lambda}, by assuming that we have a large number of degrees of freedom. If used for the final product, this will generally result in an overly smoothed fit because the true number of degrees of freedom is much lower. However, this technique will serve to reject outliers because points resulting in an acceleration that is improbably large (according to the Gaussian PDF describing the accelerations) will be treated as having large position errors, a feature that arising from using the Student t-distribution and is not possible if a Gaussian distribution is assumed. Once the fit is performed, the points with errors, $\epsilon_i$, that are far outside the usual bounds can be discarded. 
 
-This technique can be applied independently for the $x$ and $y$ positioning data, but we find that these outlier points are generally correlated, so we base our rejection criteria on the joint distribution, the bottom panel of figure \ref{motionless_error}. We further refine the tension parameter by finding the optimal value of the KS test of the joint distribution, but only within the 99.99\% region. This means that we do not include points that are more than 95 meters away from the model fit in order to avoid fitting to the outliers that do not conform to the model of the motionless GPS. Optimizing the KS test results in a more robust fit because the accelerations estimated using the technique in appendix \ref{variance_estimate} over estimates the acceleration when large outliers are present. Once the tension value is optimized, we then discard the data points outside the 99.99\% of the joint t-distribution.
+This technique can be applied independently for the $x$ and $y$ positioning data, but we find that these outlier points are generally correlated, so we base our rejection criteria on the joint distribution, the bottom panel of figure \ref{motionless_error}. We further refine the tension parameter by finding the optimal value of the KS test of the joint distribution, but only within the 99.99\% region. This means that we do not include points that are more than 95 meters away from the model fit in order to avoid fitting to the outliers that do not conform to the model of the motionless GPS. Optimizing the KS test results in a more robust fit because the accelerations estimated using the technique in appendix \ref{sec:variance_estimate} over estimates the acceleration when large outliers are present. Once the tension value is optimized, we then discard the data points outside the 99.99\% of the joint t-distribution.
 
-Once the outliers are removed, the final fits can be performed using \ref{lambda} in conjunction with \ref{iterated_tension}. The thin line in figure \ref{tdistributionfit} shows the final result.
+Once the outliers are removed, the final fits can be performed using \ref{lambda} in conjunction with \ref{MSE}. The thin line in figure \ref{tdistributionfit} shows the final result.
 
 \begin{figure*}[t]
   \centerline{\includegraphics[width=39pc,angle=0]{tdistributionfit}}
