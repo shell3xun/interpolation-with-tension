@@ -23,6 +23,8 @@ x_data = drifters.x{choiceDrifter};
 y_data = drifters.y{choiceDrifter};
 t_data = drifters.t{choiceDrifter};
 
+splinefit = TensionSpline(t_data,x_data,10);
+
 gpsfit = GPSTensionSpline(t_data,x_data,y_data);
 
 t=linspace(min(t_data),max(t_data),length(t_data)*10).';
@@ -57,6 +59,7 @@ fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
 plot(t/3600,s*x, 'LineWidth', 1.0*scaleFactor, 'Color',0.0*[1.0 1.0 1.0]), hold on
+plot(t/3600,s*splinefit(t), 'LineWidth', 1.0*scaleFactor, 'Color',0.4*[1.0 1.0 1.0])
 scatter(drifters.t{choiceDrifter}(gpsfit.indicesOfOutliers)/3600,s*drifters.x{choiceDrifter}(gpsfit.indicesOfOutliers),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
 scatter(drifters.t{choiceDrifter}/3600,s*drifters.x{choiceDrifter},(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 xlabel('t (hours)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
@@ -72,7 +75,7 @@ fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 fig1.PaperPositionMode = 'auto';
 
 if shouldSaveFigures == 1
-    print('-depsc2', 'figures/tdistributionfit.eps')
+    print('-depsc2', '../figures/gpsfit.eps')
 end
 
 figure
