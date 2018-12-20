@@ -71,6 +71,22 @@ t=linspace(min(t_data),max(t_data),length(t_data)*10).';
 sigma = 8.5;
 nu = 4.5;
 variance_of_the_noise = sigma*sigma*nu/(nu-2);
+
+nu_noise = 4.5;
+sigma_noise = 40;
+
+w_gps = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
+w_outlier = @(z)((nu_noise/(nu_noise+1))*sigma_noise^2*(1+z.^2/(nu_noise*sigma_noise^2)));
+
+% epsilon/sigma_g^2 = epsilon/sigma_t (1-x^2/c^2)^2;
+sigma_g = 10; c = 2.1;
+psi_tukey = @(z) (z/sigma_g^2)*((1-(z/(sigma_g*c)).^2).^2) .* (abs(z)<c*sigma_g);
+w_tukey = @(z) (sigma_g^2*(1-(z/(sigma_g*c)).^2).^(-2)).*(abs(z)<c*sigma_g) + 4e5*(abs(z)>=c*sigma_g);
+
+z = linspace(-50,50,1000)';
+figure, plot(z,w_gps(z))
+hold on, plot(z,w_tukey(z))
+return
 w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
 
 % splinefit_t = TensionSpline(t_data, y_data, sqrt(variance_of_the_noise), 'K', 4, 'weightFunction', w, 'lambda', Lambda.fullTensionExpected);
