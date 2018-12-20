@@ -99,7 +99,7 @@ sigma_t =  outlierFactor*sigma;
 a2 = 1/(sigma_t*sqrt(2*pi));
 c2 = sigma_t*sigma_t;
 
-alpha = percentOutliers;
+alpha = 2.0*percentOutliers;
 a1 = (1-alpha)*a1;
 a2 = alpha*a2;
 
@@ -147,15 +147,20 @@ nu = 4.5; sigma_t =  8.5;
 a1 = gamma((nu+1)/2)./(sqrt(pi*nu)*sigma_t*gamma(nu/2));
 c1 = nu*sigma_t*sigma_t;
 m1 = (nu+1)/2;
+variance_of_the_noise_1 = sigma_t*sigma_t*nu/(nu-2)
 
-nu = 4.5; sigma_t =  85;
+nu = 4.5; sigma_t =  200;
 a2 = gamma((nu+1)/2)./(sqrt(pi*nu)*sigma_t*gamma(nu/2));
 c2 = nu*sigma_t*sigma_t;
 m2 = (nu+1)/2;
+variance_of_the_noise_2 = sigma_t*sigma_t*nu/(nu-2)
 
-alpha = 0.5;
+
+alpha = 0.1;
 a1 = (1-alpha)*a1;
 a2 = alpha*a2;
+
+variance_of_the_noise = (1-alpha)*variance_of_the_noise_1 + alpha*variance_of_the_noise_2;
 
 w_tt = @(z) (a1*(1+z.*z/c1).^(-m1) + a2*(1+z.*z/c2).^(-m2))./(2*(a1*m1/c1)*(1+z.*z/c1).^(-m1-1) + 2*(a2*m2/c2)*(1+z.*z/c2).^(-m2-1));
 
