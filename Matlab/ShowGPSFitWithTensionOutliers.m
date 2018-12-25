@@ -26,82 +26,35 @@ t_data = drifters.t{choiceDrifter};
 t=linspace(min(t_data),max(t_data),length(t_data)*10).';
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+pct = 0.05;
+distribution = AddedDistribution(pct,NormalDistribution(800),StudentTDistribution(8.5,4.5));
+distribution = AddedDistribution(pct,StudentTDistribution(300,3.0),StudentTDistribution(8.5,4.5));
 
+spline = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated);
+spline.minimizeExpectedMeanSquareErrorInPercentileRange(pct/2,1-pct/2);
 
-nu = 4.5; sigma_t =  8.5;
-
-a1 = gamma((nu+1)/2)./(sqrt(pi*nu)*sigma_t*gamma(nu/2));
-c1 = nu*sigma_t*sigma_t;
-m1 = (nu+1)/2;
-variance_of_the_noise_1 = sigma_t*sigma_t*nu/(nu-2);
-
-nu = 3.0; sigma_t =  311;
-a2 = gamma((nu+1)/2)./(sqrt(pi*nu)*sigma_t*gamma(nu/2));
-c2 = nu*sigma_t*sigma_t;
-m2 = (nu+1)/2;
-variance_of_the_noise_2 = sigma_t*sigma_t*nu/(nu-2);
-
-alpha = 0.10;
-a1 = (1-alpha)*a1;
-a2 = alpha*a2;
-
-w_tt = @(z) (a1*(1+z.*z/c1).^(-m1) + a2*(1+z.*z/c2).^(-m2))./(2*(a1*m1/c1)*(1+z.*z/c1).^(-m1-1) + 2*(a2*m2/c2)*(1+z.*z/c2).^(-m2-1));
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-nu = 4.5; sigma_t =  8.5;
-
-a1 = gamma((nu+1)/2)./(sqrt(pi*nu)*sigma_t*gamma(nu/2));
-c1 = nu*sigma_t*sigma_t;
-m1 = (nu+1)/2;
-variance_of_the_noise_1 = sigma_t*sigma_t*nu/(nu-2);
-
-sigma_t =  800;
-a2 = 1/(sigma_t*sqrt(2*pi));
-c2 = sigma_t*sigma_t;
-variance_of_the_noise_2 = sigma_t*sigma_t;
-
-alpha = 0.05;
-a1 = (1-alpha)*a1;
-a2 = alpha*a2;
-
-w_tg = @(z) (a1*(1+z.*z/c1).^(-m1) + a2*exp(-z.*z/(2*c2)))./(2*(a1*m1/c1)*(1+z.*z/c1).^(-m1-1) + (a2/c2)*exp(-z.*z/(2*c2)));
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-variance_of_the_noise = (1-alpha)*variance_of_the_noise_1 + alpha*variance_of_the_noise_2;
-
-
-
-spline = TensionSpline(t_data,x_data,sqrt(variance_of_the_noise),'weightFunction', w_tg, 'lambda',Lambda.optimalIterated);
 tq = linspace(min(t_data),max(t_data),10*length(t_data));
 
-spline.indicesOfOutliers = find(abs(spline.epsilon)>220);
-newalpha = length(spline.indicesOfOutliers)/length(spline.t)
+zmin = spline.distribution.locationOfCDFPercentile(pct/2);
+zmax = spline.distribution.locationOfCDFPercentile(1-pct/2);
 
-e = spline.epsilon;
-var_epsilon = var(e(spline.indicesOfOutliers));
-sigma_new = sqrt((nu-2)*var_epsilon/nu);
-sigma_new = sqrt(var_epsilon)
-
-
-fprintf('std set to: %f, std out: %f\n',sqrt(variance_of_the_noise),std(spline.epsilon));
+spline.indicesOfOutliers = find(spline.epsilon < zmin | spline.epsilon > zmax);
+spline.goodIndices = setdiff((1:length(spline.x))',spline.indicesOfOutliers);
 
 figure
 % scatter(t_data(spline.indicesOfOutliers),x_data(spline.indicesOfOutliers),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
-scatter(t_data(spline.indicesOfOutliers),x_data(spline.indicesOfOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
-scatter(t_data,x_data,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
+scatter(t_data(spline.indicesOfOutliers),y_data(spline.indicesOfOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
+scatter(t_data,y_data,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 plot(tq,spline(tq),'r')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 
-
-
+t_knot = InterpolatingSpline.KnotPointsForPoints(t_data(spline.goodIndices),spline.K,1);
+spline2 = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated,'t_knot',t_knot);
+spline2.minimizeExpectedMeanSquareErrorInPercentileRange(pct/2,1-pct/2);
+plot(tq,spline2(tq),'b')
 
 return
 

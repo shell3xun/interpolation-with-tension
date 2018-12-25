@@ -80,32 +80,9 @@ for iSlope = 3:3;%length(slopes)
     
 end
 
-% c = 2.1;
-% w_tukey = @(epsilon) (sigma*sigma*(1-(epsilon/(c*sigma)).^2).^(-2)) .* (abs(epsilon) < c*sigma) + 1e8*sigma*sigma * (abs(epsilon) >= c*sigma);
-% 
-% nu = 4.5; sigma_t =  8.5;
-% w_t = @(z)((nu/(nu+1))*sigma_t^2*(1+z.^2/(nu*sigma_t^2)));
-% t_pdf = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma_t*gamma(nu/2)*(1+(z.*z)/(nu*sigma_t*sigma_t)).^((nu+1)/2));
-% mu =0;
-% sigma_g = 10;
-% gaussian_cdf = @(z) 0.5*(1 + erf((z-mu)/(sigma_g*sqrt(2))));
+distribution = AddedDistribution(percentOutliers,NormalDistribution(outlierFactor*sigma),NormalDistribution(sigma));
 
-
-sigma_t =  sigma;
-a1 = 1/(sigma_t*sqrt(2*pi));
-c1 = sigma_t*sigma_t;
-
-sigma_t =  outlierFactor*sigma;
-a2 = 1/(sigma_t*sqrt(2*pi));
-c2 = sigma_t*sigma_t;
-
-alpha = 2.0*percentOutliers;
-a1 = (1-alpha)*a1;
-a2 = alpha*a2;
-
-w_gg = @(z) (a1*exp(-z.*z/(2*c1)) + a2*exp(-z.*z/(2*c2)))./((a1/c1)*exp(-z.*z/(2*c1)) + (a2/c2)*exp(-z.*z/(2*c2)));
-
-spline = TensionSpline(t_obs,x_obs,sqrt(variance_of_the_noise),'weightFunction', w_gg, 'lambda',Lambda.optimalIterated);
+spline = TensionSpline(t_obs,x_obs,distribution, 'lambda',Lambda.optimalIterated);
 tq = linspace(min(t_obs),max(t_obs),10*length(t_obs));
 
 figure
@@ -114,12 +91,19 @@ scatter(t_obs(outlierIndices),x_obs(outlierIndices),(6.5*scaleFactor)^2,'filled'
 scatter(t_obs,x_obs,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 plot(tq,spline(tq),'r')
 
+pctmin = percentOutliers/2;
+pctmax = 1-percentOutliers/2;
+zmin = spline.distribution.locationOfCDFPercentile(pctmin);
+zmax = spline.distribution.locationOfCDFPercentile(pctmax);
+
+spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
+
 lambda0 = spline.lambda;
 lambda = 10.^linspace(log10(lambda0/10),log10(10*lambda0),11)';
 expectedMSE = zeros(size(lambda));
 for iLambda = 1:length(lambda)
    spline.lambda = lambda(iLambda);
-   expectedMSE(iLambda) = spline.ExpectedMeanSquareError;
+   expectedMSE(iLambda) = spline.expectedMeanSquareErrorInRange(zmin,zmax);
 end
 
 return
