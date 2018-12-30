@@ -2,7 +2,7 @@ scaleFactor = 1;
 LoadFigureDefaults
 
 shouldUseStudentTDistribution = 0;
-shouldLoadExistingTable = 1;
+shouldLoadExistingTable = 0;
 
 if shouldUseStudentTDistribution == 1
     filename = 'MSEComparisonTableStudentT.mat';
@@ -99,51 +99,66 @@ else
                 
                 if shouldUseStudentTDistribution == 1
                     nu = 4.5; sigma =  8.5;
-                    variance_of_the_noise = sigma*sigma*nu/(nu-2);
-                    w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
+                    distribution = StudentTDistribution(sigma,nu);
                     epsilon_x = randt(sigma,nu,length(indices));
                 else
+                    distribution = NormalDistribution(sigma);
                     epsilon_x = sigma*randn(length(indices),1);
-                    variance_of_the_noise = sigma*sigma;
-                    w = [];
                 end 
                 x_obs = data.x(indices) + epsilon_x;
                 t_obs = data.t(indices);
                 
                 % Compute the expected tension before any fitting
-                [lambda, expectedDOF(iStride,iSlope,iEnsemble), u_estimate_spectral(iStride,iSlope,iEnsemble), a_estimate_spectral(iStride,iSlope,iEnsemble)] = TensionSpline.ExpectedInitialTension(t_obs,x_obs,sqrt(variance_of_the_noise),T);
+                u_rms = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(distribution.variance),1);
+                n_eff = TensionSpline.EffectiveSampleSizeFromUrms(u_rms, t_obs, sqrt(distribution.variance));
                 
+                % The idea here was to skip a bunch of unnecessary points
+                % to trying to assess the noisy tension derivative... this
+                % sort of works in that it no longer includes a bunch of
+                % noise in the estimate, but it way under estimates the
+                % power, especially in shallow slopes (where power is at
+                % higher frequencies. The results is that we way over
+                % tension.
+                idx2 = 1:max(floor(n_eff/2),1):length(t_obs);
+                idx2 = 1:length(t_obs);
+                
+                a_rms = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs(idx2),x_obs(idx2),sqrt(distribution.variance),T);
+                lambda = (n_eff-1)/(n_eff*a_rms.^2);
+                
+                expectedDOF(iStride,iSlope,iEnsemble) = n_eff;
+                u_estimate_spectral(iStride,iSlope,iEnsemble) = u_rms;
+                a_estimate_spectral(iStride,iSlope,iEnsemble) = a_rms;
+
                 % Fit using 1 dof for each data point
-                spline_x = TensionSpline(t_obs,x_obs,sqrt(variance_of_the_noise), 'lambda', lambda, 'S', S, 'T', T, 'knot_dof', 1, 'weight_function', w);
-                TensionSpline.MinimizeMeanSquareError(spline_x,data.t(indicesAll),data.x(indicesAll));
+                spline_x = TensionSpline(t_obs,x_obs,distribution, 'lambda', lambda, 'S', S, 'T', T, 'knot_dof', 1);
+                spline_x.minimizeMeanSquareError(data.t(indicesAll),data.x(indicesAll));
                 compute_ms_error = @() (mean(mean(  (data.x(indicesAll) - spline_x(data.t(indicesAll))).^2,2 ),1));
                 
                 mse_full_dof_true_optimal(iStride,iSlope,iEnsemble) = compute_ms_error();
-                dof_se_full_dof_true_optimal(iStride,iSlope,iEnsemble) = spline_x.DOFFromVarianceOfTheMean;
+                dof_se_full_dof_true_optimal(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
                 
                 % Fit using the automatic knot dof algorithm
-                spline_x = TensionSpline(t_obs,x_obs,sqrt(variance_of_the_noise), 'lambda', lambda, 'S', S, 'T', T, 'knot_dof', 'auto', 'weight_function', w);
+                spline_x = TensionSpline(t_obs,x_obs,distribution, 'lambda', lambda, 'S', S, 'T', T, 'knot_dof', 'auto');
                 compute_ms_error = @() (mean(mean(  (data.x(indicesAll) - spline_x(data.t(indicesAll))).^2,2 ),1));
                 reduced_dof_knot_dof(iStride,iSlope,iEnsemble) = spline_x.knot_dof;
                 
                 % record the initial fit
                 mse_reduced_dof_blind_initial(iStride,iSlope,iEnsemble) = compute_ms_error();
-                dof_se_reduced_dof_blind_initial(iStride,iSlope,iEnsemble) = spline_x.DOFFromVarianceOfTheMean;
+                dof_se_reduced_dof_blind_initial(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
                 
                 % record the blind optimal fit
-                TensionSpline.MinimizeExpectedMeanSquareError(spline_x);
+                spline_x.minimizeExpectedMeanSquareError;
                 mse_reduced_dof_blind_optimal(iStride,iSlope,iEnsemble) = compute_ms_error();
-                dof_se_reduced_dof_blind_optimal(iStride,iSlope,iEnsemble) = spline_x.DOFFromVarianceOfTheMean;
+                dof_se_reduced_dof_blind_optimal(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
                 
                 % record the true optimal fit
-                TensionSpline.MinimizeMeanSquareError(spline_x,data.t(indicesAll),data.x(indicesAll));
+                spline_x.minimizeMeanSquareError(data.t(indicesAll),data.x(indicesAll));
                 mse_reduced_dof_true_optimal(iStride,iSlope,iEnsemble) = compute_ms_error();
-                dof_se_reduced_dof_true_optimal(iStride,iSlope,iEnsemble) = spline_x.DOFFromVarianceOfTheMean;
+                dof_se_reduced_dof_true_optimal(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
             end
             fprintf('\n');
         end
     end
-    
     
     save(filename, 'S', 'T', 'slopes', 'result_stride', 'u_rms_true', 'a_rms_true', 'u_estimate_spectral', 'a_estimate_spectral', 'expectedDOF','reduced_dof_knot_dof','mse_full_dof_true_optimal','mse_reduced_dof_true_optimal','mse_reduced_dof_blind_initial','mse_reduced_dof_blind_optimal','dof_se_full_dof_true_optimal','dof_se_reduced_dof_true_optimal','dof_se_reduced_dof_blind_initial','dof_se_reduced_dof_blind_optimal');
 end
@@ -174,3 +189,10 @@ for iSlope = 1:length(slopes)
     
 end
 fprintf('\\end{tabular} \n');
+
+
+% Note: my estimate of u_rms is pretty good,
+% mean(u_estimate_spectral,3)./u_rms_true'
+
+% but my estimate of a_rms is pretty bad,
+%mean(a_estimate_spectral,3)./a_rms_true'

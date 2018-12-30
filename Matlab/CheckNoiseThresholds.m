@@ -25,7 +25,7 @@ ubar = fft(x);
 s_signal = (ubar.*conj(ubar)) .* (2*pi*f).^(2*D) * (dt/N);
 s_noise = variance_of_the_noise*dt*(2*pi*f).^(2*D);
 
-alpha = 0.999;
+alpha = 0.9999;
 dof = 2;
 cutoff = TensionSpline.chi2inv(alpha,dof)/dof;
 
