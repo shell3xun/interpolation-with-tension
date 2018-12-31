@@ -9,7 +9,9 @@
 scaleFactor = 1;
 LoadFigureDefaults
 
-shouldLoadExistingResults = 1;
+shouldLoadExistingResults = 0;
+
+rms = @(z) sqrt( mean( z.^2 ) );
 
 if shouldLoadExistingResults == 1
     load('DegreesOfFreedomEstimates.mat');
@@ -18,48 +20,24 @@ else
     slopes = [-2; -3; -4];
     totalSlopes = length(slopes);
     
-    result_stride = [2;4;8;16;32;64;128];
-    ensembles = 10*ones(size(result_stride));
-    totalEnsembles = sum(ensembles);
+    strides = [2;4;8;16;32;64;128];
+    totalStrides = length(strides);
     
-    measurement_time = zeros(length(result_stride),totalSlopes);
+    totalEnsembles = 10; 
     
-    measured_u_rms = zeros(totalEnsembles,totalSlopes);
-    measured_a_rms = zeros(totalEnsembles,totalSlopes);
-    actual_u_rms = zeros(totalEnsembles,totalSlopes);
-    actual_a_rms = zeros(totalEnsembles,totalSlopes);
-    measured_u_rms_mean = zeros(length(result_stride),totalSlopes);
-    measured_u_rms_median = zeros(length(result_stride),totalSlopes);
-    measured_u_rms_std = zeros(length(result_stride),totalSlopes);
-    measured_a_rms_mean = zeros(length(result_stride),totalSlopes);
-    measured_a_rms_median = zeros(length(result_stride),totalSlopes);
-    measured_a_rms_std = zeros(length(result_stride),totalSlopes);
+%     dt = zeros(totalStrides,1);
+%     measurement_time = zeros(totalStrides,totalSlopes); 
+%     actual_u_rms = zeros(totalStrides,totalSlopes);
+%     actual_a_rms = zeros(totalStrides,totalSlopes);   
+%     measured_u_rms = zeros(totalStrides,totalSlopes,totalEnsembles);
+%     measured_a_rms = zeros(totalStrides,totalSlopes,totalEnsembles);
+%     measured_lambda = zeros(totalStrides,totalSlopes,totalEnsembles);
+%     measured_dof_mse = zeros(totalStrides,totalSlopes,totalEnsembles);
+%     measured_dof_se = zeros(totalStrides,totalSlopes,totalEnsembles);
+%     measured_dof_var = zeros(totalStrides,totalSlopes,totalEnsembles);
     
-    measured_lambda = zeros(totalEnsembles,totalSlopes);
-    measured_lambda_mean = zeros(length(result_stride),totalSlopes);
-    measured_lambda_median = zeros(length(result_stride),totalSlopes);
-    measured_lambda_std = zeros(length(result_stride),totalSlopes);
-    
-    measured_dof_mse = zeros(totalEnsembles,totalSlopes);
-    measured_dof_se = zeros(totalEnsembles,totalSlopes);
-    measured_dof_var = zeros(totalEnsembles,totalSlopes);
-    gamma = zeros(totalEnsembles,totalSlopes);
-    
-    measured_dof_mse_mean = zeros(length(result_stride),totalSlopes);
-    measured_dof_mse_median = zeros(length(result_stride),totalSlopes);
-    measured_dof_mse_std = zeros(length(result_stride),totalSlopes);
-    measured_dof_se_mean = zeros(length(result_stride),totalSlopes);
-    measured_dof_se_median = zeros(length(result_stride),totalSlopes);
-    measured_dof_se_std = zeros(length(result_stride),totalSlopes);
-    measured_dof_var_mean = zeros(length(result_stride),totalSlopes);
-    measured_dof_var_median = zeros(length(result_stride),totalSlopes);
-    measured_dof_var_std = zeros(length(result_stride),totalSlopes);
-    gamma_mean = zeros(length(result_stride),totalSlopes);
-       
-    for iSlope = 1:length(slopes)
-        
-        slope = slopes(iSlope);
-        
+    for iSlope = 1:length(slopes)  
+        slope = slopes(iSlope);    
         if slope == -2
             data = load('sample_data/SyntheticTrajectories.mat');
             outputFile = 'OptimalParameters.mat';
@@ -71,9 +49,8 @@ else
             outputFile = 'OptimalParametersSlope4.mat';
         end
         
-        iteration = 0;
-        for iStride=1:length(result_stride)
-            stride = result_stride(iStride);
+        for iStride=1:length(strides)
+            stride = strides(iStride);
             
             % Reduce the total length in some cases
             if (stride < 10)
@@ -84,86 +61,90 @@ else
             
             indices = 1:stride:floor(shortenFactor*length(data.t));
             fprintf('Using %d points with stride %d. Ensemble', length(indices), stride);
-            indicesAll = indices;
-            
-            rms = @(z) sqrt( mean( z.^2 ) );
             
             u_rms = rms( diff( data.x(1:max(indices)) )/(data.t(2)-data.t(1)) );
+            sigma = data.position_error;
             t_obs = data.t(indices);
             
-            for j=1:ensembles(iStride)
-                iteration = iteration + 1;
-                fprintf('..%d',iteration);
-                
-                sigma = data.position_error;
+%             measurement_time(iStride,iSlope) = max(t_obs)-min(t_obs);
+%             dt(iStride) = t_obs(2)-t_obs(1); 
+%             actual_u_rms(iStride,iSlope) = rms( diff(data.x(indices))/dt(iStride) );
+%             actual_a_rms(iStride,iSlope) = rms( diff(diff(data.x(indices)))/dt(iStride)^2 );
+            
+            for iEnsemble=1:totalEnsembles
+                fprintf('..%d',iEnsemble);
+                   
                 epsilon_x = sigma*randn(length(indices),1);
                 x_obs = data.x(indices) + epsilon_x;
                 
-
                 S = 2;
                 T = 2;
                 distribution = NormalDistribution(sigma);
-                spline_fit = TensionSpline(t_obs,x_obs,distribution, 'S', S, 'T', T);
+%                 spline_fit = TensionSpline(t_obs,x_obs,distribution, 'S', S, 'T', T);
                 
-                measured_u_rms(iteration,iSlope) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(distribution.variance),1);
-                measured_a_rms(iteration,iSlope) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(distribution.variance),T);
-
+                measured_u_rms(iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(distribution.variance),1);
+                measured_a_rms(iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(distribution.variance),T);
+continue
                 % Minimize to the true points---at the observation times only
-                measured_lambda(iteration,iSlope) = spline_fit.minimizeMeanSquareError(data.t(indices),data.x(indices));
+                measured_lambda(iStride,iSlope,iEnsemble) = spline_fit.minimizeMeanSquareError(data.t(indices),data.x(indices));
                 
-                measured_dof_mse(iteration,iSlope) = spline_fit.effectiveSampleSizeFromExpectedMeanSquareError;
-                measured_dof_se(iteration,iSlope) = spline_fit.effectiveSampleSizeFromVarianceOfTheMean;
-                measured_dof_var(iteration,iSlope) = spline_fit.effectiveSampleSizeFromSampleVariance;
-                gamma(iteration,iSlope) = sigma/(u_rms*(t_obs(2)-t_obs(1)));
+                measured_dof_mse(iStride,iSlope,iEnsemble) = spline_fit.effectiveSampleSizeFromExpectedMeanSquareError;
+                measured_dof_se(iStride,iSlope,iEnsemble) = spline_fit.effectiveSampleSizeFromVarianceOfTheMean;
+                measured_dof_var(iStride,iSlope,iEnsemble) = spline_fit.effectiveSampleSizeFromSampleVariance;
             end
             fprintf('..\n');
-            
-            dt = t_obs(2)-t_obs(1);
-            actual_u_rms(iStride,iSlope) = rms( diff(data.x(indices))/dt );
-            actual_a_rms(iStride,iSlope) = rms( diff(diff(data.x(indices)))/dt^2 );
-            
-            measurement_time(iStride,iSlope) = max(t_obs)-min(t_obs);
-            
-            cum_ensembles = cumsum(ensembles);
-            startIndex = cum_ensembles(iStride) - ensembles(iStride) + 1;
-            endIndex = cum_ensembles(iStride);
-            measured_lambda_mean(iStride,iSlope) = mean( measured_lambda(startIndex:endIndex,iSlope) );
-            measured_lambda_median(iStride,iSlope) = median( measured_lambda(startIndex:endIndex,iSlope) );
-            measured_lambda_std(iStride,iSlope) = std( measured_lambda(startIndex:endIndex,iSlope) );
-            
-            measured_u_rms_mean(iStride,iSlope) = mean( measured_u_rms(startIndex:endIndex,iSlope) );
-            measured_u_rms_median(iStride,iSlope) = median( measured_u_rms(startIndex:endIndex,iSlope) );
-            measured_u_rms_std(iStride,iSlope) = std( measured_u_rms(startIndex:endIndex,iSlope) );
-            
-            measured_a_rms_mean(iStride,iSlope) = mean( measured_a_rms(startIndex:endIndex,iSlope) );
-            measured_a_rms_median(iStride,iSlope) = median( measured_a_rms(startIndex:endIndex,iSlope) );
-            measured_a_rms_std(iStride,iSlope) = std( measured_a_rms(startIndex:endIndex,iSlope) );
-            
-            measured_dof_mse_mean(iStride,iSlope) = mean( measured_dof_mse(startIndex:endIndex,iSlope) );
-            measured_dof_mse_median(iStride,iSlope) = median( measured_dof_mse(startIndex:endIndex,iSlope) );
-            measured_dof_mse_std(iStride,iSlope) = std( measured_dof_mse(startIndex:endIndex,iSlope) );
-            
-            measured_dof_se_mean(iStride,iSlope) = mean( measured_dof_se(startIndex:endIndex,iSlope) );
-            measured_dof_se_median(iStride,iSlope) = median( measured_dof_se(startIndex:endIndex,iSlope) );
-            measured_dof_se_std(iStride,iSlope) = std( measured_dof_se(startIndex:endIndex,iSlope) );
-            
-            measured_dof_var_mean(iStride,iSlope) = mean( measured_dof_var(startIndex:endIndex,iSlope) );
-            measured_dof_var_median(iStride,iSlope) = median( measured_dof_var(startIndex:endIndex,iSlope) );
-            measured_dof_var_std(iStride,iSlope) = std( measured_dof_var(startIndex:endIndex,iSlope) );
-            
-            gamma_mean(iStride,iSlope) = mean( gamma(startIndex:endIndex,iSlope) );
         end
     end
     
-    save('DegreesOfFreedomEstimates.mat','result_stride', 'slopes', 'ensembles', 'measured_u_rms', 'measured_a_rms', 'measured_dof_mse','measured_dof_se','measured_dof_var','gamma','measured_dof_mse_mean','measured_dof_mse_median','measured_dof_mse_std','measured_dof_se_mean','measured_dof_se_median', 'measured_dof_se_std','measured_dof_var_mean','measured_dof_var_median','measured_dof_var_std','gamma_mean','measured_u_rms_mean','measured_u_rms_median','measured_u_rms_std','measured_a_rms_mean','measured_a_rms_median','measured_a_rms_std','measured_lambda_mean','measured_lambda_median','measured_lambda_std','actual_u_rms','actual_a_rms','measurement_time'); 
+    save('DegreesOfFreedomEstimates.mat','sigma','strides', 'slopes', 'totalEnsembles','dt','measurement_time','actual_u_rms','actual_a_rms','measured_u_rms','measured_a_rms','measured_lambda','measured_dof_mse','measured_dof_se','measured_dof_var'); 
 end
 
+measured_u_rms_mean = mean(measured_u_rms,3);
+measured_u_rms_median = median(measured_u_rms,3);
+measured_u_rms_std = std(measured_u_rms,0,3);
+
+measured_a_rms_mean = mean(measured_a_rms,3);
+measured_a_rms_median = median(measured_a_rms,3);
+measured_a_rms_std = std(measured_a_rms,0,3);
+
+measured_lambda_mean = mean(measured_lambda,3);
+measured_lambda_median = median(measured_lambda,3);
+measured_lambda_std = std(measured_lambda,0,3);
+
+% measured_dof_mse_mean = zeros(length(strides),totalSlopes);
+% measured_dof_mse_median = zeros(length(strides),totalSlopes);
+% measured_dof_mse_std = zeros(length(strides),totalSlopes);
+% 
+% measured_dof_se_mean = zeros(length(strides),totalSlopes);
+% measured_dof_se_median = zeros(length(strides),totalSlopes);
+% measured_dof_se_std = zeros(length(strides),totalSlopes);
+% 
+% measured_dof_var_mean = zeros(length(strides),totalSlopes);
+% measured_dof_var_median = zeros(length(strides),totalSlopes);
+% measured_dof_var_std = zeros(length(strides),totalSlopes);
+
+gamma_mean = mean(sigma./(measured_u_rms.*dt),3);
+
+% lambda = (1-1/n)/(xt)
+% xt*lambda = 1-1/n
+% 1/n = 1-xt*lambda
 figure
 for iSlope = 1:totalSlopes
-    x = (gamma_mean(:,iSlope))./(measured_a_rms_mean(:,iSlope).^2 .* measurement_time(:,iSlope) );
-    y = measured_lambda_mean(:,iSlope);
+%     x = (gamma_mean(:,iSlope))./(measured_a_rms_mean(:,iSlope).^2 .* measurement_time(:,iSlope) );
+%     y = measured_lambda_mean(:,iSlope);
+    
+    x = gamma_mean(:,iSlope);
+    y = (measured_a_rms_mean(:,iSlope).^2 ).*measured_lambda_mean(:,iSlope);
+    
     scatter(x,y), hold on
 end
+
+% biggest problem is estimating the rms value from a noisy derivative.
+% using sleptap helps quite a bit, but the smallest strides still fail
+figure
+x = reshape(sigma./(measured_u_rms.*dt),[],1);
+y = reshape((measured_a_rms.^2 ).*measured_lambda,[],1);
+scatter(x,y)
 
 return
 
