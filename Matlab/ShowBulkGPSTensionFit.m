@@ -10,7 +10,7 @@ addpath('support')
 shouldSaveFigures = 0;
 
 % Drifter to highlight in the final plots. Drifter 7 has no outliers
-choiceDrifter = 7;
+choiceDrifter = 6;
 
 if Site == 1
     drifters = load('sample_data/rho1_drifters_projected_ungridded.mat');
@@ -19,10 +19,11 @@ else
 end
 
 
-pct = 0.05;
-distribution = AddedDistribution(pct,NormalDistribution(800),StudentTDistribution(8.5,4.5));
+pct = 0.10;
+distribution = AddedDistribution(pct,NormalDistribution(400),StudentTDistribution(8.5,4.5));
 
-% distribution = AddedDistribution(pct,StudentTDistribution(300,3.0),StudentTDistribution(8.5,4.5));
+pct = 0.100;
+distribution = AddedDistribution(pct,StudentTDistribution(300,3.0),StudentTDistribution(8.5,4.5));
 
 nDrifters = length(drifters.x);
 splines_x = cell(nDrifters,1);
@@ -43,13 +44,52 @@ splines(1:nDrifters) = splines_x;
 splines((nDrifters+1):(2*nDrifters)) = splines_y;
 TensionSpline.minimizeFunctionOfSplines( splines, @(splines) TensionSpline.expectedMeanSquareErrorOfSplines(splines,zmin,zmax) );
 
-splines_no = TensionSpline(drifters.t{7},drifters.x{7},StudentTDistribution(8.5,4.5),'lambda',Lambda.optimalIterated);
+epsilon_d = [];
+epsilon = [];
+for iDrifter = 1:nDrifters
+    epsilon = cat(1,epsilon,splines_x{iDrifter}.epsilon,splines_y{iDrifter}.epsilon);
+    ep = sqrt(splines_x{iDrifter}.epsilon.^2 + splines_y{iDrifter}.epsilon.^2);
+    epsilon_d = cat(1,epsilon_d,ep);
+    
+    splines_x{iDrifter}.indicesOfOutliers = find(ep > 200)';
+    splines_y{iDrifter}.indicesOfOutliers = find(ep > 200)';
+    
+    splines_x{iDrifter}.goodIndices = setdiff((1:length(splines_x{iDrifter}.t))',splines_x{iDrifter}.indicesOfOutliers);
+    splines_y{iDrifter}.goodIndices = setdiff((1:length(splines_y{iDrifter}.t))',splines_y{iDrifter}.indicesOfOutliers);
+end
 
-return
+z = linspace(0,1000,500);
+distDistribution = TwoDimDistanceDistribution(distribution);
+figure, histogram(epsilon_d,z,'Normalization','cdf')
+hold on, plot(z,distDistribution.cdf(z))
 
-spline = splines_x{choiceDrifter};
+splines_x2 = cell(nDrifters,1);
+splines_y2 = cell(nDrifters,1);
+for iDrifter = 1:nDrifters
+    goodIndices = splines_x{iDrifter}.goodIndices;
+    if goodIndices(1) ~= 1
+        goodIndices = cat(1,1,goodIndices);
+    end
+    if goodIndices(end) ~= length(splines_x{iDrifter}.t)
+        goodIndices = cat(1,goodIndices,length(splines_x{iDrifter}.t));
+    end
+    
+    t_knot = InterpolatingSpline.KnotPointsForPoints(splines_x{iDrifter}.t(goodIndices),splines_x{iDrifter}.K,1);
+    splines_x2{iDrifter} = TensionSpline(drifters.t{iDrifter},drifters.x{iDrifter},distribution,'lambda',Lambda.fullTensionExpected,'t_knot',t_knot);
+    splines_y2{iDrifter} = TensionSpline(drifters.t{iDrifter},drifters.y{iDrifter},distribution,'lambda',Lambda.fullTensionExpected,'t_knot',t_knot);
+end
 
-spline.indicesOfOutliers = find(spline.epsilon < zmin | spline.epsilon > zmax);
+splines = cell(2*nDrifters,1);
+splines(1:nDrifters) = splines_x2;
+splines((nDrifters+1):(2*nDrifters)) = splines_y2;
+TensionSpline.minimizeFunctionOfSplines( splines, @(splines) TensionSpline.expectedMeanSquareErrorOfSplines(splines,zmin,zmax) );
+
+% splines_no = TensionSpline(drifters.t{7},drifters.x{7},StudentTDistribution(8.5,4.5),'lambda',Lambda.optimalIterated);
+
+
+spline = splines_x2{choiceDrifter};
+
+% spline.indicesOfOutliers = find(spline.epsilon < zmin | spline.epsilon > zmax);
 spline.goodIndices = setdiff((1:length(spline.x))',spline.indicesOfOutliers);
 
 tq=linspace(min(spline.t),max(spline.t),length(spline.t)*10).';
@@ -58,6 +98,13 @@ figure
 scatter(spline.t(spline.indicesOfOutliers),spline.x(spline.indicesOfOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
 scatter(spline.t,spline.x,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 plot(tq,spline(tq),'r')
+
+figure
+scatter(splines_x2{choiceDrifter}(spline.indicesOfOutliers),splines_y2{choiceDrifter}(spline.indicesOfOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
+scatter(splines_x2{choiceDrifter}.x,splines_y2{choiceDrifter}.x,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
+plot(splines_x2{choiceDrifter}(tq),splines_y2{choiceDrifter}(tq),'r')
+
+return
 
 xt = [];
 for i=1:length(splines)
