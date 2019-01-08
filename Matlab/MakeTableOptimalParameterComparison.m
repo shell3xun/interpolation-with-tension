@@ -2,7 +2,7 @@ scaleFactor = 1;
 LoadFigureDefaults
 
 shouldUseStudentTDistribution = 0;
-shouldLoadExistingTable = 1;
+shouldLoadExistingTable = 0;
 
 if shouldUseStudentTDistribution == 1
     filename = 'MSEComparisonTableStudentT.mat';
@@ -20,15 +20,15 @@ else
     T = S;
     K = S+1;
     
-    result_stride = 2*[1;4;16;64];
-    totalStrides = length(result_stride);
-    
-    totalEnsembles = 25;
-    
-%         result_stride = 2*[1;10;64];
+%     result_stride = 2*[1;4;16;64];
 %     totalStrides = length(result_stride);
 %     
-%     totalEnsembles = 15;
+%     totalEnsembles = 25;
+    
+        result_stride = 2*[1;10;64];
+    totalStrides = length(result_stride);
+    
+    totalEnsembles = 5;
     
     % Do you want to assess the error using all the points from the signal
     % (which makes sense for an interpolation based metric) or just points from
@@ -57,12 +57,14 @@ else
     mse_reduced_dof_blind_initial = zeros(totalStrides, totalSlopes, totalEnsembles);
     mse_reduced_dof_blind_optimal = zeros(totalStrides, totalSlopes, totalEnsembles);
     mse_reduced_dof_log_likelihood = zeros(totalStrides, totalSlopes, totalEnsembles);
+    mse_reduced_dof_log_likelihood_blind = zeros(totalStrides, totalSlopes, totalEnsembles);
     
     dof_se_full_dof_true_optimal = zeros(totalStrides, totalSlopes, totalEnsembles);
     dof_se_reduced_dof_true_optimal = zeros(totalStrides, totalSlopes, totalEnsembles);
     dof_se_reduced_dof_blind_initial = zeros(totalStrides, totalSlopes, totalEnsembles);
     dof_se_reduced_dof_blind_optimal = zeros(totalStrides, totalSlopes, totalEnsembles);
     dof_se_reduced_dof_log_likelihood = zeros(totalStrides, totalSlopes, totalEnsembles);
+    dof_se_reduced_dof_log_likelihood_blind = zeros(totalStrides, totalSlopes, totalEnsembles);
     
     for iSlope = 1:length(slopes)
         
@@ -143,6 +145,7 @@ else
                 idx2 = 1:length(t_obs);
                 
                 a_rms = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs(idx2),x_obs(idx2),sqrt(noiseDistribution.variance),T);
+                tensionDistributionEstimate = NormalDistribution(a_rms);
                 lambda = (n_eff-1)/(n_eff*a_rms.^2);
                 
                 expectedDOF(iStride,iSlope,iEnsemble) = n_eff;
@@ -177,6 +180,12 @@ else
                 mse_reduced_dof_log_likelihood(iStride,iSlope,iEnsemble) = compute_ms_error();
                 dof_se_reduced_dof_log_likelihood(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
                 
+                % record the log-likehood blind fit
+                logLikelihood = @(spline) -sum(noiseDistribution.logPDF( spline.epsilon ) ) - sum(tensionDistributionEstimate.logPDF(spline.uniqueValuesAtHighestDerivative));
+                spline_x.minimize( logLikelihood );
+                mse_reduced_dof_log_likelihood_blind(iStride,iSlope,iEnsemble) = compute_ms_error();
+                dof_se_reduced_dof_log_likelihood_blind(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
+                
                 % record the true optimal fit
                 spline_x.minimizeMeanSquareError(data.t(indicesAll),data.x(indicesAll));
                 mse_reduced_dof_true_optimal(iStride,iSlope,iEnsemble) = compute_ms_error();
@@ -186,7 +195,7 @@ else
         end
     end
     
-    save(filename, 'S', 'T', 'slopes', 'result_stride', 'u_rms_true', 'a_rms_true', 'u_rms_true_strided','a_rms_true_strided', 'u_estimate_spectral', 'a_estimate_spectral', 'expectedDOF','reduced_dof_knot_dof','mse_full_dof_true_optimal','mse_reduced_dof_true_optimal','mse_reduced_dof_blind_initial','mse_reduced_dof_blind_optimal','mse_reduced_dof_log_likelihood','dof_se_full_dof_true_optimal','dof_se_reduced_dof_true_optimal','dof_se_reduced_dof_blind_initial','dof_se_reduced_dof_blind_optimal', 'dof_se_reduced_dof_log_likelihood');
+%     save(filename, 'S', 'T', 'slopes', 'result_stride', 'u_rms_true', 'a_rms_true', 'u_rms_true_strided','a_rms_true_strided', 'u_estimate_spectral', 'a_estimate_spectral', 'expectedDOF','reduced_dof_knot_dof','mse_full_dof_true_optimal','mse_reduced_dof_true_optimal','mse_reduced_dof_blind_initial','mse_reduced_dof_blind_optimal','mse_reduced_dof_log_likelihood','mse_reduced_dof_log_likelihood_blind','dof_se_full_dof_true_optimal','dof_se_reduced_dof_true_optimal','dof_se_reduced_dof_blind_initial','dof_se_reduced_dof_blind_optimal', 'dof_se_reduced_dof_log_likelihood', 'dof_se_reduced_dof_log_likelihood_blind');
 end
 
 reduced_dof_knot_dof_mean = mean(reduced_dof_knot_dof,3);
@@ -205,6 +214,9 @@ dmse_reduced_dof_blind_optimal_mean = median(dmse_reduced_dof_blind_optimal,3);
 dmse_reduced_dof_log_likelihood = mse_reduced_dof_log_likelihood./mse_full_dof_true_optimal-1;
 dmse_reduced_dof_log_likelihood_mean = median(dmse_reduced_dof_log_likelihood,3);
 
+dmse_reduced_dof_log_likelihood_blind = mse_reduced_dof_log_likelihood_blind./mse_full_dof_true_optimal-1;
+dmse_reduced_dof_log_likelihood_blind_mean = median(dmse_reduced_dof_log_likelihood_blind,3);
+
 % analysis of dof
 % a = dof_se_reduced_dof_log_likelihood./dof_se_reduced_dof_true_optimal - 1;
 % iStride=1; iSlope = 1; figure, histogram(a(iStride,iSlope,:))
@@ -219,6 +231,18 @@ for iSlope = 1:length(slopes)
     for iStride=1:length(result_stride)
 %         fprintf('%d & %#.3g m^2 (%#.3g) &  %#.3g m^2 (%#.3g) &  %#.3g m^2 (%#.3g) &  %#.3g m^2 (%#.3g) \\\\ \n', result_stride(iStride), mse_full_dof_true_optimal_mean(iStride,iSlope), dof_se_full_dof_true_optimal(iStride,iSlope), dmse_reduced_dof_true_optimal_mean(iStride,iSlope), dof_se_reduced_dof_true_optimal(iStride,iSlope), dmse_reduced_dof_blind_initial_mean(iStride,iSlope), dof_se_reduced_dof_blind_initial(iStride,iSlope), dmse_reduced_dof_blind_optimal_mean(iStride,iSlope), dof_se_reduced_dof_blind_optimal(iStride,iSlope) )  ;
         fprintf('%d & %#.3g m$^2$ (%#.3g) &  %+.1f\\%% (%#.3g) &  %+.1f\\%% (%#.3g) &  %+.1f\\%% (%#.3g) &  %+.1f\\%% (%#.3g) \\\\ \n', result_stride(iStride), mse_full_dof_true_optimal_mean(iStride,iSlope), dof_se_full_dof_true_optimal(iStride,iSlope), 100*dmse_reduced_dof_true_optimal_mean(iStride,iSlope), dof_se_reduced_dof_true_optimal(iStride,iSlope), 100*dmse_reduced_dof_blind_initial_mean(iStride,iSlope), dof_se_reduced_dof_blind_initial(iStride,iSlope), 100*dmse_reduced_dof_blind_optimal_mean(iStride,iSlope), dof_se_reduced_dof_blind_optimal(iStride,iSlope), 100*dmse_reduced_dof_log_likelihood_mean(iStride,iSlope), dof_se_reduced_dof_log_likelihood(iStride,iSlope) )  ;
+    end
+    
+end
+fprintf('\\end{tabular} \n');
+
+fprintf('\n\n');
+fprintf('\\begin{tabular}{r | lll} stride & full dof & optimal log-likelihood & blind log-likelihood \\\\ \\hline \\hline \n');
+for iSlope = 1:length(slopes)
+    
+    fprintf('$\\omega^{%d}$ &&&&&  \\\\ \\hline \n',slopes(iSlope));
+    for iStride=1:length(result_stride)
+        fprintf('%d & %#.3g m$^2$ (%#.3g) &  %+.1f\\%% (%#.3g) &  %+.1f\\%% (%#.3g) \\\\ \n', result_stride(iStride), mse_full_dof_true_optimal_mean(iStride,iSlope), dof_se_full_dof_true_optimal(iStride,iSlope), 100*dmse_reduced_dof_log_likelihood_mean(iStride,iSlope), dof_se_reduced_dof_log_likelihood(iStride,iSlope), 100*dmse_reduced_dof_log_likelihood_blind_mean(iStride,iSlope), dof_se_reduced_dof_log_likelihood_blind(iStride,iSlope) )  ;
     end
     
 end
