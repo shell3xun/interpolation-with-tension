@@ -2,7 +2,7 @@ scaleFactor = 1;
 LoadFigureDefaults
 
 shouldUseStudentTDistribution = 0;
-shouldLoadExistingTable = 0;
+shouldLoadExistingTable = 1;
 
 if shouldUseStudentTDistribution == 1
     filename = 'MSEComparisonTableStudentT.mat';
