@@ -26,15 +26,24 @@ K = 4;
 D = TensionSpline.FiniteDifferenceMatrixNoBoundary(K-1,drifters.t{choiceDrifter},1);
 DxDT = cat(1,D*drifters.x{choiceDrifter},D*drifters.y{choiceDrifter});
 
-sigma = 8.5;
-nu = 4.5;
-variance_of_the_noise = sigma*sigma*nu/(nu-2);
-w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
+pct = 0.100;
+noiseDistribution = AddedDistribution(pct,StudentTDistribution(300,3.0),StudentTDistribution(8.5,4.5));
+noiseDistribution = StudentTDistribution(300,3.0);
 
-spline_x = TensionSpline(t_data, x_data, sqrt(variance_of_the_noise), 'K', K, 'weightFunction', w); %, 'lambda',0);
-spline_y = TensionSpline(t_data, y_data, sqrt(variance_of_the_noise), 'K', K, 'weightFunction', w); %, 'lambda',0);
+spline_x = TensionSpline(t_data, x_data, noiseDistribution, 'K', K);
+% spline_y = TensionSpline(t_data, y_data, distribution, 'K', K);
 
-spline_x.Minimize( @(spline) LogLikelihoodOfTandG(spline,sigma,nu,sigma_FD))
+x_T = spline_x.uniqueValuesAtHighestDerivative();
+std(x_T)
+sigma_Tx = TensionSpline.StandardDeviationOfInterquartileRange(x_T)
+spline_x.lambda
+
+tensionDistribution = NormalDistribution(sigma_Tx);
+logLikelihood = @(spline) -sum(noiseDistribution.logPDF( spline.epsilon ) ) - sum(tensionDistribution.logPDF(spline.uniqueValuesAtHighestDerivative));
+
+spline_x.minimize( logLikelihood )
+
+return
 
 x_T = spline_x.UniqueValuesAtHighestDerivative();
 y_T = spline_y.UniqueValuesAtHighestDerivative();
