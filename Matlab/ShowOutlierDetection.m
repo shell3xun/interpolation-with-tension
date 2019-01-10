@@ -14,7 +14,7 @@ T = S;
 K = S+1;
 
 result_stride = 2*[1;4;16;64];
-result_stride = 64;
+result_stride = 128;
 totalStrides = length(result_stride);
 
 totalEnsembles = 1;
@@ -80,7 +80,9 @@ for iSlope = 3:3;%length(slopes)
     
 end
 
-distribution = AddedDistribution(percentOutliers,NormalDistribution(outlierFactor*sigma),NormalDistribution(sigma));
+% distribution = AddedDistribution(percentOutliers,NormalDistribution(outlierFactor*sigma),StudentTDistribution(8.5,4.5));
+
+distribution = AddedDistribution(percentOutliers,StudentTDistribution(20,3.0),NormalDistribution(sigma));
 
 spline = TensionSpline(t_obs,x_obs,distribution, 'lambda',Lambda.optimalIterated);
 tq = linspace(min(t_obs),max(t_obs),10*length(t_obs));

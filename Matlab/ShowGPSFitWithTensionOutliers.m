@@ -10,7 +10,7 @@ addpath('support')
 shouldSaveFigures = 0;
 
 % Drifter to highlight in the final plots. Drifter 7 has no outliers
-choiceDrifter = 6;
+choiceDrifter = 7;
 
 if Site == 1
     drifters = load('sample_data/rho1_drifters_projected_ungridded.mat');
@@ -23,33 +23,45 @@ x_data = drifters.x{choiceDrifter};
 y_data = drifters.y{choiceDrifter};
 t_data = drifters.t{choiceDrifter};
 
-t=linspace(min(t_data),max(t_data),length(t_data)*10).';
-
-
-pct = 0.05;
-distribution = AddedDistribution(pct,NormalDistribution(800),StudentTDistribution(8.5,4.5));
-distribution = AddedDistribution(pct,StudentTDistribution(300,3.0),StudentTDistribution(8.5,4.5));
-
-spline = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated);
-spline.minimizeExpectedMeanSquareErrorInPercentileRange(pct/2,1-pct/2);
-
 tq = linspace(min(t_data),max(t_data),10*length(t_data));
 
-zmin = spline.distribution.locationOfCDFPercentile(pct/2);
-zmax = spline.distribution.locationOfCDFPercentile(1-pct/2);
+noiseDistribution = StudentTDistribution(8.5,4.5);
+distribution = AddedDistribution(0.1,StudentTDistribution(20,3.0),noiseDistribution);
+zmin = noiseDistribution.locationOfCDFPercentile(1/10000/2);
+zmax = noiseDistribution.locationOfCDFPercentile(1-1/10000/2);
+
+spline = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated);
+spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) )
+% spline.minimize( @(spline) noiseDistribution.kolmogorovSmirnovError(spline.epsilon,zmin,zmax) )
 
 spline.indicesOfOutliers = find(spline.epsilon < zmin | spline.epsilon > zmax);
 spline.goodIndices = setdiff((1:length(spline.x))',spline.indicesOfOutliers);
 
 figure
+subplot(2,1,1)
 % scatter(t_data(spline.indicesOfOutliers),x_data(spline.indicesOfOutliers),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
 scatter(t_data(spline.indicesOfOutliers),y_data(spline.indicesOfOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
 scatter(t_data,y_data,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 plot(tq,spline(tq),'r')
 
+
+spline = TensionSpline(t_data,x_data,distribution,'lambda',Lambda.fullTensionExpected);
+spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) )
+% spline.minimize( @(spline) noiseDistribution.kolmogorovSmirnovError(spline.epsilon,zmin,zmax) )
+
+spline.indicesOfOutliers = find(spline.epsilon < zmin | spline.epsilon > zmax);
+spline.goodIndices = setdiff((1:length(spline.x))',spline.indicesOfOutliers);
+
+subplot(2,1,2)
+% scatter(t_data(spline.indicesOfOutliers),x_data(spline.indicesOfOutliers),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
+scatter(t_data(spline.indicesOfOutliers),x_data(spline.indicesOfOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
+scatter(t_data,x_data,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
+plot(tq,spline(tq),'r')
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+return
 
 t_knot = InterpolatingSpline.KnotPointsForPoints(t_data(spline.goodIndices),spline.K,1);
 spline2 = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated,'t_knot',t_knot);

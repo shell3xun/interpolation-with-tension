@@ -58,6 +58,7 @@ else
     mse_reduced_dof_blind_optimal = zeros(totalStrides, totalSlopes, totalEnsembles);
     mse_reduced_dof_log_likelihood = zeros(totalStrides, totalSlopes, totalEnsembles);
     mse_reduced_dof_log_likelihood_blind = zeros(totalStrides, totalSlopes, totalEnsembles);
+    mse_reduced_dof_gcv= zeros(totalStrides, totalSlopes, totalEnsembles);
     
     dof_se_full_dof_true_optimal = zeros(totalStrides, totalSlopes, totalEnsembles);
     dof_se_reduced_dof_true_optimal = zeros(totalStrides, totalSlopes, totalEnsembles);
@@ -65,6 +66,7 @@ else
     dof_se_reduced_dof_blind_optimal = zeros(totalStrides, totalSlopes, totalEnsembles);
     dof_se_reduced_dof_log_likelihood = zeros(totalStrides, totalSlopes, totalEnsembles);
     dof_se_reduced_dof_log_likelihood_blind = zeros(totalStrides, totalSlopes, totalEnsembles);
+    dof_se_reduced_dof_gcv = zeros(totalStrides, totalSlopes, totalEnsembles);
     
     for iSlope = 1:length(slopes)
         
@@ -186,6 +188,10 @@ else
                 mse_reduced_dof_log_likelihood_blind(iStride,iSlope,iEnsemble) = compute_ms_error();
                 dof_se_reduced_dof_log_likelihood_blind(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
                 
+                spline_x.minimize( @(spline) spline.expectedMeanSquareErrorFromGCV );
+                mse_reduced_dof_gcv(iStride,iSlope,iEnsemble) = compute_ms_error();
+                dof_se_reduced_dof_gcv(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
+                
                 % record the true optimal fit
                 spline_x.minimizeMeanSquareError(data.t(indicesAll),data.x(indicesAll));
                 mse_reduced_dof_true_optimal(iStride,iSlope,iEnsemble) = compute_ms_error();
@@ -217,6 +223,9 @@ dmse_reduced_dof_log_likelihood_mean = median(dmse_reduced_dof_log_likelihood,3)
 dmse_reduced_dof_log_likelihood_blind = mse_reduced_dof_log_likelihood_blind./mse_full_dof_true_optimal-1;
 dmse_reduced_dof_log_likelihood_blind_mean = median(dmse_reduced_dof_log_likelihood_blind,3);
 
+dmse_reduced_dof_gcv = mse_reduced_dof_gcv./mse_full_dof_true_optimal-1;
+dmse_reduced_dof_gcv_mean = median(dmse_reduced_dof_gcv,3);
+
 % analysis of dof
 % a = dof_se_reduced_dof_log_likelihood./dof_se_reduced_dof_true_optimal - 1;
 % iStride=1; iSlope = 1; figure, histogram(a(iStride,iSlope,:))
@@ -230,7 +239,7 @@ for iSlope = 1:length(slopes)
     fprintf('$\\omega^{%d}$ &&&&&  \\\\ \\hline \n',slopes(iSlope));
     for iStride=1:length(result_stride)
 %         fprintf('%d & %#.3g m^2 (%#.3g) &  %#.3g m^2 (%#.3g) &  %#.3g m^2 (%#.3g) &  %#.3g m^2 (%#.3g) \\\\ \n', result_stride(iStride), mse_full_dof_true_optimal_mean(iStride,iSlope), dof_se_full_dof_true_optimal(iStride,iSlope), dmse_reduced_dof_true_optimal_mean(iStride,iSlope), dof_se_reduced_dof_true_optimal(iStride,iSlope), dmse_reduced_dof_blind_initial_mean(iStride,iSlope), dof_se_reduced_dof_blind_initial(iStride,iSlope), dmse_reduced_dof_blind_optimal_mean(iStride,iSlope), dof_se_reduced_dof_blind_optimal(iStride,iSlope) )  ;
-        fprintf('%d & %#.3g m$^2$ (%#.3g) &  %+.1f\\%% (%#.3g) &  %+.1f\\%% (%#.3g) &  %+.1f\\%% (%#.3g) &  %+.1f\\%% (%#.3g) \\\\ \n', result_stride(iStride), mse_full_dof_true_optimal_mean(iStride,iSlope), dof_se_full_dof_true_optimal(iStride,iSlope), 100*dmse_reduced_dof_true_optimal_mean(iStride,iSlope), dof_se_reduced_dof_true_optimal(iStride,iSlope), 100*dmse_reduced_dof_blind_initial_mean(iStride,iSlope), dof_se_reduced_dof_blind_initial(iStride,iSlope), 100*dmse_reduced_dof_blind_optimal_mean(iStride,iSlope), dof_se_reduced_dof_blind_optimal(iStride,iSlope), 100*dmse_reduced_dof_log_likelihood_mean(iStride,iSlope), dof_se_reduced_dof_log_likelihood(iStride,iSlope) )  ;
+        fprintf('%d & %#.3g m$^2$ (%#.3g) &  %+.1f\\%% (%#.3g) &  %+.1f\\%% (%#.3g) &  %+.1f\\%% (%#.3g) &  %+.1f\\%% (%#.3g) \\\\ \n', result_stride(iStride), mse_full_dof_true_optimal_mean(iStride,iSlope), dof_se_full_dof_true_optimal(iStride,iSlope), 100*dmse_reduced_dof_true_optimal_mean(iStride,iSlope), dof_se_reduced_dof_true_optimal(iStride,iSlope), 100*dmse_reduced_dof_blind_initial_mean(iStride,iSlope), dof_se_reduced_dof_blind_initial(iStride,iSlope), 100*dmse_reduced_dof_blind_optimal_mean(iStride,iSlope), dof_se_reduced_dof_blind_optimal(iStride,iSlope), 100*dmse_reduced_dof_gcv(iStride,iSlope), dof_se_reduced_dof_gcv(iStride,iSlope) )  ;
     end
     
 end
