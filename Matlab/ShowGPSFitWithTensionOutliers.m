@@ -10,7 +10,7 @@ addpath('support')
 shouldSaveFigures = 0;
 
 % Drifter to highlight in the final plots. Drifter 7 has no outliers
-choiceDrifter = 7;
+choiceDrifter = 6;
 
 if Site == 1
     drifters = load('sample_data/rho1_drifters_projected_ungridded.mat');
@@ -25,38 +25,54 @@ t_data = drifters.t{choiceDrifter};
 
 tq = linspace(min(t_data),max(t_data),10*length(t_data));
 
+% These are our working definitions for the noise
 noiseDistribution = StudentTDistribution(8.5,4.5);
-distribution = AddedDistribution(0.1,StudentTDistribution(20,3.0),noiseDistribution);
+outlierDistribution = StudentTDistribution(300,3.0);
+distribution = AddedDistribution(0.01,outlierDistribution,noiseDistribution);
 zmin = noiseDistribution.locationOfCDFPercentile(1/10000/2);
 zmax = noiseDistribution.locationOfCDFPercentile(1-1/10000/2);
 
-spline = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated);
-spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) )
+spline_x = TensionSpline(t_data,x_data,distribution,'lambda',Lambda.optimalIterated);
+spline_y = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated);
+
+% spline_x.minimize( @(spline) spline.expectedMeanSquareErrorFromGCV );
+% spline_y.minimize( @(spline) spline.expectedMeanSquareErrorFromGCV );
+
+a_rms = 6.1e-09;
+tensionDistribution = NormalDistribution(a_rms*1.6);
+logLikelihood = @(spline) -sum(noiseDistribution.logPDF( spline.epsilon ) ) - sum(tensionDistribution.logPDF(spline.uniqueValuesAtHighestDerivative));
+
+spline_x.minimize( logLikelihood );
+spline_y.minimize( logLikelihood );
+
+% spline_x.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
+% spline_y.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
+
+fprintf('(lambda_x, lambda_y)=(%g, %g)\n',spline_x.lambda, spline_y.lambda);
+fprintf('(n_eff_x, n_eff_y)=(%.2f, %.2f)\n',spline_x.effectiveSampleSizeFromVarianceOfTheMean, spline_y.effectiveSampleSizeFromVarianceOfTheMean);
+fprintf('(a_std_x, a_std_y)=(%g, %g)\n',std(spline_x.uniqueValuesAtHighestDerivative),std(spline_y.uniqueValuesAtHighestDerivative));
+
+
+
+% spline.minimize( @(spline) noiseDistribution.kolmogorovSmirnovError(spline.epsilon,zmin,zmax) )
 % spline.minimize( @(spline) noiseDistribution.kolmogorovSmirnovError(spline.epsilon,zmin,zmax) )
 
-spline.indicesOfOutliers = find(spline.epsilon < zmin | spline.epsilon > zmax);
-spline.goodIndices = setdiff((1:length(spline.x))',spline.indicesOfOutliers);
+spline_x.indicesOfOutliers = find(spline_x.epsilon < zmin | spline_x.epsilon > zmax);
+spline_x.goodIndices = setdiff((1:length(spline_x.x))',spline_x.indicesOfOutliers);
+
+spline_y.indicesOfOutliers = find(spline_y.epsilon < zmin | spline_y.epsilon > zmax);
+spline_y.goodIndices = setdiff((1:length(spline_y.x))',spline_y.indicesOfOutliers);
 
 figure
 subplot(2,1,1)
-% scatter(t_data(spline.indicesOfOutliers),x_data(spline.indicesOfOutliers),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
-scatter(t_data(spline.indicesOfOutliers),y_data(spline.indicesOfOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
+scatter(t_data(spline_y.indicesOfOutliers),y_data(spline_y.indicesOfOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
 scatter(t_data,y_data,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
-plot(tq,spline(tq),'r')
-
-
-spline = TensionSpline(t_data,x_data,distribution,'lambda',Lambda.fullTensionExpected);
-spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) )
-% spline.minimize( @(spline) noiseDistribution.kolmogorovSmirnovError(spline.epsilon,zmin,zmax) )
-
-spline.indicesOfOutliers = find(spline.epsilon < zmin | spline.epsilon > zmax);
-spline.goodIndices = setdiff((1:length(spline.x))',spline.indicesOfOutliers);
+plot(tq,spline_y(tq),'r')
 
 subplot(2,1,2)
-% scatter(t_data(spline.indicesOfOutliers),x_data(spline.indicesOfOutliers),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
-scatter(t_data(spline.indicesOfOutliers),x_data(spline.indicesOfOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
+scatter(t_data(spline_x.indicesOfOutliers),x_data(spline_x.indicesOfOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
 scatter(t_data,x_data,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
-plot(tq,spline(tq),'r')
+plot(tq,spline_x(tq),'r')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
