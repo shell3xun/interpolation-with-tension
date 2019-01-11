@@ -10,7 +10,7 @@ addpath('support')
 shouldSaveFigures = 0;
 
 % Drifter to highlight in the final plots. Drifter 7 has no outliers
-choiceDrifter = 6;
+choiceDrifter = 7;
 
 if Site == 1
     drifters = load('sample_data/rho1_drifters_projected_ungridded.mat');
@@ -27,13 +27,146 @@ tq = linspace(min(t_data),max(t_data),10*length(t_data));
 
 % These are our working definitions for the noise
 noiseDistribution = StudentTDistribution(8.5,4.5);
-outlierDistribution = StudentTDistribution(300,3.0);
+outlierDistribution = StudentTDistribution(200,3.0);
 distribution = AddedDistribution(0.01,outlierDistribution,noiseDistribution);
-zmin = noiseDistribution.locationOfCDFPercentile(1/10000/2);
-zmax = noiseDistribution.locationOfCDFPercentile(1-1/10000/2);
+zmin = noiseDistribution.locationOfCDFPercentile(1/100/2);
+zmax = noiseDistribution.locationOfCDFPercentile(1-1/100/2);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Make a figure with the data
+figure
+sp1=subplot(2,1,1);
+% scatter(t_data,x_data,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
+errorbar(t_data,x_data,zmax*ones(size(t_data))), hold on
+sp2=subplot(2,1,2);
+errorbar(t_data,y_data,zmax*ones(size(t_data))), hold on
+
+% scatter(t_data,y_data,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Start with the usual optimal iterated---no outliers
+
+spline_x = TensionSpline(t_data,x_data,noiseDistribution,'lambda',Lambda.optimalIterated);
+spline_y = TensionSpline(t_data,y_data,noiseDistribution,'lambda',Lambda.optimalIterated);
+
+fprintf('optimal iterated n/o lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
+fprintf('optimal iterated n/o a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
+fprintf('optimal iterated n/o a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
+
+subplot(sp1)
+plot(tq,spline_x(tq))
+subplot(sp2)
+plot(tq,spline_y(tq))
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Start with the usual optimal iterated
 
 spline_x = TensionSpline(t_data,x_data,distribution,'lambda',Lambda.optimalIterated);
 spline_y = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated);
+
+fprintf('optimal iterated lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
+fprintf('optimal iterated a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
+fprintf('optimal iterated a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
+
+subplot(sp1)
+plot(tq,spline_x(tq))
+subplot(sp2)
+plot(tq,spline_y(tq))
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Then iterate used the expected MSE within some range
+
+spline_x.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
+spline_y.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
+
+fprintf('ranged iterated lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
+fprintf('ranged iterated a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
+fprintf('ranged iterated a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
+
+subplot(sp1)
+plot(tq,spline_x(tq))
+subplot(sp2)
+plot(tq,spline_y(tq))
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Identify the points that look like outliers
+outlierThreshold = noiseDistribution.locationOfCDFPercentile(1-1/10000/2);
+
+spline_x.indicesOfOutliers = find(abs(spline_x.epsilon) > outlierThreshold);
+spline_y.indicesOfOutliers = find(abs(spline_y.epsilon) > outlierThreshold);
+
+t_knot_x = InterpolatingSpline.KnotPointsForPoints(spline_x.t(spline_x.goodIndices),spline_x.K,1);
+t_knot_y = InterpolatingSpline.KnotPointsForPoints(spline_y.t(spline_y.goodIndices),spline_y.K,1);
+
+fprintf('identified outliers: (%d, %d)\n',length(spline_x.indicesOfOutliers), length(spline_y.indicesOfOutliers));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Remove spline support from outlier knots, then minimize in range again
+
+spline_x = TensionSpline(t_data,x_data,distribution,'lambda',Lambda.fullTensionExpected,'t_knot',t_knot_x);
+spline_y = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.fullTensionExpected,'t_knot',t_knot_y);
+
+spline_x.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
+spline_y.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
+
+spline_x.indicesOfOutliers = find(abs(spline_x.epsilon) > outlierThreshold);
+spline_y.indicesOfOutliers = find(abs(spline_y.epsilon) > outlierThreshold);
+
+fprintf('ranged reduced iterated lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
+fprintf('ranged reduced iterated a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
+fprintf('ranged reduced iterated a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
+
+subplot(sp1)
+plot(tq,spline_x(tq))
+subplot(sp2)
+plot(tq,spline_y(tq))
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Now use maximum likelihood from the IQR of acceleration
+
+% a = cat(1,spline_x.uniqueValuesAtHighestDerivative,spline_y.uniqueValuesAtHighestDerivative);
+% tensionDistribution = NormalDistribution(TensionSpline.StandardDeviationOfInterquartileRange(a));
+
+distribution = AddedDistribution(length(spline_x.indicesOfOutliers)/length(spline_x.t),outlierDistribution,noiseDistribution);
+tensionDistribution = NormalDistribution(TensionSpline.StandardDeviationOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative));
+logLikelihood = @(spline) -sum(distribution.logPDF( spline.epsilon ) ) - sum(tensionDistribution.logPDF(spline.uniqueValuesAtHighestDerivative));
+spline_x.minimize( logLikelihood );
+
+distribution = AddedDistribution(length(spline_y.indicesOfOutliers)/length(spline_y.t),outlierDistribution,noiseDistribution);
+tensionDistribution = NormalDistribution(TensionSpline.StandardDeviationOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative));
+logLikelihood = @(spline) -sum(distribution.logPDF( spline.epsilon ) ) - sum(tensionDistribution.logPDF(spline.uniqueValuesAtHighestDerivative));
+spline_y.minimize( logLikelihood );
+
+fprintf('log-likelihood lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
+fprintf('log-likelihood a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
+fprintf('log-likelihood a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
+
+spline_x.indicesOfOutliers = find(abs(spline_x.epsilon) > zmax);
+spline_y.indicesOfOutliers = find(abs(spline_y.epsilon) > zmax);
+
+fprintf('identified outliers: (%d, %d)\n',length(spline_x.indicesOfOutliers), length(spline_y.indicesOfOutliers));
+
+subplot(sp1)
+scatter(t_data(spline_x.indicesOfOutliers),x_data(spline_x.indicesOfOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
+scatter(t_data(spline_x.indicesOfOutliers),x_data(spline_x.indicesOfOutliers),(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
+plot(tq,spline_x(tq))
+subplot(sp2)
+scatter(t_data(spline_y.indicesOfOutliers),y_data(spline_y.indicesOfOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
+scatter(t_data(spline_y.indicesOfOutliers),y_data(spline_y.indicesOfOutliers),(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
+plot(tq,spline_y(tq))
+
+legend('data','expected mse n/o','expected mse','ranged mse', 'ranged reduced', 'outliers','data', 'log-likelihood')
+
+return
 
 % spline_x.minimize( @(spline) spline.expectedMeanSquareErrorFromGCV );
 % spline_y.minimize( @(spline) spline.expectedMeanSquareErrorFromGCV );

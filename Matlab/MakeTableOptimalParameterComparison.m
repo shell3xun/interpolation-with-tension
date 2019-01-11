@@ -20,15 +20,15 @@ else
     T = S;
     K = S+1;
     
-%     result_stride = 2*[1;4;16;64];
-%     totalStrides = length(result_stride);
-%     
-%     totalEnsembles = 25;
-    
-        result_stride = 2*[1;10;64];
+    result_stride = 2*[1;4;16;64];
     totalStrides = length(result_stride);
     
-    totalEnsembles = 5;
+    totalEnsembles = 25;
+    
+%         result_stride = 2*[1;10;64];
+%     totalStrides = length(result_stride);
+%     
+%     totalEnsembles = 5;
     
     % Do you want to assess the error using all the points from the signal
     % (which makes sense for an interpolation based metric) or just points from
