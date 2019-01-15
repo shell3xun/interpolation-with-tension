@@ -10,7 +10,7 @@ addpath('support')
 shouldSaveFigures = 0;
 
 % Drifter to highlight in the final plots
-choiceDrifter = 1;
+choiceDrifter = 6;
 
 if Site == 1
     drifters = load('sample_data/rho1_drifters_projected_ungridded.mat');
@@ -23,28 +23,13 @@ x_data = drifters.x{choiceDrifter};
 y_data = drifters.y{choiceDrifter};
 t_data = drifters.t{choiceDrifter};
 
+% These are our working definitions for the noise
+noiseDistribution = StudentTDistribution(8.5,4.5);
 
-
-splinefit = TensionSpline(t_data,x_data,10);
-
-gpsfit = GPSTensionSpline(t_data,x_data,y_data);
+splinefit = TensionSpline(t_data,x_data,noiseDistribution);
+robustfit = RobustTensionSpline(t_data,x_data,noiseDistribution);
 
 t=linspace(min(t_data),max(t_data),length(t_data)*10).';
-[x,y] = gpsfit(t);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% Position fit figure
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-figure
-s = 1/1000; % scale
-plot(s*x,s*y, 'LineWidth', 0.5*scaleFactor, 'Color',0.4*[1.0 1.0 1.0]), hold on
-scatter(s*x_data(gpsfit.indicesOfOutliers),s*y_data(gpsfit.indicesOfOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
-scatter(s*x_data,s*y_data,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
-
-return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -61,9 +46,10 @@ fig1.PaperUnits = 'points';
 fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
-plot(t/3600,s*x, 'LineWidth', 1.0*scaleFactor, 'Color',0.0*[1.0 1.0 1.0]), hold on
+s = 1/1000;
+plot(t/3600,s*robustfit(t), 'LineWidth', 1.0*scaleFactor, 'Color',0.0*[1.0 1.0 1.0]), hold on
 plot(t/3600,s*splinefit(t), 'LineWidth', 1.0*scaleFactor, 'Color',0.4*[1.0 1.0 1.0])
-scatter(drifters.t{choiceDrifter}(gpsfit.indicesOfOutliers)/3600,s*drifters.x{choiceDrifter}(gpsfit.indicesOfOutliers),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
+scatter(drifters.t{choiceDrifter}(robustfit.indicesOfOutliers)/3600,s*drifters.x{choiceDrifter}(robustfit.indicesOfOutliers),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
 scatter(drifters.t{choiceDrifter}/3600,s*drifters.x{choiceDrifter},(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 xlabel('t (hours)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 ylabel('x (km)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
@@ -76,6 +62,8 @@ fig1.Position = FigureSize;
 fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 fig1.PaperPositionMode = 'auto';
+
+return
 
 if shouldSaveFigures == 1
     print('-depsc2', '../figures/gpsfit.eps')
