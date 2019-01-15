@@ -110,8 +110,8 @@ outlierDistribution = StudentTDistribution(200,3.0);
 distribution = AddedDistribution(0.01,outlierDistribution,noiseDistribution);
 
 spline = TensionSpline(t_obs,x_obs,distribution, 'S', S, 'lambda',Lambda.fullTensionExpected);
-pctmin = 1/100/2;
-pctmax = 1-1/100/2;
+pctmin = 1/1000/2;
+pctmax = 1-1/1000/2;
 zmin = noiseDistribution.locationOfCDFPercentile(pctmin);
 zmax = noiseDistribution.locationOfCDFPercentile(pctmax);
 
@@ -124,13 +124,20 @@ fprintf('initial mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_er
 % Toss outliers, do the same ranged MSE 
 
 spline.indicesOfOutliers = find(abs(spline.epsilon) > outlierThreshold);
-spline.indicesOfOutliers = setdiff(spline.indicesOfOutliers,[1 length(spline.t)]);
 t_knot = InterpolatingSpline.KnotPointsForPoints(spline.t(spline.goodIndices),spline.K,1);
+distribution = AddedDistribution(length(spline.indicesOfOutliers)/length(spline.t),outlierDistribution,noiseDistribution);
 
 spline_reduced = TensionSpline(t_obs,x_obs,distribution, 'S', S, 'lambda',Lambda.fullTensionExpected,'t_knot',t_knot);
-spline_reduced.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
 compute_ms_error = @() (mean(mean(  (data.x(indices) - spline_reduced(data.t(indices))).^2,2 ),1));
-fprintf('reduced mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(), std(spline_reduced.uniqueValuesAtHighestDerivative), spline_reduced.lambda );
+
+spline_reduced.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
+fprintf('reduced-range mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(), std(spline_reduced.uniqueValuesAtHighestDerivative), spline_reduced.lambda );
+
+spline_reduced.minimize( @(spline) spline.expectedMeanSquareErrorFromGCV );
+fprintf('reduced-gcv mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(), std(spline_reduced.uniqueValuesAtHighestDerivative), spline_reduced.lambda );
+
+spline_reduced.minimize( @(spline) spline.expectedMeanSquareErrorFromCV );
+fprintf('reduced-cv mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(), std(spline_reduced.uniqueValuesAtHighestDerivative), spline_reduced.lambda );
 
 spline_reduced.indicesOfOutliers = find(abs(spline.epsilon) > outlierThreshold);
 

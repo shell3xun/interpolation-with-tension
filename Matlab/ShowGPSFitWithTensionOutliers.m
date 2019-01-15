@@ -52,9 +52,9 @@ errorbar(t_data,y_data,zmax*ones(size(t_data))), hold on
 spline_x = TensionSpline(t_data,x_data,noiseDistribution,'lambda',Lambda.optimalIterated);
 spline_y = TensionSpline(t_data,y_data,noiseDistribution,'lambda',Lambda.optimalIterated);
 
-fprintf('optimal iterated n/o lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
-fprintf('optimal iterated n/o a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
-fprintf('optimal iterated n/o a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
+fprintf('optimal iterated no-outliers lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
+fprintf('optimal iterated no-outliers a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
+fprintf('optimal iterated no-outliers a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
 
 subplot(sp1)
 plot(tq,spline_x(tq))
@@ -64,23 +64,31 @@ plot(tq,spline_y(tq))
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Start with the usual optimal iterated
+% Start with the usual optimal iterated---with outliers (this does badly)
+
+tensionDistribution = NormalDistribution(TensionSpline.StandardDeviationOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative));
+logLikelihood = @(spline) -sum(noiseDistribution.logPDF( spline.epsilon ) ) - sum(tensionDistribution.logPDF(spline.uniqueValuesAtHighestDerivative));
+spline_x.minimize( logLikelihood );
+
+tensionDistribution = NormalDistribution(TensionSpline.StandardDeviationOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative));
+logLikelihood = @(spline) -sum(noiseDistribution.logPDF( spline.epsilon ) ) - sum(tensionDistribution.logPDF(spline.uniqueValuesAtHighestDerivative));
+spline_y.minimize( logLikelihood );
+
+fprintf('log-likelihood no-outliers lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
+fprintf('log-likelihood no-outliers a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
+fprintf('log-likelihood no-outliers a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
+
+subplot(sp1)
+plot(tq,spline_x(tq))
+subplot(sp2)
+plot(tq,spline_y(tq))
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Then iterate used the expected MSE within some range (this does well)
 
 spline_x = TensionSpline(t_data,x_data,distribution,'lambda',Lambda.optimalIterated);
 spline_y = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated);
-
-fprintf('optimal iterated lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
-fprintf('optimal iterated a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
-fprintf('optimal iterated a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
-
-subplot(sp1)
-plot(tq,spline_x(tq))
-subplot(sp2)
-plot(tq,spline_y(tq))
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% Then iterate used the expected MSE within some range
 
 spline_x.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
 spline_y.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
@@ -111,7 +119,10 @@ fprintf('identified outliers: (%d, %d)\n',length(spline_x.indicesOfOutliers), le
 %
 % Remove spline support from outlier knots, then minimize in range again
 
+distribution = AddedDistribution(length(spline_x.indicesOfOutliers)/length(spline_x.t),outlierDistribution,noiseDistribution);
 spline_x = TensionSpline(t_data,x_data,distribution,'lambda',Lambda.fullTensionExpected,'t_knot',t_knot_x);
+
+distribution = AddedDistribution(length(spline_y.indicesOfOutliers)/length(spline_y.t),outlierDistribution,noiseDistribution);
 spline_y = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.fullTensionExpected,'t_knot',t_knot_y);
 
 spline_x.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
