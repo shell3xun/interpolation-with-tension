@@ -2,7 +2,7 @@ scaleFactor = 1;
 LoadFigureDefaults
 
 shouldUseStudentTDistribution = 0;
-shouldLoadExistingTable = 0;
+shouldLoadExistingTable = 1;
 
 if shouldUseStudentTDistribution == 1
     filename = 'MSEComparisonTableStudentT.mat';
@@ -246,7 +246,7 @@ minpct = @(values) 100*values(ceil( ((1-pct_range)/2)*length(values)));
 maxpct = @(values) 100*values(floor( ((1+pct_range)/2)*length(values)));
 
 fprintf('\n\n');
-fprintf('\\begin{tabular}{r | lllll} stride & full dof & reduced dof & blind initial & blind optimal & log-likelihood \\\\ \\hline \\hline \n');
+fprintf('\\begin{tabular}{r | lllll} stride & optimal mse ($n_{eff}$) & reduced dof & blind initial & blind optimal & blind optimal ranged & log-likelihood & blind log-likelihood & GCV \\\\ \\hline \\hline \n');
 for iSlope = 1:length(slopes)
     fprintf('$\\omega^{%d}$ &&&&&  \\\\ \\hline \n',slopes(iSlope));
     for iStride=1:length(result_stride)

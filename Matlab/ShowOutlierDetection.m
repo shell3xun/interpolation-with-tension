@@ -4,7 +4,7 @@ LoadFigureDefaults
 shouldUseStudentTDistribution = 1;
 
 percentOutliers = 0.1;
-outlierFactor = 20;
+outlierFactor = 40;
 
 slopes = [-2; -3; -4];
 totalSlopes = length(slopes);
@@ -14,8 +14,14 @@ T = 3;
 K = S+1;
 
 result_stride = 2*[1;4;16;64];
-result_stride = 128;
+result_stride = 32;
 totalStrides = length(result_stride);
+
+% matern signal parameters
+sigma_u = 0.20;
+base_dt = 5; % for whatever reason, we chose this as the primary dt
+t_damp = 30*60;
+n = 250;
 
 totalEnsembles = 1;
 
@@ -23,34 +29,16 @@ for iSlope = 3:3;%length(slopes)
     slope = slopes(iSlope);
     fprintf('slope %d, ',slope);
     
-    if slope == -2
-        data = load('sample_data/SyntheticTrajectories.mat');
-        outputFile = 'OptimalParameters.mat';
-    elseif slope == -3
-        data = load('sample_data/SyntheticTrajectoriesSlope3.mat');
-        outputFile = 'OptimalParametersSlope3.mat';
-    elseif slope == -4
-        data = load('sample_data/SyntheticTrajectoriesSlope4.mat');
-        outputFile = 'OptimalParametersSlope4.mat';
-    end
-    
-    sigma = data.position_error;
-    dt = data.t(2)-data.t(1);
-    
     for iStride=1:length(result_stride)
         stride = result_stride(iStride);
-        % Reduce the total length in some cases
-        if (stride < 10)
-            shortenFactor = stride/10;
-        else
-            shortenFactor = 1;
-        end
+        dt = stride*base_dt;
         
-        indices = 1:stride:floor(shortenFactor*length(data.t));
-        fprintf('dT = %d --- Using %d points with stride %d. Evaluating ensemble', stride*dt, length(indices), stride);
-
         for iEnsemble = 1:totalEnsembles
             fprintf('..%d',iEnsemble);
+            
+            cv=maternoise(dt,n,sigma_u*sqrt(2),abs(slope),1/t_damp);
+            cx = cumtrapz(cv)*dt;
+            data = struct('t',dt*(0:n-1)','x',real(cx));
             
             if shouldUseStudentTDistribution == 1
                 nu = 4.5; sigma =  8.5;        
@@ -59,11 +47,11 @@ for iSlope = 3:3;%length(slopes)
                 sigma = 10;
                 noiseDistribution = NormalDistribution(sigma);
             end
-            outlierIndices = rand(length(indices),1)<=percentOutliers;
-            outlierIndices([1 length(indices)]) = 0;
+            outlierIndices = rand(n,1)<=percentOutliers;
+            outlierIndices([1 n]) = 0;
             
-            epsilon_x = zeros(length(indices),1);
-            epsilon_x_outlier = zeros(length(indices),1);
+            epsilon_x = zeros(n,1);
+            epsilon_x_outlier = zeros(n,1);
             
             epsilon_x(~outlierIndices) = noiseDistribution.rand(sum(~outlierIndices));
             epsilon_x_outlier(outlierIndices) = outlierFactor*noiseDistribution.rand(sum(outlierIndices));
@@ -71,10 +59,10 @@ for iSlope = 3:3;%length(slopes)
             epsilon = epsilon_x + epsilon_x_outlier;
             outlierThreshold = noiseDistribution.locationOfCDFPercentile(1-1/10000/2);
             trueOutliers = find(abs(epsilon) > outlierThreshold);
-            goodIndices = setdiff(1:length(indices),trueOutliers);
+            goodIndices = setdiff(1:n,trueOutliers);
              
-            x_obs = data.x(indices) + epsilon;
-            t_obs = data.t(indices);  
+            x_obs = data.x + epsilon;
+            t_obs = data.t;  
         end
         fprintf('\n');
     end
@@ -89,7 +77,7 @@ tq = linspace(min(t_obs),max(t_obs),10*length(t_obs));
 % plot(tD,D*data.x(indices))
 
 dt = t_obs(2)-t_obs(1);
-a = diff(diff(data.x(indices)))/(dt^2);
+a = diff(diff(data.x))/(dt^2);
 fprintf('true strided acceleration: %.3g\n', sqrt( mean( a.*a ) ));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -97,10 +85,33 @@ fprintf('true strided acceleration: %.3g\n', sqrt( mean( a.*a ) ));
 % Toss out the points that are outliers, and perform the best fit.
 
 spline_optimal = TensionSpline(t_obs(goodIndices),x_obs(goodIndices),noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected);
-spline_optimal.minimizeMeanSquareError(data.t(indices),data.x(indices));
+spline_optimal.minimizeMeanSquareError(data.t,data.x);
 
-compute_ms_error = @() (mean(mean(  (data.x(indices) - spline_optimal(data.t(indices))).^2,2 ),1));
+compute_ms_error = @() (mean(mean(  (data.x - spline_optimal(data.t)).^2,2 ),1));
 fprintf('optimal mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(), std(spline_optimal.uniqueValuesAtHighestDerivative),spline_optimal.lambda );
+
+spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S);
+compute_ms_error = @() (mean(mean(  (data.x- spline_robust(data.t)).^2,2 ),1));
+fprintf('optimal mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(), std(spline_robust.uniqueValuesAtHighestDerivative),spline_robust.lambda );
+
+falseNegativeOutliers = setdiff(trueOutliers,spline_robust.indicesOfOutliers);
+falsePositiveOutliers = setdiff(spline_robust.indicesOfOutliers,trueOutliers);
+fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Figure
+
+figure
+scatter(t_obs(spline_robust.indicesOfOutliers),x_obs(spline_robust.indicesOfOutliers),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
+scatter(t_obs(trueOutliers),x_obs(trueOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
+scatter(t_obs,x_obs,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
+plot(tq,spline_optimal(tq),'k')
+plot(tq,spline_robust(tq),'b')
+
+
+return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
