@@ -42,6 +42,12 @@ scatter(t_data,y_data,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'Mar
 spline_x = RobustTensionSpline(t_data,x_data,noiseDistribution);
 spline_y = RobustTensionSpline(t_data,y_data,noiseDistribution);
 
+spline_x.secondIteration();
+spline_y.secondIteration();
+
+% spline_x.secondIteration();
+% spline_y.secondIteration();
+
 fprintf('robust lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
 fprintf('robust a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
 fprintf('robust a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
