@@ -2,7 +2,6 @@ scaleFactor = 1;
 LoadFigureDefaults
 
 shouldUseStudentTDistribution = 0;
-shouldLoadExistingTable = 1;
 
 if shouldUseStudentTDistribution == 1
     filename = 'MSEComparisonTableStudentT.mat';
@@ -10,25 +9,33 @@ else
     filename = 'MSEComparisonTable.mat';
 end
 
-if shouldLoadExistingTable == 1
+if exist(filename,'file')
     load(filename);
 else
     slopes = [-2; -3; -4];
     totalSlopes = length(slopes);
+
+%     result_stride = 2*[1;4;16;64];
+%     totalStrides = length(result_stride);
+%     totalEnsembles = 50;
     
+    result_stride = 2*[1;10;64];
+    totalStrides = length(result_stride);
+    totalEnsembles = 5;
+    
+    
+    % spline fit parameters
     S = 2;
     T = S;
     K = S+1;
     
-    result_stride = 2*[1;4;16;64];
-    totalStrides = length(result_stride);
+    % matern signal parameters
+    sigma_u = 0.20;
+    base_dt = 5; % for whatever reason, we chose this as the primary dt
+    t_damp = 30*60;
+    n = 250;
     
-    totalEnsembles = 50;
-    
-%         result_stride = 2*[1;10;64];
-%     totalStrides = length(result_stride);
-%     
-%     totalEnsembles = 5;
+
     
     % Do you want to assess the error using all the points from the signal
     % (which makes sense for an interpolation based metric) or just points from
@@ -43,8 +50,8 @@ else
     u_rms_true = zeros(totalSlopes,1);
     a_rms_true = zeros(totalSlopes,1);
     
-    u_rms_true_strided = zeros(totalStrides,totalSlopes);
-    a_rms_true_strided = zeros(totalStrides,totalSlopes);
+    u_rms_true_strided = zeros(totalStrides,totalSlopes,totalEnsembles);
+    a_rms_true_strided = zeros(totalStrides,totalSlopes,totalEnsembles);
     
     u_estimate_spectral = zeros(totalStrides,totalSlopes, totalEnsembles);
     a_estimate_spectral = zeros(totalStrides,totalSlopes, totalEnsembles);
@@ -71,142 +78,113 @@ else
     dof_se_reduced_dof_gcv = zeros(totalStrides, totalSlopes, totalEnsembles);
     
     for iSlope = 1:length(slopes)
-        
         slope = slopes(iSlope);
         fprintf('slope %d, ',slope);
-        
-        if slope == -2
-            data = load('sample_data/SyntheticTrajectories.mat');
-            outputFile = 'OptimalParameters.mat';
-        elseif slope == -3
-            data = load('sample_data/SyntheticTrajectoriesSlope3.mat');
-            outputFile = 'OptimalParametersSlope3.mat';
-        elseif slope == -4
-            data = load('sample_data/SyntheticTrajectoriesSlope4.mat');
-            outputFile = 'OptimalParametersSlope4.mat';
-        end
-        sigma = data.position_error;
-        dt = data.t(2)-data.t(1);
-        u = diff(data.x)/dt;
-        a = diff(diff(data.x))/(dt^2);
-        u_rms_true(iSlope) = sqrt( mean( u.*u ) );
-        a_rms_true(iSlope) = sqrt( mean( a.*a ) );
                 
         for iStride=1:length(result_stride)
             stride = result_stride(iStride);
-            
-            % Reduce the total length in some cases
-            if (stride < 10)
-                shortenFactor = stride/10;
-            else
-                shortenFactor = 1;
-            end
-            
-            indices = 1:stride:floor(shortenFactor*length(data.t));
-            fprintf('dT = %d --- Using %d points with stride %d. Evaluating ensemble', stride*dt, length(indices), stride);
-            if (shouldUseObservedSignalOnly == 1)
-                indicesAll = indices;
-            else
-                indicesAll = 1:max(indices);
-            end
-            
-            x_obs = data.x(indices);
-            t_obs = data.t(indices);
-            dt = t_obs(2)-t_obs(1);
-            u = diff(x_obs)/dt;
-            a = diff(diff(x_obs))/(dt^2);
-            u_rms_true_strided(iStride,iSlope) = sqrt( mean( u.*u ) );
-            a_rms_true_strided(iStride,iSlope) = sqrt( mean( a.*a ) );
-            
-            tensionDistribution = NormalDistribution(a_rms_true_strided(iStride,iSlope));
+            dt = stride*base_dt;
+            fprintf('stride %d, ',stride);
             
             for iEnsemble = 1:totalEnsembles
                 fprintf('..%d',iEnsemble);
                 
+                % Generate the signal
+                cv=maternoise(dt,n,sigma_u*sqrt(2),abs(slope),1/t_damp);
+                cx = cumtrapz(cv)*dt;
+                data = struct('t',dt*(0:n-1)','x',real(cx));
+                
+                compute_ms_error = @(spline) (mean(mean(  (data.x - spline(data.t)).^2,2 ),1));
+                
+                % record the 'true' (but strided) values of the signal
+                rms = @(x) sqrt( mean( x.*x ) );
+                u_rms_true_strided(iStride,iSlope,iEnsemble) = rms( diff(data.x)/dt );
+                a_rms_true_strided(iStride,iSlope,iEnsemble) = rms( diff(diff(data.x))/(dt^2) );
+                
+                tensionDistribution = NormalDistribution(a_rms_true_strided(iStride,iSlope,iEnsemble));
+                
+                % Generate the noise
                 if shouldUseStudentTDistribution == 1
                     nu = 4.5; sigma =  8.5;
                     noiseDistribution = StudentTDistribution(sigma,nu);
-                    epsilon_x = randt(sigma,nu,length(indices));
                 else
+                    sigma = 10;
                     noiseDistribution = NormalDistribution(sigma);
-                    epsilon_x = sigma*randn(length(indices),1);
                 end 
-                x_obs = data.x(indices) + epsilon_x;
-                t_obs = data.t(indices);
+                epsilon_x = noiseDistribution.rand(n);
+                x_obs = data.x + epsilon_x;
+                t_obs = data.t;
                 
-                % Compute the expected tension before any fitting
+                u = diff(x_obs)/dt;
+                a = diff(diff(x_obs))/(dt^2);
+            
+                % Compute the expected values from the contaminated data
                 u_rms = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(noiseDistribution.variance),1);
-                n_eff = TensionSpline.EffectiveSampleSizeFromUrms(u_rms, t_obs, sqrt(noiseDistribution.variance));
+                a_rms = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(noiseDistribution.variance),T);
+                n_eff = TensionSpline.EffectiveSampleSizeFromUrms(u_rms,t_obs, sqrt(noiseDistribution.variance));
                 
-                % The idea here was to skip a bunch of unnecessary points
-                % to trying to assess the noisy tension derivative... this
-                % sort of works in that it no longer includes a bunch of
-                % noise in the estimate, but it way under estimates the
-                % power, especially in shallow slopes (where power is at
-                % higher frequencies. The results is that we way over
-                % tension.
-                idx2 = 1:max(floor(n_eff/2),1):length(t_obs);
-                idx2 = 1:length(t_obs);
-                
-                a_rms = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs(idx2),x_obs(idx2),sqrt(noiseDistribution.variance),T);
-                tensionDistributionEstimate = NormalDistribution(a_rms);
-                lambda = (n_eff-1)/(n_eff*a_rms.^2);
-                
-                expectedDOF(iStride,iSlope,iEnsemble) = n_eff;
+                % record
                 u_estimate_spectral(iStride,iSlope,iEnsemble) = u_rms;
                 a_estimate_spectral(iStride,iSlope,iEnsemble) = a_rms;
-
-                % Fit using 1 dof for each data point
-                spline_x = TensionSpline(t_obs,x_obs,noiseDistribution, 'lambda', lambda, 'S', S, 'T', T, 'knot_dof', 1);
-                spline_x.minimizeMeanSquareError(data.t(indicesAll),data.x(indicesAll));
-                compute_ms_error = @() (mean(mean(  (data.x(indicesAll) - spline_x(data.t(indicesAll))).^2,2 ),1));
+                expectedDOF(iStride,iSlope,iEnsemble) = n_eff;
                 
-                mse_full_dof_true_optimal(iStride,iSlope,iEnsemble) = compute_ms_error();
-                dof_se_full_dof_true_optimal(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
+                tensionDistributionEstimate = NormalDistribution(a_rms);
+                lambda = (n_eff-1)/(n_eff*a_rms.^2);
+                lambda_full = 1/a_rms^2;
+                
+                % Fit using 1 dof for each data point
+                spline = TensionSpline(t_obs,x_obs,noiseDistribution, 'lambda', lambda, 'S', S, 'T', T, 'knot_dof', 1);
+                spline.minimizeMeanSquareError(data.t,data.x);
+                
+                mse_full_dof_true_optimal(iStride,iSlope,iEnsemble) = compute_ms_error(spline);
+                dof_se_full_dof_true_optimal(iStride,iSlope,iEnsemble) = spline.effectiveSampleSizeFromVarianceOfTheMean;
                 
                 % Fit using the automatic knot dof algorithm
-                spline_x = TensionSpline(t_obs,x_obs,noiseDistribution, 'lambda', lambda, 'S', S, 'T', T, 'knot_dof', 'auto');
-                compute_ms_error = @() (mean(mean(  (data.x(indicesAll) - spline_x(data.t(indicesAll))).^2,2 ),1));
-                reduced_dof_knot_dof(iStride,iSlope,iEnsemble) = spline_x.knot_dof;
+                spline = TensionSpline(t_obs,x_obs,noiseDistribution, 'lambda', lambda, 'S', S, 'T', T, 'knot_dof', 'auto');
+                reduced_dof_knot_dof(iStride,iSlope,iEnsemble) = spline.knot_dof;
                 
                 % record the initial fit
-                mse_reduced_dof_blind_initial(iStride,iSlope,iEnsemble) = compute_ms_error();
-                dof_se_reduced_dof_blind_initial(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
+                mse_reduced_dof_blind_initial(iStride,iSlope,iEnsemble) = compute_ms_error(spline);
+                dof_se_reduced_dof_blind_initial(iStride,iSlope,iEnsemble) = spline.effectiveSampleSizeFromVarianceOfTheMean;
                 
                 % record the blind optimal fit
-                spline_x.minimizeExpectedMeanSquareError;
-                mse_reduced_dof_blind_optimal(iStride,iSlope,iEnsemble) = compute_ms_error();
-                dof_se_reduced_dof_blind_optimal(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
+                spline.minimizeExpectedMeanSquareError;
+                mse_reduced_dof_blind_optimal(iStride,iSlope,iEnsemble) = compute_ms_error(spline);
+                dof_se_reduced_dof_blind_optimal(iStride,iSlope,iEnsemble) = spline.effectiveSampleSizeFromVarianceOfTheMean;
                 
                 % record the blind optimal fit
                 pctmin = 1/100/2;
                 pctmax = 1-1/100/2;
                 zmin = noiseDistribution.locationOfCDFPercentile(pctmin);
                 zmax = noiseDistribution.locationOfCDFPercentile(pctmax);
-                spline_x.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
-                mse_reduced_dof_blind_optimal_ranged(iStride,iSlope,iEnsemble) = compute_ms_error();
-                dof_se_reduced_dof_blind_optimal_ranged(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
+                spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
+                mse_reduced_dof_blind_optimal_ranged(iStride,iSlope,iEnsemble) = compute_ms_error(spline);
+                dof_se_reduced_dof_blind_optimal_ranged(iStride,iSlope,iEnsemble) = spline.effectiveSampleSizeFromVarianceOfTheMean;
                 
                 % record the log-likehood optimal fit
                 logLikelihood = @(spline) -sum(noiseDistribution.logPDF( spline.epsilon ) ) - sum(tensionDistribution.logPDF(spline.uniqueValuesAtHighestDerivative));
-                spline_x.minimize( logLikelihood );
-                mse_reduced_dof_log_likelihood(iStride,iSlope,iEnsemble) = compute_ms_error();
-                dof_se_reduced_dof_log_likelihood(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
+                spline.lambda = lambda_full;
+                spline.minimize( logLikelihood );
+                mse_reduced_dof_log_likelihood(iStride,iSlope,iEnsemble) = compute_ms_error(spline);
+                dof_se_reduced_dof_log_likelihood(iStride,iSlope,iEnsemble) = spline.effectiveSampleSizeFromVarianceOfTheMean;
                 
                 % record the log-likehood blind fit
                 logLikelihood = @(spline) -sum(noiseDistribution.logPDF( spline.epsilon ) ) - sum(tensionDistributionEstimate.logPDF(spline.uniqueValuesAtHighestDerivative));
-                spline_x.minimize( logLikelihood );
-                mse_reduced_dof_log_likelihood_blind(iStride,iSlope,iEnsemble) = compute_ms_error();
-                dof_se_reduced_dof_log_likelihood_blind(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
+                spline.lambda = lambda_full;
+                spline.minimize( logLikelihood );
+                mse_reduced_dof_log_likelihood_blind(iStride,iSlope,iEnsemble) = compute_ms_error(spline);
+                dof_se_reduced_dof_log_likelihood_blind(iStride,iSlope,iEnsemble) = spline.effectiveSampleSizeFromVarianceOfTheMean;
                 
-                spline_x.minimize( @(spline) spline.expectedMeanSquareErrorFromGCV );
-                mse_reduced_dof_gcv(iStride,iSlope,iEnsemble) = compute_ms_error();
-                dof_se_reduced_dof_gcv(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
+                spline.lambda = lambda_full;
+                spline.minimize( @(spline) spline.expectedMeanSquareErrorFromGCV );
+                mse_reduced_dof_gcv(iStride,iSlope,iEnsemble) = compute_ms_error(spline);
+                dof_se_reduced_dof_gcv(iStride,iSlope,iEnsemble) = spline.effectiveSampleSizeFromVarianceOfTheMean;
                 
                 % record the true optimal fit
-                spline_x.minimizeMeanSquareError(data.t(indicesAll),data.x(indicesAll));
-                mse_reduced_dof_true_optimal(iStride,iSlope,iEnsemble) = compute_ms_error();
-                dof_se_reduced_dof_true_optimal(iStride,iSlope,iEnsemble) = spline_x.effectiveSampleSizeFromVarianceOfTheMean;
+                spline.lambda = lambda_full;
+                spline.minimizeMeanSquareError(data.t,data.x);
+                mse_reduced_dof_true_optimal(iStride,iSlope,iEnsemble) = compute_ms_error(spline);
+                dof_se_reduced_dof_true_optimal(iStride,iSlope,iEnsemble) = spline.effectiveSampleSizeFromVarianceOfTheMean;
             end
             fprintf('\n');
         end
