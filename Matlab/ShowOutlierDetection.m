@@ -1,16 +1,17 @@
 scaleFactor = 1;
 LoadFigureDefaults
 
-shouldUseStudentTDistribution = 1;
+shouldUseStudentTDistribution = 0;
 
-percentOutliers = 0.0;
-outlierFactor = 40;
+percentOutliers = 0.1;
+outlierFactor = 400;
 
 slopes = [-2; -3; -4];
+slope = -3;
 totalSlopes = length(slopes);
 
-S = 3;
-T = 3;
+S = 2;
+T = S;
 K = S+1;
 
 result_stride = 2*[1;4;16;64];
@@ -25,7 +26,7 @@ n = 250;
 
 totalEnsembles = 1;
 
-for iSlope = 1:1;%length(slopes)
+for iSlope = 1:length(slopes)
     slope = slopes(iSlope);
     fprintf('slope %d, ',slope);
     
@@ -98,19 +99,20 @@ spline_optimal.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zm
 fprintf('expected mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_optimal), std(spline_optimal.uniqueValuesAtHighestDerivative),spline_optimal.lambda );
 
 spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S);
+spline_robust.firstIteration(1/10000);
 fprintf('robust mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_robust), std(spline_robust.uniqueValuesAtHighestDerivative),spline_robust.lambda );
 
 falseNegativeOutliers = setdiff(trueOutliers,spline_robust.indicesOfOutliers);
 falsePositiveOutliers = setdiff(spline_robust.indicesOfOutliers,trueOutliers);
 fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
 
-spline_robust.secondIteration();
-fprintf('robust mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_robust), std(spline_robust.uniqueValuesAtHighestDerivative),spline_robust.lambda );
-
-
-falseNegativeOutliers = setdiff(trueOutliers,spline_robust.indicesOfOutliers);
-falsePositiveOutliers = setdiff(spline_robust.indicesOfOutliers,trueOutliers);
-fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
+% spline_robust.secondIteration();
+% fprintf('robust mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_robust), std(spline_robust.uniqueValuesAtHighestDerivative),spline_robust.lambda );
+% 
+% 
+% falseNegativeOutliers = setdiff(trueOutliers,spline_robust.indicesOfOutliers);
+% falsePositiveOutliers = setdiff(spline_robust.indicesOfOutliers,trueOutliers);
+% fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
