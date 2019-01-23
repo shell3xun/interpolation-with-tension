@@ -9,7 +9,7 @@ else
     filename = 'MSEComparisonTableForOutliersNormal.mat';
 end
 
-if exist(filename,'file')
+if 0 %exist(filename,'file')
     load(filename);
 else
     slopes = [-2; -3; -4];
@@ -17,9 +17,9 @@ else
     totalSlopes = length(slopes);
 
     result_stride = [5;20;200];
-    result_stride = 200;
+%     result_stride = 200;
     totalStrides = length(result_stride);
-    totalEnsembles = 11; % best to choose an odd number for median
+    totalEnsembles = 51; % best to choose an odd number for median
 
     % spline fit parameters
     S = 2;
@@ -36,45 +36,22 @@ else
 
     % outlier parameters
     percentOutliers = 0.15;
-    outlierFactor = 25;
+    outlierFactor = 50;
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % preallocate the variables we need to save
     %
+    nothing = zeros(totalStrides, totalSlopes, totalEnsembles);
+    nothing_struct = struct('mse',nothing,'neff_se',nothing,'false_negatives', nothing, 'false_positives', nothing);
     
-    total_outliers = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'total_outliers';
+    total_outliers = nothing; vars{end+1} = 'total_outliers';
     
-    mse_true_optimal= zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'mse_true_optimal';
-    dof_se_true_optimal = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'dof_se_true_optimal';
-    
-    mse_blind_optimal= zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'mse_blind_optimal';
-    dof_se_blind_optimal = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'dof_se_blind_optimal';
-    
-    mse_robust_blind_optimal_cv = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'mse_robust_blind_optimal_cv';
-    dof_se_robust_blind_optimal_cv = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'dof_se_robust_blind_optimal_cv';
-    false_positive_robust_blind_optimal_cv = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'false_positive_robust_blind_optimal_cv';
-    false_negative_robust_blind_optimal_cv = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'false_negative_robust_blind_optimal_cv';
-    
-    mse_robust_blind_alpha100 = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'mse_robust_blind_alpha100';
-    dof_se_robust_blind_alpha100 = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'dof_se_robust_blind_alpha100';
-    false_positive_robust_blind_alpha100 = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'false_positive_robust_blind_alpha100';
-    false_negative_robust_blind_alpha100 = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'false_negative_robust_blind_alpha100';
-    
-    mse_robust_blind_alpha10000 = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'mse_robust_blind_alpha10000';
-    dof_se_robust_blind_alpha10000 = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'dof_se_robust_blind_alpha10000';
-    false_positive_robust_blind_alpha10000 = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'false_positive_robust_blind_alpha10000';
-    false_negative_robust_blind_alpha10000 = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'false_negative_robust_blind_alpha10000';    
-    
-    mse_robust_blind_alpha10000_rescale = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'mse_robust_blind_alpha10000_rescale';
-    dof_se_robust_blind_alpha10000_rescale = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'dof_se_robust_blind_alpha10000_rescale';
-    false_positive_robust_blind_alpha10000_rescale = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'false_positive_robust_blind_alpha10000_rescale';
-    false_negative_robust_blind_alpha10000_rescale = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'false_negative_robust_blind_alpha10000_rescale';
-    
-    mse_robust_blind_alpha10000_remove_knot = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'mse_robust_blind_alpha10000_remove_knot';
-    dof_se_robust_blind_alpha10000_remove_knot = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'dof_se_robust_blind_alpha10000_remove_knot';
-    false_positive_robust_blind_alpha10000_remove_knot = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'false_positive_robust_blind_alpha10000_remove_knot';
-    false_negative_robust_blind_alpha10000_remove_knot = zeros(totalStrides, totalSlopes, totalEnsembles); vars{end+1} = 'false_negative_robust_blind_alpha10000_remove_knot';
-    
+    optimal = nothing_struct; vars{end+1} = 'optimal';
+    robust_alpha10k_optimal = nothing_struct; vars{end+1} = 'robust_alpha10k_optimal';
+    robust_alpha100_optimal = nothing_struct; vars{end+1} = 'robust_alpha100_optimal';
+    robust_alpha10k_knots_removed_optimal = nothing_struct; vars{end+1} = 'robust_alpha10k_knots_removed_optimal';
+    robust_alpha100_knots_removed_optimal = nothing_struct; vars{end+1} = 'robust_alpha100_knots_removed_optimal';
+        
     for iSlope = 1:length(slopes)
         slope = slopes(iSlope);
         fprintf('slope %d, ',slope);
@@ -124,51 +101,29 @@ else
                 t_obs = data.t;
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                % Toss out the points that are outliers, and perform the best fit.
-                spline_optimal = TensionSpline(t_obs(trueGoodIndices),x_obs(trueGoodIndices),noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected);
+                % Unblinded best fit with standard tension spline
+                
+                linearIndex = sub2ind(size(nothing),iStride,iSlope,iEnsemble);
+                
+                spline_optimal = TensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected);
                 spline_optimal.minimizeMeanSquareError(data.t,data.x);
-                mse_true_optimal(iStride,iSlope,iEnsemble) = compute_ms_error(spline_optimal);
-                dof_se_true_optimal(iStride,iSlope,iEnsemble) = spline_optimal.effectiveSampleSizeFromVarianceOfTheMean;
+                optimal = LogStatisticsFromSplineForOutlierTable(optimal,linearIndex,spline_optimal,compute_ms_error,trueOutlierIndices);
+                               
+                spline_robust_optimal = RobustTensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                spline_robust_optimal.minimizeMeanSquareError(data.t,data.x);
+                robust_alpha10k_optimal = LogStatisticsFromSplineForOutlierTable(robust_alpha10k_optimal,linearIndex,spline_robust_optimal,compute_ms_error,trueOutlierIndices);
                 
-                spline_optimal.minimizeExpectedMeanSquareError();
-                mse_blind_optimal(iStride,iSlope,iEnsemble) = compute_ms_error(spline_optimal);
-                dof_se_blind_optimal(iStride,iSlope,iEnsemble) = spline_optimal.effectiveSampleSizeFromVarianceOfTheMean;
+                spline_robust_optimal.removeOutlierKnotsAndRetension(1/10000);
+                spline_robust_optimal.minimizeMeanSquareError(data.t,data.x);
+                robust_alpha10k_knots_removed_optimal = LogStatisticsFromSplineForOutlierTable(robust_alpha10k_knots_removed_optimal,linearIndex,spline_robust_optimal,compute_ms_error,trueOutlierIndices);
                 
+                spline_robust_optimal = RobustTensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected,'alpha',1/100);
+                spline_robust_optimal.minimizeMeanSquareError(data.t,data.x);
+                robust_alpha100_optimal = LogStatisticsFromSplineForOutlierTable(robust_alpha100_optimal,linearIndex,spline_robust_optimal,compute_ms_error,trueOutlierIndices);
                 
-%                 spline_robust_cv = RobustTensionSpline(t_obs,x_obs,noiseDistribution, 'S', S);
-%                 spline_robust_cv.firstIterationCV();
-%                 mse_robust_blind_optimal_cv(iStride,iSlope,iEnsemble) = compute_ms_error(spline_robust_cv);
-%                 dof_se_robust_blind_optimal_cv(iStride,iSlope,iEnsemble) = spline_robust_cv.effectiveSampleSizeFromVarianceOfTheMean;
-%                 false_negative_robust_blind_optimal_cv(iStride,iSlope,iEnsemble) = length(setdiff(trueOutlierIndices,spline_robust_cv.indicesOfOutliers));
-%                 false_positive_robust_blind_optimal_cv(iStride,iSlope,iEnsemble) = length(setdiff(spline_robust_cv.indicesOfOutliers,trueOutlierIndices));
-                
-                % Now repeat with the Robust Tension spline algorithm
-                spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution, 'S', S);
-                spline_robust.firstIteration(1/100);
-                mse_robust_blind_alpha100(iStride,iSlope,iEnsemble) = compute_ms_error(spline_robust);
-                dof_se_robust_blind_alpha100(iStride,iSlope,iEnsemble) = spline_robust.effectiveSampleSizeFromVarianceOfTheMean;
-                false_negative_robust_blind_alpha100(iStride,iSlope,iEnsemble) = length(setdiff(trueOutlierIndices,spline_robust.indicesOfOutliers));
-                false_positive_robust_blind_alpha100(iStride,iSlope,iEnsemble) = length(setdiff(spline_robust.indicesOfOutliers,trueOutlierIndices));
-                
-                spline_robust.firstIteration(1/10000);
-                mse_robust_blind_alpha10000(iStride,iSlope,iEnsemble) = compute_ms_error(spline_robust);
-                dof_se_robust_blind_alpha10000(iStride,iSlope,iEnsemble) = spline_robust.effectiveSampleSizeFromVarianceOfTheMean;
-                false_negative_robust_blind_alpha10000(iStride,iSlope,iEnsemble) = length(setdiff(trueOutlierIndices,spline_robust.indicesOfOutliers));
-                false_positive_robust_blind_alpha10000(iStride,iSlope,iEnsemble) = length(setdiff(spline_robust.indicesOfOutliers,trueOutlierIndices));
-                   
-%                 Repeat again after the second iteration is applied.
-%                 spline_robust.rescaleDistributionAndRetension(1/10000);
-%                 mse_robust_blind_alpha10000_rescale(iStride,iSlope,iEnsemble) = compute_ms_error(spline_robust);
-%                 dof_se_robust_blind_alpha10000_rescale(iStride,iSlope,iEnsemble) = spline_robust.effectiveSampleSizeFromVarianceOfTheMean;
-%                 false_negative_robust_blind_alpha10000_rescale(iStride,iSlope,iEnsemble) = length(setdiff(trueOutlierIndices,spline_robust.indicesOfOutliers));
-%                 false_positive_robust_blind_alpha10000_rescale(iStride,iSlope,iEnsemble) = length(setdiff(spline_robust.indicesOfOutliers,trueOutlierIndices));
-                
-                spline_robust.firstIteration(1/10000);
-                spline_robust.removeOutlierKnotsAndRetension(1/10000);
-                mse_robust_blind_alpha10000_remove_knot(iStride,iSlope,iEnsemble) = compute_ms_error(spline_robust);
-                dof_se_robust_blind_alpha10000_remove_knot(iStride,iSlope,iEnsemble) = spline_robust.effectiveSampleSizeFromVarianceOfTheMean;
-                false_negative_robust_blind_alpha10000_remove_knot(iStride,iSlope,iEnsemble) = length(setdiff(trueOutlierIndices,spline_robust.indicesOfOutliers));
-                false_positive_robust_blind_alpha10000_remove_knot(iStride,iSlope,iEnsemble) = length(setdiff(spline_robust.indicesOfOutliers,trueOutlierIndices));
+                spline_robust_optimal.removeOutlierKnotsAndRetension(1/10000);
+                spline_robust_optimal.minimizeMeanSquareError(data.t,data.x);
+                robust_alpha100_knots_removed_optimal = LogStatisticsFromSplineForOutlierTable(robust_alpha100_knots_removed_optimal,linearIndex,spline_robust_optimal,compute_ms_error,trueOutlierIndices);
             end
             fprintf('\n');
         end
@@ -181,30 +136,32 @@ end
 %
 % Figure
 
-% figure
-% scatter(t_obs(spline_robust.indicesOfOutliers),x_obs(spline_robust.indicesOfOutliers),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
-% scatter(t_obs(trueOutlierIndices),x_obs(trueOutlierIndices),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
-% scatter(t_obs,x_obs,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
-% tq = linspace(min(t_obs),max(t_obs),10*length(t_obs));
-% plot(tq,spline_optimal(tq),'k')
-% plot(tq,spline_robust(tq),'b')
+figure
+scatter(t_obs(spline_robust_optimal.indicesOfOutliers),x_obs(spline_robust_optimal.indicesOfOutliers),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
+scatter(t_obs(trueOutlierIndices),x_obs(trueOutlierIndices),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
+scatter(t_obs,x_obs,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
+tq = linspace(min(t_obs),max(t_obs),10*length(t_obs));
+plot(tq,spline_optimal(tq),'k')
+plot(tq,spline_robust_optimal(tq),'b')
 % % plot(tq,spline_robust_cv(tq),'m')
 % return;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-dmse = @(mse) mse./mse_true_optimal-1;
-dmse_blind_optimal = dmse(mse_blind_optimal);
-dmse_robust_blind_optimal_cv = dmse(mse_robust_blind_optimal_cv);
-dmse_robust_blind_alpha100 = dmse(mse_robust_blind_alpha100);
-dmse_robust_blind_alpha10000 = dmse(mse_robust_blind_alpha10000);
-dmse_robust_blind_alpha10000_rescale = dmse(mse_robust_blind_alpha10000_rescale);
-dmse_robust_blind_alpha10000_remove_knot = dmse(mse_robust_blind_alpha10000_remove_knot);
+% dmse = @(mse) mse./mse_robust_optimal-1;
+% dmse_blind_optimal = dmse(mse_optimal);
+% dmse_blind_ranged = dmse(mse_blind_optimal_ranged);
+% dmse_robust_blind_alpha100 = dmse(mse_robust_blind_alpha100);
+% dmse_robust_blind_alpha10000 = dmse(mse_robust_blind_alpha10000);
+% dmse_robust_blind_alpha10000_rescale = dmse(mse_robust_blind_alpha10000_rescale);
+% dmse_robust_blind_alpha10000_remove_knot = dmse(mse_robust_blind_alpha10000_remove_knot);
+% 
+% pct_range = 0.6827; % Chosen to match 1-sigma for a Gaussian (these are not Gaussian).
+% 
+% minpct = @(values) 100*values(ceil( ((1-pct_range)/2)*length(values)));
+% maxpct = @(values) 100*values(floor( ((1+pct_range)/2)*length(values)));
 
-pct_range = 0.6827; % Chosen to match 1-sigma for a Gaussian (these are not Gaussian).
-
-minpct = @(values) 100*values(ceil( ((1-pct_range)/2)*length(values)));
-maxpct = @(values) 100*values(floor( ((1+pct_range)/2)*length(values)));
+printcol = @(stats,iStride,iSlope) fprintf('& %#.3g/%#.3g m$^2$ (%#.3g) (%d/%d) ', median(stats.mse(iStride,iSlope,:)),mean(stats.mse(iStride,iSlope,:)), median(stats.neff_se(iStride,iSlope,:)), median(stats.false_positives(iStride,iSlope,:)), median(stats.false_negatives(iStride,iSlope,:)) );
 
 fprintf('\n\n');
 fprintf('\\begin{tabular}{r | lllll} stride & optimal mse ($n_{eff}$) & blind optimal & robust & false pos/neg & robust 2nd & false pos/neg \\\\ \\hline \\hline \n');
@@ -212,23 +169,32 @@ for iSlope = 1:length(slopes)
     fprintf('$\\omega^{%d}$ &&&&&  \\\\ \\hline \n',slopes(iSlope));
     for iStride=1:length(result_stride)
         fprintf('%d ', result_stride(iStride));
-        fprintf('& %#.3g m$^2$ (%#.3g) ', median(mse_true_optimal(iStride,iSlope,:)), median(dof_se_true_optimal(iStride,iSlope,:)) );
-        fprintf('&  %.1f-%.1f ',minpct(sort(dmse_blind_optimal(iStride,iSlope,:))), maxpct(sort(dmse_blind_optimal(iStride,iSlope,:))) );
-        
-        fprintf('&  %.1f-%.1f ',minpct(sort(dmse_robust_blind_alpha100(iStride,iSlope,:))), maxpct(sort(dmse_robust_blind_alpha100(iStride,iSlope,:))) );
-        fprintf('& %d (%d/%d)',median(total_outliers(iStride,iSlope,:)),median(false_positive_robust_blind_alpha100(iStride,iSlope,:)),median(false_negative_robust_blind_alpha100(iStride,iSlope,:)) );
-        
-        fprintf('&  %.1f-%.1f ',minpct(sort(dmse_robust_blind_alpha10000(iStride,iSlope,:))), maxpct(sort(dmse_robust_blind_alpha10000(iStride,iSlope,:))) );
-        fprintf('& %d (%d/%d)',median(total_outliers(iStride,iSlope,:)),median(false_positive_robust_blind_alpha10000(iStride,iSlope,:)),median(false_negative_robust_blind_alpha10000(iStride,iSlope,:)) );
-        
-%         fprintf('&  %.1f-%.1f ',minpct(sort(dmse_robust_blind_optimal_cv(iStride,iSlope,:))), maxpct(sort(dmse_robust_blind_optimal_cv(iStride,iSlope,:))) );
-%         fprintf('& %d (%d/%d)',median(total_outliers(iStride,iSlope,:)),median(false_positive_robust_blind_optimal_cv(iStride,iSlope,:)),median(false_negative_robust_blind_optimal_cv(iStride,iSlope,:)) );
-        
+        printcol(optimal,iStride,iSlope);
+        printcol(robust_alpha10k_optimal,iStride,iSlope);
+        printcol(robust_alpha10k_knots_removed_optimal,iStride,iSlope);
+        printcol(robust_alpha100_optimal,iStride,iSlope);
+        printcol(robust_alpha100_knots_removed_optimal,iStride,iSlope);
+                
+        fprintf(' \\\\ \n');
+%         continue
+%         
+%         fprintf('&  %.1f-%.1f ',minpct(sort(dmse_blind_optimal(iStride,iSlope,:))), maxpct(sort(dmse_blind_optimal(iStride,iSlope,:))) );
+%         
+%         fprintf('&  %.1f-%.1f ',minpct(sort(dmse_blind_ranged(iStride,iSlope,:))), maxpct(sort(dmse_blind_ranged(iStride,iSlope,:))) );
+%         fprintf('& %d (%d/%d)',median(total_outliers(iStride,iSlope,:)),median(false_positive_blind_optimal_ranged(iStride,iSlope,:)),median(false_negative_blind_optimal_ranged(iStride,iSlope,:)) );
+%         
+%         fprintf('&  %.1f-%.1f ',minpct(sort(dmse_robust_blind_alpha100(iStride,iSlope,:))), maxpct(sort(dmse_robust_blind_alpha100(iStride,iSlope,:))) );
+%         fprintf('& %d (%d/%d)',median(total_outliers(iStride,iSlope,:)),median(false_positive_robust_blind_alpha100(iStride,iSlope,:)),median(false_negative_robust_blind_alpha100(iStride,iSlope,:)) );
+%         
+%         fprintf('&  %.1f-%.1f ',minpct(sort(dmse_robust_blind_alpha10000(iStride,iSlope,:))), maxpct(sort(dmse_robust_blind_alpha10000(iStride,iSlope,:))) );
+%         fprintf('& %d (%d/%d)',median(total_outliers(iStride,iSlope,:)),median(false_positive_robust_blind_alpha10000(iStride,iSlope,:)),median(false_negative_robust_blind_alpha10000(iStride,iSlope,:)) );
+%         
+%                 
 %         fprintf('&  %.1f-%.1f ',minpct(sort(dmse_robust_blind_alpha10000_rescale(iStride,iSlope,:))), maxpct(sort(dmse_robust_blind_alpha10000_rescale(iStride,iSlope,:))) );
 %         fprintf('& %d (%d/%d) ',median(total_outliers(iStride,iSlope,:)),median(false_positive_robust_blind_alpha10000_rescale(iStride,iSlope,:)),median(false_negative_robust_blind_alpha10000_rescale(iStride,iSlope,:)) );
-        
-        fprintf('&  %.1f-%.1f ',minpct(sort(dmse_robust_blind_alpha10000_remove_knot(iStride,iSlope,:))), maxpct(sort(dmse_robust_blind_alpha10000_remove_knot(iStride,iSlope,:))) );
-        fprintf('& %d (%d/%d) \\\\ \n',median(total_outliers(iStride,iSlope,:)),median(false_positive_robust_blind_alpha10000_remove_knot(iStride,iSlope,:)),median(false_negative_robust_blind_alpha10000_remove_knot(iStride,iSlope,:)) );
+%         
+%         fprintf('&  %.1f-%.1f ',minpct(sort(dmse_robust_blind_alpha10000_remove_knot(iStride,iSlope,:))), maxpct(sort(dmse_robust_blind_alpha10000_remove_knot(iStride,iSlope,:))) );
+%         fprintf('& %d (%d/%d) \\\\ \n',median(total_outliers(iStride,iSlope,:)),median(false_positive_robust_blind_alpha10000_remove_knot(iStride,iSlope,:)),median(false_negative_robust_blind_alpha10000_remove_knot(iStride,iSlope,:)) );
 
     end
     
