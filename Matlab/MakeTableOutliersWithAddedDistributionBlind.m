@@ -24,6 +24,7 @@ end
 
 if exist(filename,'file')
     load(filename);
+    totalOutlierRatios = size(total_outliers,1);
 else
     slopes = [-2; -3; -4];
 %     slopes = -3;
@@ -116,7 +117,7 @@ else
                     trueOutlierIndices = find(abs(epsilon) > outlierThreshold);
                     trueGoodIndices = setdiff(1:n,trueOutlierIndices);
                     
-                    total_outliers(iStride,iSlope,iEnsemble) = length(trueOutlierIndices);
+                    total_outliers(iOutlierRatio,iStride,iSlope,iEnsemble) = length(trueOutlierIndices);
                     
                     x_obs = data.x + epsilon;
                     t_obs = data.t;
@@ -205,6 +206,9 @@ all_maxpct = @(a,b,c,d,e,f,iOutlierRatio,iStride,iSlope) [maxpct(sort(a.dmse(iOu
 
 ratioed_maxpct = @(a,b,c,d,e,f,iOutlierRatio) [maxpct(sort(reshape(a.dmse(iOutlierRatio,:,:,:),[],1))),maxpct(sort(reshape(b.dmse(iOutlierRatio,:,:,:),[],1))),maxpct(sort(reshape(c.dmse(iOutlierRatio,:,:,:),[],1))),maxpct(sort(reshape(d.dmse(iOutlierRatio,:,:,:),[],1))),maxpct(sort(reshape(e.dmse(iOutlierRatio,:,:,:),[],1))),maxpct(sort(reshape(f.dmse(iOutlierRatio,:,:,:),[],1)))];
 ratioed_maxpct(robust_beta50_optimal, robust_beta100_optimal, robust_beta200_optimal, robust_beta400_optimal, robust_beta800_optimal,robust_beta800_optimal,1)
+ratioed_maxpct(robust_beta50_optimal, robust_beta100_optimal, robust_beta200_optimal, robust_beta400_optimal, robust_beta800_optimal,robust_beta800_optimal,2)
+ratioed_maxpct(robust_beta50_optimal, robust_beta100_optimal, robust_beta200_optimal, robust_beta400_optimal, robust_beta800_optimal,robust_beta800_optimal,3)
+
 
 all_all_maxpct = @(a,b,c,d,e,f) [maxpct(sort(a.dmse(:))),maxpct(sort(b.dmse(:))),maxpct(sort(c.dmse(:))),maxpct(sort(d.dmse(:))),maxpct(sort(e.dmse(:))),maxpct(sort(f.dmse(:)))];
 all_all_maxpct(robust_beta50_optimal, robust_beta100_optimal, robust_beta200_optimal, robust_beta400_optimal, robust_beta800_optimal,robust_beta800_optimal)
@@ -217,11 +221,18 @@ for iOutlierRatio = 1:totalOutlierRatios
         for iStride=1:length(strides)
             fprintf('%d ', strides(iStride));
             
-            print_pct(robust_beta50_optimal,iOutlierRatio,iStride,iSlope);
-            print_pct(robust_beta100_optimal,iOutlierRatio,iStride,iSlope);
-            print_pct(robust_beta200_optimal,iOutlierRatio,iStride,iSlope);
-            print_pct(robust_beta400_optimal,iOutlierRatio,iStride,iSlope);
-            print_pct(robust_beta800_optimal,iOutlierRatio,iStride,iSlope);
+%             print_pct(robust_beta50_optimal,iOutlierRatio,iStride,iSlope);
+%             print_pct(robust_beta100_optimal,iOutlierRatio,iStride,iSlope);
+%             print_pct(robust_beta200_optimal,iOutlierRatio,iStride,iSlope);
+%             print_pct(robust_beta400_optimal,iOutlierRatio,iStride,iSlope);
+%             print_pct(robust_beta800_optimal,iOutlierRatio,iStride,iSlope);
+            
+            printcol(robust_beta50_optimal,iOutlierRatio,iStride,iSlope);
+            printcol(robust_beta100_optimal,iOutlierRatio,iStride,iSlope);
+            printcol(robust_beta200_optimal,iOutlierRatio,iStride,iSlope);
+            printcol(robust_beta400_optimal,iOutlierRatio,iStride,iSlope);
+            printcol(robust_beta800_optimal,iOutlierRatio,iStride,iSlope);
+            
             
             the_maxpct = all_maxpct(robust_beta50_optimal, robust_beta100_optimal, robust_beta200_optimal, robust_beta400_optimal, robust_beta800_optimal,robust_beta800_optimal,iOutlierRatio,iStride,iSlope);
             [themin, indices] = sort(the_maxpct);

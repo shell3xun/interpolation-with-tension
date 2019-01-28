@@ -42,7 +42,7 @@ scatter(t_data,y_data,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'Mar
 spline_x = RobustTensionSpline(t_data,x_data,noiseDistribution, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
 spline_y = RobustTensionSpline(t_data,y_data,noiseDistribution, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
 
-beta = 1/50;
+beta = 1/100;
 spline_x.firstIteration(beta);
 spline_y.firstIteration(beta);
 
