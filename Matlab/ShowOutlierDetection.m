@@ -1,10 +1,10 @@
 scaleFactor = 1;
 LoadFigureDefaults
 
-shouldUseStudentTDistribution = 0;
+shouldUseStudentTDistribution = 1;
 
-percentOutliers = 0.1;
-outlierFactor = 400;
+percentOutliers = 0.25;
+outlierFactor = 40;
 
 slopes = [-2; -3; -4];
 slope = -3;
@@ -15,7 +15,7 @@ T = S;
 K = S+1;
 
 result_stride = 2*[1;4;16;64];
-result_stride = 200;
+result_stride = 100;
 totalStrides = length(result_stride);
 
 % matern signal parameters
@@ -43,10 +43,12 @@ for iSlope = 1:length(slopes)
             
             if shouldUseStudentTDistribution == 1
                 nu = 4.5; sigma =  8.5;        
-                noiseDistribution = StudentTDistribution(sigma,nu);  
+                noiseDistribution = StudentTDistribution(sigma,nu);
+                outlierDistribution = StudentTDistribution(outlierFactor*sigma,3.0);
             else
                 sigma = 10;
                 noiseDistribution = NormalDistribution(sigma);
+                outlierDistribution = NormalDistribution(outlierFactor*sigma);
             end
             outlierIndices = rand(n,1)<=percentOutliers;
             outlierIndices([1 n]) = 0;
@@ -55,7 +57,7 @@ for iSlope = 1:length(slopes)
             epsilon_x_outlier = zeros(n,1);
             
             epsilon_x(~outlierIndices) = noiseDistribution.rand(sum(~outlierIndices));
-            epsilon_x_outlier(outlierIndices) = outlierFactor*noiseDistribution.rand(sum(outlierIndices));
+            epsilon_x_outlier(outlierIndices) = outlierDistribution.rand(sum(outlierIndices));
             
             epsilon = epsilon_x + epsilon_x_outlier;
             outlierThreshold = noiseDistribution.locationOfCDFPercentile(1-1/10000/2);
@@ -87,19 +89,31 @@ compute_ms_error = @(spline) (mean(mean(  (data.x - spline(data.t)).^2,2 ),1));
 %
 % Toss out the points that are outliers, and perform the best fit.
 
-spline_optimal = TensionSpline(t_obs(goodIndices),x_obs(goodIndices),noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected);
+spline_optimal = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
 spline_optimal.minimizeMeanSquareError(data.t,data.x);
 fprintf('optimal mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_optimal), std(spline_optimal.uniqueValuesAtHighestDerivative),spline_optimal.lambda );
 
-pctmin = 1/100/2;
-pctmax = 1-1/100/2;
-zmin = noiseDistribution.locationOfCDFPercentile(pctmin);
-zmax = noiseDistribution.locationOfCDFPercentile(pctmax);
-spline_optimal.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
-fprintf('expected mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_optimal), std(spline_optimal.uniqueValuesAtHighestDerivative),spline_optimal.lambda );
+falseNegativeOutliers = setdiff(trueOutliers,spline_optimal.indicesOfOutliers);
+falsePositiveOutliers = setdiff(spline_optimal.indicesOfOutliers,trueOutliers);
+fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
 
-spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S);
-spline_robust.firstIteration(1/10000);
+% pctmin = 1/100/2;
+% pctmax = 1-1/100/2;
+% zmin = noiseDistribution.locationOfCDFPercentile(pctmin);
+% zmax = noiseDistribution.locationOfCDFPercentile(pctmax);
+% spline_optimal.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
+% fprintf('expected mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_optimal), std(spline_optimal.uniqueValuesAtHighestDerivative),spline_optimal.lambda );
+
+spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+% spline_robust.minimize(@(spline) spline.expectedMeanSquareErrorFromCV() )
+
+spline_robust.rebuildOutlierDistribution();
+spline_robust.minimizeMeanSquareError(data.t,data.x);
+% fprintf('(true alpha, true sigma2): (%f, %f)\n',sum(outlierIndices)/n, outlierFactor*outlierFactor*noiseDistribution.sigma^2);
+
+% spline_robust.minimizeMeanSquareError(data.t,data.x);
+
+% spline_robust.minimize(@(spline) spline.expectedMeanSquareErrorRobust() )
 fprintf('robust mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_robust), std(spline_robust.uniqueValuesAtHighestDerivative),spline_robust.lambda );
 
 falseNegativeOutliers = setdiff(trueOutliers,spline_robust.indicesOfOutliers);

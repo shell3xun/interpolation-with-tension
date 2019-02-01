@@ -43,8 +43,36 @@ spline_x = RobustTensionSpline(t_data,x_data,noiseDistribution, 'lambda',Lambda.
 spline_y = RobustTensionSpline(t_data,y_data,noiseDistribution, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
 
 beta = 1/100;
-spline_x.firstIteration(beta);
-spline_y.firstIteration(beta);
+% spline_x.firstIteration(beta);
+% spline_y.firstIteration(beta);
+
+spline_x.minimize(@(spline) spline.expectedMeanSquareErrorFromCV() )
+spline_y.minimize(@(spline) spline.expectedMeanSquareErrorFromCV() )
+fprintf('robust lambda (CV): (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
+
+% spline_robust.minimize(@(spline) spline.expectedMeanSquareErrorRobust() );
+% spline_robust.minimize(@(spline) spline.expectedMeanSquareErrorRobust() );
+
+% spline_x.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-20,20));
+% spline_y.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-20,20));
+
+% This gives us "full tension".
+
+spline_x2 = RobustTensionSpline(t_data,x_data,noiseDistribution, 'lambda',spline_x.lambda,'alpha',1/10000);
+spline_x2.rebuildOutlierDistribution();
+
+% alpha = 1/10;
+% spline_x2.minimize(@(spline) abs(spline.sampleVarianceInPercentileRange(alpha/2,1-alpha/2)-spline.distribution.varianceInPercentileRange(alpha/2,1-alpha/2)))
+% 
+% spline_x2 = RobustTensionSpline(t_data(spline_x2.goodIndices),x_data(spline_x2.goodIndices),noiseDistribution,'alpha',1/10000);
+% spline_x2.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-37.5,37.5) );
+
+% spline_x2 = RobustTensionSpline(t_data,x_data,noiseDistribution, 'lambda',spline_x.lambda,'alpha',1/10000);
+% spline_x2.rebuildOutlierDistribution();
+
+
+
+% spline_x2.minimize( @(spline) spline.expectedMeanSquareErrorForPointsAtIndices(noiseIndices,noiseDistribution.variance));
 
 % spline_x.removeOutlierKnotsAndRetension(1/100);
 % spline_y.removeOutlierKnotsAndRetension(1/100);
@@ -55,7 +83,7 @@ spline_y.firstIteration(beta);
 % spline_x.secondIteration();
 % spline_y.secondIteration();
 
-fprintf('robust lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
+fprintf('robust lambda (Robust): (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
 fprintf('robust e-mse: (%.3g, %.3g)\n', spline_x.expectedMeanSquareErrorInPercentileRange(beta/2,1-beta/2),spline_y.expectedMeanSquareErrorInPercentileRange(beta/2,1-beta/2));
 fprintf('robust a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
 fprintf('robust a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
@@ -69,6 +97,7 @@ scatter(t_data(spline_x.indicesOfOutliers),x_data(spline_x.indicesOfOutliers),(6
 scatter(t_data(spline_x.indicesOfOutliers),x_data(spline_x.indicesOfOutliers),(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 plot(tq,spline_x(tq))
 plot(tq,spline_7x(tq))
+plot(tq,spline_x2(tq))
 subplot(sp2)
 scatter(t_data(spline_y.indicesOfOutliers),y_data(spline_y.indicesOfOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
 scatter(t_data(spline_y.indicesOfOutliers),y_data(spline_y.indicesOfOutliers),(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')

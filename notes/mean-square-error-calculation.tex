@@ -14,7 +14,7 @@
 
 \title{Notes on the MSE calculation}
 \author{Jeffrey J. Early}
-%\date{}                                           % Activate to display a given date or no date
+\date{October 16, 2018---updated January 31st, 2019}                                           % Activate to display a given date or no date
 
 \begin{document}
 \maketitle
@@ -123,5 +123,48 @@ and thus our total degrees of freedom is $d=N$. At the other extreme, the noise 
 \end{equation}
 which is equivalent to setting $\Gamma = 0.1$
 
+%%%%%%%%%%%%%%%%%%%%%%
+%
+\section{MSE calculation revisited} \label{sec:mse_revisisted}
+%
+%%%%%%%%%%%%%%%%%%%%%%
+
+I want to revisit the MSE calculation with the idea that the noise has a known and an unknown part.
+
+\begin{align}
+    N \cdot \textrm{MSE}(\lambda) =& || \mathbf{S_\lambda}\mathbf{x} - \mathbf{x}_{\textrm{true}} ||^2 \\
+    =&  \left[ \mathbf{S}\indices{^i_j} x^j - g^i \right]^2 \\
+    =&  \left[ \mathbf{S}\indices{^i_j} \left( g^j + \epsilon^j \right) - g^i \right]^2 \\
+    =&  \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j + \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 \\
+    =& \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j \right]^2 + 2 \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j \right]  \left[ \mathbf{S}\indices{^i_j} \epsilon^j \right]+ \left[ \mathbf{S}\indices{^i_j} \epsilon^j \right]^2
+\end{align}
+That middle term will vanish under expectation. But, before we do that, let's expand the first term, that is,
+\begin{align}
+\left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j \right]^2  =& \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) (x^j-\epsilon^j) \right]^2 \\
+=&  \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right)x^j \right]^2 - 2 \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right)x^j \right] \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right)\epsilon^j \right] + \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right)\epsilon^j \right]^2 \\
+=&  \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right)x^j \right]^2 + \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) \left( \epsilon^j - 2 x^j \right) \right] \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right)\epsilon^j \right] \\
+=&  \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right)x^j \right]^2 + \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) \left( - \epsilon^j - 2 g^j \right) \right] \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right)\epsilon^j \right] \\
+=& \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right)x^j \right]^2 - \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right)\epsilon^j \right]^2 - 2 \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j \right] \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right)\epsilon^j \right] 
+\end{align}
+Adding this back in to the original calculation, we end up with
+\begin{align}
+    N \cdot \textrm{MSE}(\lambda)  =& \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j \right]^2 + 2 \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j \right]  \left[ \mathbf{S}\indices{^i_j} \epsilon^j \right]+ \left[ \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 \\
+    =&  \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right)x^j \right]^2 - \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right)\epsilon^j \right]^2 + \left[ \mathbf{S}\indices{^i_j} \epsilon^j \right]^2 - 2 \left[ \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right) g^j \right] \epsilon^i
+\end{align}
+Now, under expectation, two things happen: the squared operator on random variable terms become the trace of that operator, and the random variable on deterministic term becomes zero. So, in total we have that
+\begin{align}
+    N \cdot \textrm{MSE}(\lambda)  =& || \left(\mathbf{S}\indices{^i_j} -\mathbf{I}\indices{^i_j} \right)x^j ||^2 - \sigma^2 \Tr \left(S - I\right)^2 + \sigma^2 \Tr S^2 \\
+    \textrm{MSE}(\lambda) =& \frac{1}{N} || \left( \mathbf{S_\lambda} - I \right) \mathbf{x} ||^2 - \sigma^2 + \frac{2 \sigma^2}{N}  \Tr \mathbf{S_\lambda}
+\end{align}
+Now let's assume that our noise looks like this,
+\begin{equation}
+\label{robust_pdf}
+    p_{\textrm{robust}}(\epsilon) = (1-\alpha) \cdot p_{\textrm{noise}}(\epsilon) + \alpha \cdot  p_{\textrm{outlier}}(\epsilon).
+\end{equation}
+where it's divided into two added components So now let's say we magically know which observations
+\begin{align}
+    (N_o + N_n) \cdot  \textrm{MSE}(\lambda) =& || \left( \mathbf{S^n_\lambda} - I \right) \mathbf{x} ||^2 - N_n \sigma_n^2  + 2  \sigma_n^2  \Tr \mathbf{S^n_\lambda} \\
+    & || \left( \mathbf{S^o_\lambda} - I \right) \mathbf{x} ||^2 -  N_o \sigma_o^2 + 2 \sigma_o^2  \Tr \mathbf{S^o_\lambda}
+\end{align}
 
 \end{document}  
