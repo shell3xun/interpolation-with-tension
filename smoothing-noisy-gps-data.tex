@@ -79,7 +79,7 @@ As a practical matter there are three issues that still need to be addressed bef
     \item how do we modify the spline fit to accommodate the non-Gaussian errors of GPS receivers?
     \item how do we identify and remove outliers?
 \end{enumerate}
-To address these issues, but also serve as a practical guide to other practitioners, we start by reviewing B-splines in section \ref{sec:interpolation} and introduce the canonical interpolating spline that is used as the underlying model for path $x(t)$ (equation \ref{b-spline-model-intro}) throughout this manuscript. Section \ref{sec:maximum_likelihood} takes a broad look at tension splines and the assumptions they make on the underlying physical process. We show that the tension parameter $\lambda_T$ scales with the degrees-of-freedom and root-mean-square value of the tensioned derivative, suggesting that it can be estimated without minimizing the mean-square error. We also show that the penalty function in equation \ref{smoothing-spline} can be formulated as a maximum likelihood problem and that applying tension is equivalent to assuming a Gaussian distribution on the tensioned derivative of the underlying process.
+To address these issues, but also serve as a practical guide to other practitioners, we start by reviewing B-splines in section \ref{sec:interpolation} and introduce the canonical interpolating spline that is used as the underlying model for path $x(t)$ (equation \ref{b-spline-model-intro}) throughout this manuscript. Section \ref{sec:smoothing_spline} takes a broad look at tension splines and the assumptions they make on the underlying physical process. We show that the tension parameter $\lambda_T$ scales with the degrees-of-freedom and root-mean-square value of the tensioned derivative, suggesting that it can be estimated without minimizing the mean-square error. We also show that the penalty function in equation \ref{smoothing-spline} can be formulated as a maximum likelihood problem and that applying tension is equivalent to assuming a Gaussian distribution on the tensioned derivative of the underlying process.
 
 Section \ref{sec:spline_order_tension_order_spectrum} uses synthetic data to test a number of choices that have to be made. We first establish that setting $T=S$ is optimal. We then show that the tension parameter can be chosen \emph{a priori} (without optimization of the mean-square error) when the number of degrees-of-freedom can be estimated from the data. This estimate for the degrees-of-freedom can then be used to reduce the coefficients, $\xi^i$, in the splines fit without sacrificing mean-square-error. Finally, we show the effect of different choices of $S$ on the resulting power spectrum and show how the degrees-of-freedom in the fit can be used to establish the highest resolved frequency.
 
@@ -95,7 +95,7 @@ The second half of the manuscript addresses issues specific to GPS positions err
 % \item we need to specify at least one probability distribution function (PDF) for some aspect of the signal or errors.
 % \end{enumerate}
 
-% The approach taken in this manuscript is to specify the model using smoothing splines. In section \ref{sec:interpolation} we review b-splines and introduce the canonical interpolating spline that is used as the underlying model for path $x(t)$ throughout this manuscript. Section \ref{sec:maximum_likelihood} formulates the maximum likelihood problem in terms of the error in positions and the velocity of the particle. This is shown to be equivalent to using a tensioned smoothing spline. Section \ref{sec:optimal_parameter} shows how the optimal tension parameter can be chosen directly from the data time series.
+% The approach taken in this manuscript is to specify the model using smoothing splines. In section \ref{sec:interpolation} we review b-splines and introduce the canonical interpolating spline that is used as the underlying model for path $x(t)$ throughout this manuscript. Section \ref{sec:smoothing_spline} formulates the maximum likelihood problem in terms of the error in positions and the velocity of the particle. This is shown to be equivalent to using a tensioned smoothing spline. Section \ref{sec:optimal_parameter} shows how the optimal tension parameter can be chosen directly from the data time series.
 
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -183,11 +183,33 @@ The knot points are chosen specifically to create $N$ splines for the $N$ data p
 
 The knot placements in equations \ref{even-knots} and \ref{odd-knots} are equivalent to the \textit{not-a-knot} boundary conditions described in \cite{deboor1978-book} and used in the cubic spline implementation in \texttt{Matlab}. In the usual formulation of the not-a-knot boundary condition, the knot positions do not change as a function of spline order, and therefore additional constraints have to be added at each order---especially the requirement that the highest derivative maintain continuity near the boundaries. In the formulation here, these constraints are implicit in equations \ref{even-knots} and \ref{odd-knots}.
 
+It appears to be true that this formulation results in a spline with highest derivative equivalent to the lowest order finite difference for that derivative.
+
+%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Synthetic Data} \label{sec:synthetic_data}
+%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}
+  \centerline{\includegraphics[width=19pc,angle=0]{figures/interpolation_spectrum_slope2degreeVaried}}
+  
+  \caption{The upper panel shows the velocity spectrum of the signal (black). The blue, red, and orange lines show the spectrum of the interpolating spline fit to the data with a stride of 100 for $S=1$, $S=2$, and $S=3$, respectively. The dashed vertical line denotes the Nyquist frequency of the strided data. The bottom panel shows the coherence between the smoothed signals and the true signal.}
+  \label{varied_slope}
+\end{figure}
+
+For our synthetic test data throughout this manuscript we generate velocity data from a Gaussian process known as the Mat\'ern \cite{lilly2017-npg}. The spectrum of the Mat\'ern is given by
+\begin{equation}
+S(\omega) = \frac{A^2}{(\omega^2 + \lambda^2)^{p/2}}
+\end{equation}
+with $p>1$ which has finite amplitude at low frequencies and power-law fall off at high frequencies, two physically realistic properties observed, among other things, in ocean surface drifters \cite{sykulski2016-jrssc}. The Mat\'ern is a Gaussian process, which in the context of equation \ref{gaussian-max-likelihood} means that we are setting the velocity to a Gaussian distribution.
+
+For these experiments we choose values of $p=2,3,4$ so that the high frequency spectrum is proportional to $\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$. The Mat\'ern is used to generate the \emph{velocity} of the signal and integrated to get the positions which are then contaminated with Gaussian noise. Parameters are chosen such that $u_{\textrm{rms}}=0.20$ m/s and the noise has $\sigma=10$ meters. Figure \ref{varied_slope} shows an example of the velocity spectra of the signal with $\omega^{-2}$.
+
+For all of these experiments we use a range of \emph{strides}, that is, subsampled versions of the underlying process as input into the spline fits. A stride of 100 indicates that the signal is subsampled to 1 every 100 data points. This lets us evaluate the quality of fit against the interpolated values, and not just the points of observation.
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
 \section{Smoothing Spline}
-\label{sec:maximum_likelihood}
+\label{sec:smoothing_spline}
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
@@ -267,7 +289,7 @@ Setting $\alpha=\frac{N}{Q}$ and renormalizing the penalty function by $\frac{1}
 \label{smoothing-spline-pdf}
 \phi =\frac{n_{\textrm{eff}}}{n_{\textrm{eff}}-1}  \frac{1}{N} \sum^N _{i=1}  \left( \frac{x_i - x(t_i)}{\sigma} \right)^2 + \frac{1}{t_N-t_1} \sum^{Q}_{q=1}  \left(  \frac{u(t_q)}{\sigma_u} \right)^2 \Delta t_q
 \end{equation}
-where we've replaced the sample variance with the variance.
+where we've replaced the sample variance with the variance using equation \ref{sample_variance_variance}.
 Apart from the discretization of the integral, equation \ref{smoothing-spline-pdf} is the same as the penalty function for a smoothing spline, equation \ref{smoothing-spline}.
 
 There is an important special case when tension is applied at the same order as the spline, $T=S$. In this case then the spline is piecewise constant for $x^{(T)}$ with exactly $N-T$ unique values. The parameter $\alpha =\frac{N}{N-T}\approx 1$ and equation \ref{gaussian-max-likelihood} is simplified. This case is statistically appealing because only the $N-T$ unique values of derivative $x^{(T)}$ that can be computed from $N$ data points are being used for tension, which is not the case when $T<S$
@@ -301,6 +323,11 @@ The second term is proportional to twice squared standard error. As shown in \ci
 \label{dof_se}
     \frac{\sigma^2}{n_{\textrm{eff}}^{\textrm{SE}}} = \frac{1}{N} \Tr \left( \mathbf{S_\lambda} \Sigma \right).
 \end{equation}
+Taking the measures of effective sample size as functions of $\lambda$, the mean square error is given by,
+\begin{equation}
+\label{MSE}
+    \textrm{MSE}(\lambda) = 2\frac{\sigma^2}{n_{\textrm{eff}}^{\textrm{SE}}} - \frac{\sigma^2}{n_{\textrm{eff}}^{\textrm{var}}}
+\end{equation}
 If one assumes that $n_{\textrm{eff}} = n_{\textrm{eff}}^{\textrm{var}} = n_{\textrm{eff}}^{\textrm{SE}}$, then the expected mean square error from equation \ref{MSE} is equal to $\sigma^2/n_{\textrm{eff}}$.
 
 These measures of effective sample size can be used to estimate the value of $\lambda_T$ necessary for optimal tension without minimizing the expected mean-square error. 
@@ -319,26 +346,7 @@ With a model path (equation \ref{b-spline-model-intro}), a smoothing spline pena
 
 The results of this section are empirical, and it's important to acknowledge upfront that any conclusions reached \emph{may} depend on our particular choice of physical model that generates the signal. Nevertheless, our hope is that the conclusions here are `O(1)' correct, and applicable, at least, to our GPS tracked drifter dataset.
 
-%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Synthetic Data} \label{sec:synthetic_data}
-%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{figure}
-  \centerline{\includegraphics[width=19pc,angle=0]{figures/synthetic_process_and_spectrum_slope2degreeVaried}}
-  
-  \caption{The upper panel shows the uncontaminated velocity spectrum of the signal (black) and velocity spectrum of the noise (red). The observed signal is the sum of the two. The blue, red, and orange lines show the spectrum of the tension spline best fit to the observations with $S=1$, $S=2$, and $S=3$, respectively. The bottom panel shows the coherence between the smoothed signals and the true signal.}
-  \label{varied_slope}
-\end{figure}
-
-For our synthetic test data we generate velocity data from a Gaussian process known as the Mat\'ern \cite{lilly2017-npg}. The spectrum of the Mat\'ern is given by
-\begin{equation}
-S(\omega) = \frac{A^2}{(\omega^2 + \lambda^2)^{p/2}}
-\end{equation}
-with $p>1$ which has finite amplitude at low frequencies and power-law fall off at high frequencies, two physically realistic properties observed, among other things, in ocean surface drifters \cite{sykulski2016-jrssc}. The Mat\'ern is a Gaussian process, which in the context of equation \ref{gaussian-max-likelihood} means that we are setting the velocity to a Gaussian distribution.
-
-For these experiments we choose values of $p=2,3,4$ so that the high frequency spectrum is proportional to $\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$. The Mat\'ern is used to generate the \emph{velocity} of the signal and integrated to get the positions which are then contaminated with Gaussian noise. Parameters are chosen such that $u_{\textrm{rms}}=0.20$ m/s and the noise has $\sigma=10$ meters. Figure \ref{varied_slope} shows an example of the velocity spectra of the signal with $\omega^{-2}$ and the Gaussian noise.
-
-For all of these experiments we use a range of \emph{strides}, that is, subsampled versions of the underlying process as input into the spline fits. This lets us evaluate the quality of fit against the interpolated values, and not just the points of observation.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Tension degree, $T$} \label{tension_degree}
@@ -365,7 +373,7 @@ T & 1 & 2 & 3 & 4 & 5 \\ \midrule
 \end{tabular} 
 \end{table}
 
-The results in table \ref{optimal_T} show that while setting $T=S$ may not always be optimal, it is never significantly worse (in a statistical sense) than the optimal choice for these synthetic datasets. Thus, for the remainder of the manuscript, we will always take $T=S$. This choice is the same as the special case highlighted in section \ref{sec:maximum_likelihood}.
+The results in table \ref{optimal_T} show that while setting $T=S$ may not always be optimal, it is never significantly worse (in a statistical sense) than the optimal choice for these synthetic datasets. Thus, for the remainder of the manuscript, we will always take $T=S$. This choice is the same as the special case highlighted in section \ref{sec:smoothing_spline}.
 
 The other significant conclusion from table \ref{optimal_T} is that applying tension at $S=1$ is not optimal.
 
@@ -490,44 +498,35 @@ Table \ref{fit_results_gaussian} summarizes the key results of this section by a
 \label{sec:drifter_data_set}
 %%%%%%%%%%%%%%%%%%%%%%
 
-\begin{figure*}[t]
-  \centerline{\includegraphics[width=39pc,angle=0]{figures/gaussianfit}}
-  
-  \caption{An example of model fits to the drifter data assuming Gaussian errors. The thick black line shows a fit with $\sigma=10$ meters, while the gray line shows a fit with $\sigma=50$ meters}
-  \label{gaussianfit}
-\end{figure*}
-
 The GPS positions used in this manuscript were collected from oceanic surface \emph{drifters}, floating buoys with drogues tethered 15-30 meters below the ocean surface, depending on the particular experiment being conducted. In the past, these drifters have used Argos positioning system which has significantly poorer temporal coverage and position accuracy \cite{elipot2016-jgr}, but recently more surface drifters have employed GPS receivers and transmitted their data back through Argos or Iridium satellites.
 
 The primary dataset considered here will be nine surface drifters that were deployed in the Sargasso Sea in the summer of 2011. These particular drifters were part of the LatMix experiment \cite{shcherbina2015-bams} and recorded data at approximately 30 minute intervals over the course of a week before being retrieved.
 
-The GPS receiver sits on the surface buoy and collects position data, but because of atmospheric conditions or ocean waves, the receivers are sometimes unable to obtain a position, or when they do, it is highly inaccurate. Thus, despite nominal accuracies of a few meters, it is often the case that some positions are off by more than 1000 meters.
+The GPS receiver sits on the surface buoy and collects position data, but because of atmospheric conditions or ocean waves, the receivers are sometimes unable to obtain a position, or when they do, it is highly inaccurate. Thus, despite nominal accuracies of a few meters, it is often the case that some positions are off by more than 1000 meters, as can be seen in figure \ref{gpsfit}. Taking $\sigma=10$ meters and applying a tension spline fit using the methodology in section \ref{sec:smoothing_spline} produces an obviously horrible fit, with clear overshoots to bad data points.
 
-In addition to correcting the position errors, it is also important to interpolate the data to a regular grid. Although the sampling period of a GPS receiver can be fixed, because of missing data and time to to acquire signals, the sampling can be quite irregular.  Many analysis techniques require regular sampling (e.g., a Fourier transform) and so it is necessary to interpolate the signal onto a regular grid. The approach taken here is not to simply discard poor data, but also to interpolate the position.
-
-
-
-The drifter positions are bivariate time series data given as either projected coordinates $(x_i, y_i)$ or longitude/latitude $(\phi_i, \theta_i$) at times $t_i$. The goal is to create a model of position $(x(t),y(t))$ that is continuous in $t$, and perhaps even continuous for a higher derivative---such as velocity or acceleration---that best matches the data given an assumed set of errors.
-%%%%%%%%%%%%%%%%%%%%%%
-\subsection{GPS position errors}
-%%%%%%%%%%%%%%%%%%%%%%
-\label{gps_position_errors}
-
-Figure \ref{gaussianfit} shows a 25 hour window of observed GPS positions for one of the drifters. The bold line in figure \ref{gaussianfit} shows the results of fitting to the observations assuming the errors are Gaussian with $\sigma$ taken to be $10$ meters, while the thin line shows the tension increased by a factor of $10^4$. This increase is equivalent to assuming $1000$ meter standard deviations on the errors---not plausible for ordinary GPS errors, as shown below, and some points must be treated as outliers. 
+In the following two sections we examine the expected errors from GPS position data and devise a technique for removing outlier data.
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
 \subsection{GPS error distribution}
+\label{gps_position_errors}
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
-We characterize the the GPS errors by considering data from a motionless GPS receiver allowed to run for 12 hours. The specific GPS receiver used for this test was not the same as the one used for the drifters but should produce errors similar enough for this analysis.
+\begin{figure}
+  \centerline{\includegraphics[width=19pc,angle=0]{figures/gps_error_distribution}}
+  \centerline{\includegraphics[width=19pc,angle=0]{figures/gps_distance_error_distribution}} 
+  \caption{The top panel shows the position error distribution of the motionless GPS. The black line is the best fit t-distribution and the gray line is the best fit Gaussian distribution. The bottom panel shows the distance error distribution with the corresponding expected distributions from the Gaussian and t-distribution. The vertical line in the bottom panel shows the 95\% error of the t-distribution at about 30 meters.}
+  \label{motionless_error}
+\end{figure}
+
+We characterize the the GPS errors by considering data from a motionless GPS receiver allowed to run for 12 hours. The specific GPS receiver used for this test was not the same as the one used for the drifters (because it was no longer available) but should produce errors similar enough for this analysis.
 
 The position recorded by the motionless GPS are assumed to have isotropic errors with mean zero, which means that the positions themselves are the errors. The probability distribution function (PDF) of the combined $x$ and $y$ position errors are shown in figure \ref{motionless_error}.
 
 The error distribution is first fit to a zero-mean Gaussian PDF,
 \begin{equation}
-% \label{gaussian_pdf}
+\tag{\ref{gaussian_pdf} revisited}
 p_g(\epsilon|\sigma_g) = \frac{e^{-\frac{1}{2}\frac{\epsilon^2}{\sigma_g^2}} }{\sigma_g \sqrt{ 2 \pi}}.
 \end{equation}
 The maximum likelihood fit is found by simply computing the standard deviation of the sample, which is found to be $\sigma_g \approx 10$ meters and shown as the gray line in figure \ref{motionless_error}. However, it is clear the error distribution shows much longer tails than the Gaussian PDF.
@@ -538,13 +537,6 @@ The Student t-distribution is a generalization of the Gaussian that produces lon
 p_t\left(\epsilon |\nu,\sigma_t^2\right) = \frac{\Gamma\left( \frac{\nu + 1}{2} \right)}{\sigma_t \sqrt{\nu \pi} \Gamma\left(\frac{\nu}{2}\right)} \left( 1 + \frac{\epsilon^2}{\sigma_t^2 \nu} \right)^{-\frac{\nu+1}{2}}
 \end{equation}
 where the $\sigma_t$ parameter scales the distribution width and the $\nu$ parameter sets the number of degrees of freedom. The variance is $\textrm{var}(X)=\sigma_t^2 \frac{\nu}{\nu-2}$ and only exists for $\nu > 2$. The t-distribution is equivalent to the Gaussian distribution when $\nu \rightarrow \infty$. We find the best fit t-distribution to the data by maximizing the Kolmogorov-Smirnoff test. The best fit with parameters $\sigma_t \approx 8.5$ meters and $\nu \approx 4.5$ is shown as the black line in figure \ref{motionless_error}.
-
-\begin{figure}
-  \centerline{\includegraphics[width=19pc,angle=0]{figures/gps_error_distribution}}
-  \centerline{\includegraphics[width=19pc,angle=0]{figures/gps_distance_error_distribution}} 
-  \caption{The top panel shows the position error distribution of the motionless GPS. The black line is the best fit t-distribution and the gray line is the best fit Gaussian distribution. The bottom panel shows the distance error distribution with the corresponding expected distributions from the Gaussian and t-distribution. The vertical line in the bottom panel shows the 95\% error of the t-distribution at about 30 meters.}
-  \label{motionless_error}
-\end{figure}
 
 The \emph{position} error distributions also imply a combined \emph{distance} error distribution by computing $\epsilon_d = \sqrt{\epsilon_x^2 + \epsilon_y^2}$ and is shown in the lower panel of figure \ref{motionless_error}. For two independent Gaussian distributions this results in a Rayleigh distribution,
 \begin{equation}
@@ -561,44 +553,10 @@ The distance distribution for two t-distributions is computed numerically and is
 
 Figure \ref{gps_autocorrelation} shows the autocorrelation function of the GPS position errors. The smallest sampling interval of the GPS drifters in question is 30 minutes and therefore it is safe to assume the errors are uncorrelated for our purposes.
 
-%%%%%%%%%%%%%%%%%%%%%%
-%
-\subsection{Numerical implementation}
-%
-%%%%%%%%%%%%%%%%%%%%%%
-
-In practice it is challenging to use the Student t-distribution directly because it does not result in a linear solution for the coefficients like equation \ref{solution}. One method around this issue is to use a search algorithm to directly look for the maximum values. Alternatively, one can use the iteratively reweighted least squares (IRLS) method to find the maximum likelihood.
-
-The idea with IRLS to reweight the coefficients of the Gaussian, $\sigma_g$ in equation \ref{gaussian_pdf}, so that the resulting distribution looks like the desired distribution, e.g., equation \ref{student_pdf}. Recalling that $\epsilon_i \equiv x_i - x(t_i,\mathbf{\xi})$, the minimization condition that $\frac{d p_g}{d\xi}=0$, implies that
-\begin{equation}
-\frac{\epsilon_i}{\sigma_g^2} \frac{\partial x(t_i,\mathbf{x})}{\partial \mathbf{\xi}} = 0
-\end{equation}
-for the Gaussian distribution, whereas for the t-distribution this implies that,
-\begin{equation}
- \frac{\epsilon_i}{\sigma_t^2} \frac{\nu+1}{\nu} \left( 1 + \frac{\epsilon_i^2}{\nu \sigma_t^2} \right)^{-1}  \frac{\partial x(t_i,\mathbf{x})}{\partial \mathbf{\xi}}  = 0.
-\end{equation}
-This means that you can set
-\begin{equation}
-\sigma_g^2 =   \sigma_t^2 \frac{\nu}{\nu+1} \left( 1 + \frac{\epsilon_i^2}{\nu \sigma_t^2} \right)
-\label{sigma_reweighted}
-\end{equation}
-to get a matching distribution. Of course, that's only true if $\epsilon_i$ is already known, which initially it is not. So the method becomes iterative---you start with $\epsilon_i$ determined from the Gaussian fit, then determine a new $\epsilon_i$ after reweighting $\sigma_g$. This method iterates until $\sigma_g$ stops changing. We can rewrite equation \ref{sigma_reweighted} as a function of $\epsilon_i$,
-\begin{equation}
-\label{t-weight}
-w_t(\epsilon_i) = \sigma_t^2 \frac{\nu  + \frac{\epsilon_i^2}{\sigma_t^2}}{\nu+1}.
-\end{equation}
-
-From equation \ref{t-weight} it is clear that if $\epsilon_i < \sigma_t$ then it will be reweighted to a smaller value, essentially making the observation point more strongly weighted. On the other hand, if $\epsilon_i > \sigma_t$, then its relative weighting will decrease, and it will be treated more as an outlier.
-
-In a practical sense, the $\Sigma^{-1}$ of equation \ref{smoothing-operator} is replaced with diagonal matrix $W$ populated with the reweighted values for each observation such that,
-\begin{equation}
-\label{general-smoothing-operator}
-\mathbf{S_\lambda} \equiv \mathbf{X} \left[ \mathbf{X}^{\textrm{T}} W \mathbf{X} + \lambda_1 \mathbf{V}^{\textrm{T}} \mathbf{V} \right]^{-1} \mathbf{X}^{\textrm{T}} W.
-\end{equation}
-This operator is again used to compute the standard error from the variances,  $\mathbf{S_\lambda} \Sigma$, where the variance is assumed to be $\sigma_t^2 \frac{\nu}{\nu-2}$ for each observation.
+The tension spline algorithms described in section \ref{sec:smoothing_spline} are modified to use the Student t-distribution as described in section \ref{sec:irls}. Table \ref{fit_results_tdistribution} shows that the conclusions reached for Gaussian data in section \ref{sec:smoothing_spline} still apply to the t-distribution data used here.
 
 \begin{table}[ht]
-\caption{Same as above, but with a Student-t distribution }
+\caption{Same as table \ref{fit_results_gaussian}, but with noise following Student-t distribution.}
 \label{fit_results_tdistribution}
 \centering
 \begin{tabular}{r | llll} stride & full dof & reduced dof & blind initial & blind optimal \\ \hline \hline 
@@ -626,21 +584,90 @@ m=-4 &&&&  \\ \hline
 \label{sec:outliers}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The goal here is to remove the outliers---points that do not appear to be of the known error distribution for the GPS receiver shown in section \ref{gps_position_errors}. These points are obviously bad as can be seen in figure \ref{gaussianfit} where individual data points jump hundreds of meters and even several kilometers away from its neighbors. Errors of this size are inconsistent with the noise analysis of the preceding section, so the goal here is to first eliminate points associated with this uncharacterized noise. Interestingly, in the nine drifters we are analyzing here, one drifter shows absolutely no obvious outliers, suggesting the issue may be related to how the antenna is configured.
-
-To remove the outliers we use the values of $\nu$ and $\sigma_t$ found in section \ref{gps_position_errors} and set the tension of the spline, equation \ref{lambda}, by assuming that we have a large number of degrees of freedom. If used for the final product, this will generally result in an overly smoothed fit because the true number of degrees of freedom is much lower. However, this technique will serve to reject outliers because points resulting in an acceleration that is improbably large (according to the Gaussian PDF describing the accelerations) will be treated as having large position errors, a feature that arising from using the Student t-distribution and is not possible if a Gaussian distribution is assumed. Once the fit is performed, the points with errors, $\epsilon_i$, that are far outside the usual bounds can be discarded. 
-
-This technique can be applied independently for the $x$ and $y$ positioning data, but we find that these outlier points are generally correlated, so we base our rejection criteria on the joint distribution, the bottom panel of figure \ref{motionless_error}. We further refine the tension parameter by finding the optimal value of the KS test of the joint distribution, but only within the 99.99\% region. This means that we do not include points that are more than 95 meters away from the model fit in order to avoid fitting to the outliers that do not conform to the model of the motionless GPS. Optimizing the KS test results in a more robust fit because the accelerations estimated using the technique in appendix \ref{sec:variance_estimate} over estimates the acceleration when large outliers are present. Once the tension value is optimized, we then discard the data points outside the 99.99\% of the joint t-distribution.
-
-Once the outliers are removed, the final fits can be performed using \ref{lambda} in conjunction with \ref{MSE}. The thin line in figure \ref{tdistributionfit} shows the final result.
-
 \begin{figure*}[t]
-  \centerline{\includegraphics[width=39pc,angle=0]{tdistributionfit}}
+  \centerline{\includegraphics[width=39pc,angle=0]{figures/gpsfit}}
   
-  \caption{An example of model fits assuming errors following a t-distribution.}
-  \label{tdistributionfit}
+  \caption{GPS position data for a 25 hour window from one of the drifters. The light grey line is the is optimal tension spline fit assuming Gaussian errors, as described in section \ref{sec:smoothing_spline}. The highlighted data points are those identified as outliers using the methodology in section \ref{sec:outliers}. The black line is the optimal tension spline fit assuming t-distribution errors after removing outliers following section \ref{sec:drifter_data_set}.}
+  \label{gpsfit}
 \end{figure*}
 
+The goal here is to remove the outliers---points that do not appear to be of the known error distribution for the GPS receiver shown in section \ref{gps_position_errors}. These points are obviously bad as can be seen in figure \ref{gpsfit} where individual data points jump hundreds of meters and even several kilometers away from its neighbors. Errors of this size are inconsistent with the noise analysis of the preceding section, so the goal here is to identify points associated with this uncharacterized noise. What makes outliers `obvious' to the eye is that they appear as unexpectedly large motions, inconsistent with most of the other motion for that path. In this sense, the tension spline formulation is a good one as it assumes the motion at some order (e.g., acceleration) is Gaussian, as shown in section \ref{sec:maximum_lielihood}. Interestingly, in the nine drifters we are analyzing here, one drifter shows no obvious outliers, suggesting the issue may be related to how the antenna is configured. This particular drifter serves as a useful point of comparison.
+
+To make the tension spline method robust, we create a new `robust distribution', $p_{\textrm{robust}}$, that includes the assumed noise distribution, $p_{\textrm{noise}}$, plus an assumed form of an outlier distribution, $p_{\textrm{outlier}}$,
+\begin{equation}
+\label{robust_pdf}
+    p_{\textrm{robust}}(\epsilon) = (1-\alpha) \cdot p_{\textrm{noise}}(\epsilon) + \alpha \cdot  p_{\textrm{outlier}}(\epsilon).
+\end{equation}
+The value of $\alpha$ is somewhat arbitrarily chosen to be $0.01$ and the pdf for the outliers is taken to be a Student's t-distribution with $\nu=3.0$ with $\sigma$ chosen so that the variance is 1000 times the variance of $p_{\textrm{noise}}$. The idea here is that the weight function (appendix \ref{sec:summed_distributions}) can now un-weight points unlikely to occur with the expected noise distribution. The resulting weight function is similar to Tukey's biweight, although it results from a valid distribution and never fully discards outliers.
+
+The whole problem with outliers is that we don't know their distribution, so minimizing the expected mean square error using equation \ref{MSE} with the expected variance from the robust distribution defined in equation \ref{robust_pdf} does not work. The key innovation in our method is to simply exclude the outliers from the calculation of equation \ref{MSE}. The robust expected mean square error thus replaces $\sigma^2$ with,
+\begin{equation}
+    \sigma^2 = \int_{\textrm{cdf}^{-1}(\alpha/2)}^{\textrm{cdf}^{-1}(1-\alpha/2)} z^2 p_{\textrm{noise}}(z) \, dz
+\end{equation}
+and discards all rows (and columns) of $\mathbf{S}_\lambda$ where $\left(\mathbf{S}_\lambda - I\right)\mathbf{x}<\textrm{cdf}^{-1}(\alpha/2)$ or $\left(\mathbf{S}_\lambda - I\right)\mathbf{x}>\textrm{cdf}^{-1}(1-\alpha/2)$.
+
+To further improve the results, we further refine the window over which minimization is performed by attempting to deduce both $\alpha$ and the variance of $p_{\textrm{noise}}(z)$. This leads to two equations and two unknowns,
+\begin{equation}
+    \textrm{Var}(|z|>z_\textrm{outlier}) = 2 (1-\alpha)  \int_{z_\textrm{outlier}}^{\infty}  z^2 \cdot p_{\textrm{noise}}(z) + 2 \alpha \cdot  z^2 p_{\textrm{outlier}}(z)
+\end{equation}
+and
+\begin{equation}
+    \frac{|z|>z_\textrm{outlier}}{n} = 2 (1-\alpha) \textrm{cdf}_{\textrm{noise}}(-z_\textrm{outlier}) + 2 \alpha \cdot  \textrm{cdf}_{\textrm{outlier}}(z)
+\end{equation}
+
+What if we make the assumption that the outlier distribution is under full tension---that the effective sample size is large. So the sample variance consists of two terms,
+\begin{equation}
+    \frac{1}{N}||\mathbf{S}_\lambda - I||^2 = \alpha \left(1-\frac{1}{\alpha N}\right) \textrm{Var}_\textrm{outlier} + (1-\alpha) \left(1-\frac{1}{n_\textrm{eff}}\right) \textrm{Var}_\textrm{noise}
+\end{equation}
+So in the first case we're assuming that each outlier contributes to the sample variance.
+
+The second component, is then the variance of the mean... but we can assume that goes to zero for outliers (again, large effective sample size). But oh, can we? No... let's just assume it's the same as the noise distribution.
+
+Note that we can dial in on the correct range of alpha to use because the expected mean square error needs to stay below 1. So, you could target 0.5 to get a good initial estimate (assuming it's above 1)
+
+The expected mean square error contains 1 more term, the variance of the mean. So,
+\begin{align}
+    mse =& \alpha \left(1-\frac{1}{\alpha N}\right) \textrm{Var}_\textrm{outlier} + (1-\alpha) \left(1-\frac{1}{n_\textrm{eff}}\right) \textrm{Var}_\textrm{noise} \\&+ \textrm{Var}_\textrm{noise} \frac{\Tr S}{(1-\alpha)N}
+\end{align}
+
+For a given $\lambda$, I can search for the appropriate range such that effective degrees of freedom from both measures match. That would then determine alpha
+
+Write this out again,
+\begin{align}
+\label{MSE}
+    \textrm{MSE}(\lambda) =& \frac{1}{N} || \left( \mathbf{S_\lambda} - I \right) \mathbf{x} ||^2 - \sigma^2 + \frac{2 \sigma^2}{N}  \Tr \mathbf{S_\lambda} \\
+    &+\frac{1}{N} || \left( \mathbf{S_\lambda} - I \right) \mathbf{x} ||^2 - \sigma^2 + \frac{2 \sigma^2}{N}  \Tr \mathbf{S_\lambda}
+\end{align}
+Is the trick that the MSE has to be the same for the spline under both conditions? So, find the separation threshold at which they both have the same mean square error. Is that well posed?
+
+What if we find the value in z where the sample variance matches the expected value you'd get from using the effective degrees of freedom.
+
+Equation for total variance is
+\begin{equation}
+    \sigma_t^2 = (1-\alpha) \textrm{var}_\textrm{noise} + \alpha 3 \sigma_o^2
+\end{equation}
+assuming a t-distribution with $\nu=3$. We can actually make this a little better by accounting for the sample variance, so
+\begin{equation}
+    \hat{\sigma}^2= (1-\alpha) \left(1-\frac{1}{n^n_\textrm{eff}} \right) \textrm{var}_\textrm{noise} + \alpha 3 \left(1-\frac{1}{n^o_\textrm{eff}} \right) \sigma_o^2
+\end{equation}
+which is just,
+\begin{equation}
+    \hat{\sigma}^2 - \hat{\sigma}^2_n = \alpha \left(3 \left(1-\frac{1}{n^o_\textrm{eff}} \right) \sigma_o^2  - \hat{\sigma}^2_n\right)
+\end{equation}
+
+
+The cdf we may have to do numerically. So, at some $z$,
+\begin{equation}
+    \frac{|z|>z_\textrm{target}}{n} = 2 (1-\alpha) \textrm{cdf}_{\textrm{noise}}(z_\textrm{target}) + 2 \alpha \cdot  \textrm{cdf}_{\textrm{outlier}}(z_\textrm{target})
+\end{equation}
+Rewrite this in terms of the unknown variance (because you can solve for it in the firs equation) and then numerically search for a solution.
+
+
+To further improve the results, a second iteration with a modified robust distribution and removed knot points is performed. Firstly, knot points are removed for points that are true outliers---those with a less than a 1 in 10000 chance of occurring with $p_{\textrm{noise}}$. The idea here is that we don't remove the outliers from the fit, but we do remove the b-spline created at that location. This does not have much advantage when the effective sample size ($n_\textrm{eff}$) is large because nearby points help constrain the spline, but does appear to be helpful when $n_\textrm{eff}$ is small. Secondly, we redefined $\alpha$ in equation \ref{robust_pdf} using the number of identified outliers divided by the total number of points. Finally, the robust expected mean square is again used to set the tension.
+
+To test the performance of the robust tension spline we repeated the same ensemble tests as in section XX, but allowed 10\% of the errors to have 400 times the total variance. We defined the `optimal' fit by using only points that fall within the expected noise distribution.  
+
+It's worth noting another possible strategy for identifying outliers is to use the maximum likelihood approach by estimating the value of the tensioned derivative. We found good results if we used the interquartile range of the tensioned derivative distribution \emph{after} using the first iteration of the algorithm above. In our (rather unusual) case where acceleration was able to be estimated from the one drifter without outliers, the maximum likelihood approach appeared to work well by assuming that same acceleration for the other drifters.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusions}
@@ -719,6 +746,83 @@ which has solution
 \end{equation}
 where $\mathbf{\iota}$ is a vector of $1$s. The operation $\mathbf{V}^{\textrm{T}} \mathbf{\iota}$ essentially integrates the $m$-splines and results in a column vector with the integrated values.
 
+%%%%%%%%%%%%%%%%%%%%%%
+\section{Iteratively reweighted least squares}
+\label{sec:irls}
+%%%%%%%%%%%%%%%%%%%%%%
+
+In practice it is challenging to use the Student t-distribution directly because it does not result in a linear solution for the coefficients like equation \ref{solution}. One method around this issue is to use a search algorithm to directly look for the maximum values. Alternatively, one can use the iteratively reweighted least squares (IRLS) method to find the maximum likelihood.
+
+The idea with IRLS to reweight the coefficients of the Gaussian, $\sigma_g$ in equation \ref{gaussian_pdf}, so that the resulting distribution looks like the desired distribution, e.g., equation \ref{student_pdf}. Recalling that $\epsilon_i \equiv x_i - x(t_i,\mathbf{\xi})$, the minimization condition that $\frac{d p_g}{d\xi}=0$, implies that
+\begin{equation}
+\frac{\epsilon_i}{\sigma_g^2} \frac{\partial x(t_i,\mathbf{x})}{\partial \mathbf{\xi}} = 0
+\end{equation}
+for the Gaussian distribution, whereas for the t-distribution this implies that,
+\begin{equation}
+ \frac{\epsilon_i}{\sigma_t^2} \frac{\nu+1}{\nu} \left( 1 + \frac{\epsilon_i^2}{\nu \sigma_t^2} \right)^{-1}  \frac{\partial x(t_i,\mathbf{x})}{\partial \mathbf{\xi}}  = 0.
+\end{equation}
+This means that you can set
+\begin{equation}
+\sigma_g^2 =   \sigma_t^2 \frac{\nu}{\nu+1} \left( 1 + \frac{\epsilon_i^2}{\nu \sigma_t^2} \right)
+\label{sigma_reweighted}
+\end{equation}
+to get a matching distribution. Of course, that's only true if $\epsilon_i$ is already known, which initially it is not. So the method becomes iterative---you start with $\epsilon_i$ determined from the Gaussian fit, then determine a new $\epsilon_i$ after reweighting $\sigma_g$. This method iterates until $\sigma_g$ stops changing. We can rewrite equation \ref{sigma_reweighted} as a function of $\epsilon_i$,
+\begin{equation}
+\label{t-weight}
+w_t(\epsilon_i) = \sigma_t^2 \frac{\nu  + \frac{\epsilon_i^2}{\sigma_t^2}}{\nu+1}.
+\end{equation}
+
+From equation \ref{t-weight} it is clear that if $\epsilon_i < \sigma_t$ then it will be reweighted to a smaller value, essentially making the observation point more strongly weighted. On the other hand, if $\epsilon_i > \sigma_t$, then its relative weighting will decrease, and it will be treated more as an outlier.
+
+More generally, the weight function $w(z)$ for a pdf $p(z)$ is found by setting $-\partial_z \log p(z)$ equal to $-\partial_z \log p_g(z)$ of Gaussian pdf where $w(z)$ replaces $\sigma_g^2$,
+and then solving for $w(z)$. The result is that,
+\begin{equation}
+    \frac{z}{w(z)} = - \frac{\partial_z p}{p}
+\end{equation}
+or,
+\begin{equation}
+    w(z) = -z \frac{p}{\partial_z p}.
+\end{equation}
+Note that the same strategy could be used to reshape the pdf of a Gaussian to match the desired distribution, but here we simply match the minimization conditions of the pdfs.
+
+For point of reference, Tukey's biweight is given by,
+\begin{equation}
+\psi(z) = 
+\begin{cases}
+\frac{z}{\sigma_{tb}^2} \left(1-\frac{z^2}{c^2 \sigma_{tb}^2} \right)^2 & |z| < c \cdot \sigma_{tb} \\
+0 & \textrm{else}
+\end{cases}
+\end{equation}
+which, as a weight function is,
+\begin{equation}
+    w_{tb}(\epsilon_i) = \frac{z}{\psi(z)}.
+\end{equation}
+
+In a practical sense, the $\Sigma^{-1}$ of equation \ref{smoothing-operator} is replaced with diagonal matrix $W$ populated with the reweighted values for each observation such that,
+\begin{equation}
+\label{general-smoothing-operator}
+\mathbf{S_\lambda} \equiv \mathbf{X} \left[ \mathbf{X}^{\textrm{T}} W \mathbf{X} + \lambda_1 \mathbf{V}^{\textrm{T}} \mathbf{V} \right]^{-1} \mathbf{X}^{\textrm{T}} W.
+\end{equation}
+This operator is again used to compute the standard error from the variances,  $\mathbf{S_\lambda} \Sigma$, where the variance is assumed to be $\sigma_t^2 \frac{\nu}{\nu-2}$ for each observation when using a Student's t-distribution.
+
+%%%%%%%%%%%%%%%%%%%%%%
+\section{Summed distributions}
+\label{sec:summed_distributions}
+%%%%%%%%%%%%%%%%%%%%%%
+
+Given a summed distribution,
+\begin{equation}
+    p_S(z) = \sum_{i=1}^N \alpha_i p_i(z)
+\end{equation}
+where $p_i(z)$ are valid probability distributions and $\sum \alpha_i = 1$, then the summed cdf is given by,
+\begin{equation}
+    \textrm{cdf}_S(z) = \sum_{i=1}^N \alpha_i \textrm{cdf}_i(z).
+\end{equation}
+The weight function for the summed distribution just follows straight from the definition,
+\begin{equation}
+    w(z) = - z\frac{p_S}{\partial_z p_S}
+\end{equation}
+and can therefore be computed automatically from the distributions being added.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \section{Estimating the variance of the signal}
