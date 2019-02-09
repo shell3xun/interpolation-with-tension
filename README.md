@@ -41,6 +41,15 @@ Plots the error distribution of the motionless GPS datasets, and fits the datase
 
 Plots the autocorrelation function of the motionless GPS datasets.
 
+
+### MakeTableRobustAccelerationEstimate.m and CheckNoiseThresholds.m
+
+Used to make an estimated RMS for some derivative of the signal, given the known noise level. 
+
+### MakeTableOutliersFullTensionTest.m
+
+What method is best for getting to full tension?
+
 # Support
 
 ### tcdf.m

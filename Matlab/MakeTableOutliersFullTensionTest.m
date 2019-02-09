@@ -19,15 +19,17 @@ if exist(filename,'file')
     load(filename);
 else
     slopes = [-2; -3; -4];
-%     slopes = -3;
+    slopes = -3;
     totalSlopes = length(slopes);
 
     strides = [5;20;200];
-%     strides = 200;
+    strides = 5;
+     strides = 200;
     totalStrides = length(strides);
     totalEnsembles = 11; % best to choose an odd number for median
     
-    outlierRatios = [0; 0.015; 0.15; 0.25];
+%     outlierRatios = [0; 0.015; 0.15; 0.25];
+    outlierRatios = 0.25;
     totalOutlierRatios = length(outlierRatios);
     
     % spline fit parameters
@@ -51,15 +53,20 @@ else
     % preallocate the variables we need to save
     %
     nothing = zeros(totalOutlierRatios, totalStrides, totalSlopes, totalEnsembles);
-    nothing_struct = struct('mse',nothing,'neff_se',nothing,'false_negatives', nothing, 'false_positives', nothing, 'lambda', nothing);
+    nothing_struct = struct('mse',nothing,'neff_se',nothing,'false_negatives', nothing, 'false_positives', nothing, 'lambda', nothing,'nonOutlierSampleVariance',nothing,'nonOutlierEffectiveSampleSize',nothing);
     
     total_outliers = nothing; vars{end+1} = 'total_outliers';
     
     full_tension_ks = nothing_struct; vars{end+1} = 'full_tension_ks';
-    full_tension_blind_alpha8 = nothing_struct; vars{end+1} = 'full_tension_blind_alpha8';
-    full_tension_blind_alpha10 = nothing_struct; vars{end+1} = 'full_tension_blind_alpha10';
-    full_tension_blind_alpha20 = nothing_struct; vars{end+1} = 'full_tension_blind_alpha20';
-    full_tension_blind_alpha100 = nothing_struct; vars{end+1} = 'full_tension_blind_alpha100';
+    full_tension_sv = nothing_struct; vars{end+1} = 'full_tension_sv';
+    full_tension_blind_ks_alpha8 = nothing_struct; vars{end+1} = 'full_tension_blind_ks_alpha8';
+    full_tension_blind_ks_alpha10 = nothing_struct; vars{end+1} = 'full_tension_blind_ks_alpha10';
+    full_tension_blind_ks_alpha20 = nothing_struct; vars{end+1} = 'full_tension_blind_ks_alpha20';
+    full_tension_blind_ks_alpha100 = nothing_struct; vars{end+1} = 'full_tension_blind_ks_alpha100';
+    full_tension_blind_sv_alpha8 = nothing_struct; vars{end+1} = 'full_tension_blind_sv_alpha8';
+    full_tension_blind_sv_alpha10 = nothing_struct; vars{end+1} = 'full_tension_blind_sv_alpha10';
+    full_tension_blind_sv_alpha20 = nothing_struct; vars{end+1} = 'full_tension_blind_sv_alpha20';
+    full_tension_blind_sv_alpha100 = nothing_struct; vars{end+1} = 'full_tension_blind_sv_alpha100';
         
     for iOutlierRatio = 1:totalOutlierRatios
         percentOutliers = outlierRatios(iOutlierRatio);
@@ -120,47 +127,80 @@ else
                     
                     linearIndex = sub2ind(size(nothing),iOutlierRatio,iStride,iSlope,iEnsemble);
                     
-                    spline_ks = TensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected);
-                    spline_ks.minimize( @(spline) noiseDistribution.kolmogorovSmirnovError(spline.epsilonAtIndices(~outlierIndices)) );
-                    full_tension_ks = LogStatisticsFromSplineForOutlierTable(full_tension_ks,linearIndex,spline_ks,compute_ms_error,trueOutlierIndices);
+                    spline_ks = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+%                     spline_ks.minimize( @(spline) noiseDistribution.kolmogorovSmirnovError(spline.epsilonAtIndices(~outlierIndices)) );
+%                     full_tension_ks = LogStatisticsFromSplineForOutlierTable(full_tension_ks,linearIndex,spline_ks,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
-                    alpha = 1/8;
+                    spline_ks.minimize( @(spline) abs(mean(spline.epsilonAtIndices(~outlierIndices).^2) - mean(epsilon(~outlierIndices).^2)) );
+                    fprintf('requested: %f, actual: %f\n',mean(epsilon(~outlierIndices).^2) , mean(spline_ks.epsilonAtIndices(~outlierIndices).^2));
+                    full_tension_sv = LogStatisticsFromSplineForOutlierTable(full_tension_sv,linearIndex,spline_ks,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    % Now we do the blind tests
                     spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setToFullTension(alpha);
-                    full_tension_blind_alpha8 = LogStatisticsFromSplineForOutlierTable(full_tension_blind_alpha8,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices);
+                    lambda0 = spline_robust.lambda;
                     
-                    alpha = 1/10;
-                    spline_robust.setToFullTension(alpha);
-                    full_tension_blind_alpha10 = LogStatisticsFromSplineForOutlierTable(full_tension_blind_alpha10,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices);
+                    alpha = 0.4;
+                    spline_robust.setToFullTensionWithInnerSV(alpha);
+                    full_tension_blind_sv_alpha8 = LogStatisticsFromSplineForOutlierTable(full_tension_blind_sv_alpha8,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    spline_robust.lambda = lambda0;
+                    spline_robust.setToFullTensionWithSV(alpha);
+                    full_tension_blind_ks_alpha8 = LogStatisticsFromSplineForOutlierTable(full_tension_blind_ks_alpha8,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
-                    alpha = 1/20;
-                    spline_robust.setToFullTension(alpha);
-                    full_tension_blind_alpha20 = LogStatisticsFromSplineForOutlierTable(full_tension_blind_alpha20,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices);
-  
-                    alpha = 1/100;
-                    spline_robust.setToFullTension(alpha);
-                    full_tension_blind_alpha100 = LogStatisticsFromSplineForOutlierTable(full_tension_blind_alpha100,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices);
+                    alpha = 1/2;
+                    spline_robust.lambda = lambda0;
+                    spline_robust.setToFullTensionWithInnerSV(alpha);
+                    full_tension_blind_sv_alpha10 = LogStatisticsFromSplineForOutlierTable(full_tension_blind_sv_alpha10,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    spline_robust.lambda = lambda0;
+                    spline_robust.setToFullTensionWithSV(alpha);
+                    full_tension_blind_ks_alpha10 = LogStatisticsFromSplineForOutlierTable(full_tension_blind_ks_alpha10,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    alpha = 1/4;
+                    spline_robust.lambda = lambda0;
+                    spline_robust.setToFullTensionWithInnerSV(alpha);
+                    full_tension_blind_sv_alpha20 = LogStatisticsFromSplineForOutlierTable(full_tension_blind_sv_alpha20,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    spline_robust.lambda = lambda0;
+                    spline_robust.setToFullTensionWithSV(alpha);
+                    full_tension_blind_ks_alpha20 = LogStatisticsFromSplineForOutlierTable(full_tension_blind_ks_alpha20,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+
+                    alpha = 1/8;
+                    spline_robust.lambda = lambda0;
+                    spline_robust.setToFullTensionWithInnerSV(alpha);
+                    full_tension_blind_sv_alpha100 = LogStatisticsFromSplineForOutlierTable(full_tension_blind_sv_alpha100,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    spline_robust.lambda = lambda0;
+                    spline_robust.setToFullTensionWithSV(alpha);
+                    full_tension_blind_ks_alpha100 = LogStatisticsFromSplineForOutlierTable(full_tension_blind_ks_alpha100,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                 end
                 fprintf('\n');
             end
         end
     end
     
-    save(filename, vars{:});
+%     save(filename, vars{:});
 end
 
-opt_lambda = spline_ks.lambda;
-dlambda = @(lambda) lambda./opt_lambda-1;
+% figure, histogram(spline_ks.epsilonAtIndices(~outlierIndices),100,'Normalization','pdf'); z=linspace(-200,200,1000)'; hold on, plot(z,noiseDistribution.pdf(z));
+% figure, histogram(spline_robust.epsilonAtIndices(~outlierIndices),100,'Normalization','pdf'); z=linspace(-200,200,1000)'; hold on, plot(z,noiseDistribution.pdf(z));
 
-full_tension_blind_alpha8.dlambda = dlambda(full_tension_blind_alpha8.lambda);
-full_tension_blind_alpha10.dlambda = dlambda(full_tension_blind_alpha10.lambda);
-full_tension_blind_alpha20.dlambda = dlambda(full_tension_blind_alpha20.lambda);
-full_tension_blind_alpha100.dlambda = dlambda(full_tension_blind_alpha100.lambda);
+opt_sampleVariance = full_tension_sv.nonOutlierSampleVariance;
+dsv = @(sv) sv./opt_sampleVariance-1;
 
+full_tension_sv.dSampleVariance = dsv(full_tension_sv.nonOutlierSampleVariance);
+
+full_tension_blind_ks_alpha8.dSampleVariance = dsv(full_tension_blind_ks_alpha8.nonOutlierSampleVariance);
+full_tension_blind_ks_alpha10.dSampleVariance = dsv(full_tension_blind_ks_alpha10.nonOutlierSampleVariance);
+full_tension_blind_ks_alpha20.dSampleVariance = dsv(full_tension_blind_ks_alpha20.nonOutlierSampleVariance);
+full_tension_blind_ks_alpha100.dSampleVariance = dsv(full_tension_blind_ks_alpha100.nonOutlierSampleVariance);
+
+full_tension_blind_sv_alpha8.dSampleVariance = dsv(full_tension_blind_sv_alpha8.nonOutlierSampleVariance);
+full_tension_blind_sv_alpha10.dSampleVariance = dsv(full_tension_blind_sv_alpha10.nonOutlierSampleVariance);
+full_tension_blind_sv_alpha20.dSampleVariance = dsv(full_tension_blind_sv_alpha20.nonOutlierSampleVariance);
+full_tension_blind_sv_alpha100.dSampleVariance = dsv(full_tension_blind_sv_alpha100.nonOutlierSampleVariance);
+
+pct_range = 0.6827;
 minpct = @(values) 100*values(ceil( ((1-pct_range)/2)*length(values)));
 maxpct = @(values) 100*values(floor( ((1+pct_range)/2)*length(values)));
 
-print_pct = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.1f (%.1f-%.1f) ',100*mean(stats.dlambda(iOutlierRatio,iStride,iSlope,:)),minpct(sort(stats.dlambda(iOutlierRatio,iStride,iSlope,:))), maxpct(sort(stats.dlambda(iOutlierRatio,iStride,iSlope,:))) );
+print_pct = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.1f (%.1f-%.1f) ',100*mean(stats.dSampleVariance(iOutlierRatio,iStride,iSlope,:)),minpct(sort(stats.dSampleVariance(iOutlierRatio,iStride,iSlope,:))), maxpct(sort(stats.dSampleVariance(iOutlierRatio,iStride,iSlope,:))) );
 
 for iOutlierRatio = 1:totalOutlierRatios
     for iSlope = 1:length(slopes)
@@ -168,14 +208,25 @@ for iOutlierRatio = 1:totalOutlierRatios
         for iStride=1:length(strides)
             fprintf('%d ', strides(iStride));
             
-            print_pct(full_tension_blind_alpha8,iOutlierRatio,iStride,iSlope);
-            print_pct(full_tension_blind_alpha10,iOutlierRatio,iStride,iSlope);
-            print_pct(full_tension_blind_alpha20,iOutlierRatio,iStride,iSlope);
-            print_pct(full_tension_blind_alpha100,iOutlierRatio,iStride,iSlope);
+            print_pct(full_tension_sv,iOutlierRatio,iStride,iSlope);
             
+            print_pct(full_tension_blind_ks_alpha8,iOutlierRatio,iStride,iSlope);
+            print_pct(full_tension_blind_ks_alpha10,iOutlierRatio,iStride,iSlope);
+            print_pct(full_tension_blind_ks_alpha20,iOutlierRatio,iStride,iSlope);
+            print_pct(full_tension_blind_ks_alpha100,iOutlierRatio,iStride,iSlope);
+            
+            print_pct(full_tension_blind_sv_alpha8,iOutlierRatio,iStride,iSlope);
+            print_pct(full_tension_blind_sv_alpha10,iOutlierRatio,iStride,iSlope);
+            print_pct(full_tension_blind_sv_alpha20,iOutlierRatio,iStride,iSlope);
+            print_pct(full_tension_blind_sv_alpha100,iOutlierRatio,iStride,iSlope);
+            
+            fprintf('\n');
         end
     end
 end
+
+% figure, histogram(spline_ks.epsilonAtIndices(~outlierIndices),100,'Normalization','pdf'); z=linspace(-200,200,1000)'; hold on, plot(z,noiseDistribution.pdf(z));
+
 
 return
 
@@ -183,13 +234,12 @@ return
 %
 % Figure
 
-% figure
-% scatter(t_obs(spline_robust_optimal.indicesOfOutliers),x_obs(spline_robust_optimal.indicesOfOutliers),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
-% scatter(t_obs(trueOutlierIndices),x_obs(trueOutlierIndices),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
-% scatter(t_obs,x_obs,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
-% tq = linspace(min(t_obs),max(t_obs),10*length(t_obs));
-% plot(tq,spline_optimal(tq),'k')
-% plot(tq,spline_robust_optimal(tq),'b')
+figure
+scatter(t_obs(trueOutlierIndices),x_obs(trueOutlierIndices),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
+scatter(t_obs,x_obs,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
+tq = linspace(min(t_obs),max(t_obs),10*length(t_obs));
+plot(tq,spline_ks(tq),'k')
+plot(tq,spline_robust(tq),'b')
 % % plot(tq,spline_robust_cv(tq),'m')
 % return;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
