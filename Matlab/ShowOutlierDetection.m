@@ -3,7 +3,7 @@ LoadFigureDefaults
 
 shouldUseStudentTDistribution = 1;
 
-percentOutliers = 0.15;
+percentOutliers = 0.25;
 outlierFactor = 40;
 
 slopes = [-2; -3; -4];
@@ -15,7 +15,7 @@ T = S;
 K = S+1;
 
 result_stride = 2*[1;4;16;64];
-result_stride = 100;
+result_stride = 200;
 totalStrides = length(result_stride);
 
 % matern signal parameters
@@ -71,6 +71,8 @@ for iSlope = 1:length(slopes)
     end
     
 end
+trueAddedDistribution = AddedDistribution(percentOutliers,outlierDistribution,noiseDistribution);
+fprintf('sqrt(variance) (noise, outlier)=(%.1f, %.1f)\n',sqrt(noiseDistribution.variance),sqrt(outlierDistribution.variance));
 tq = linspace(min(t_obs),max(t_obs),10*length(t_obs));
 % [D,tD] = TensionSpline.FiniteDifferenceMatrixNoBoundary(2,data.t(indices),2);
 % spline_clean = TensionSpline(data.t(indices),data.x(indices),noiseDistribution, 'S', S, 'lambda',0);
@@ -91,42 +93,58 @@ compute_ms_error = @(spline) (mean(mean(  (data.x - spline(data.t)).^2,2 ),1));
 
 spline_optimal = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
 spline_optimal.minimizeMeanSquareError(data.t,data.x);
-fprintf('optimal mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_optimal), std(spline_optimal.uniqueValuesAtHighestDerivative),spline_optimal.lambda );
 
+fprintf('optimal mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_optimal), std(spline_optimal.uniqueValuesAtHighestDerivative),spline_optimal.lambda );
 falseNegativeOutliers = setdiff(trueOutliers,spline_optimal.indicesOfOutliers);
 falsePositiveOutliers = setdiff(spline_optimal.indicesOfOutliers,trueOutliers);
 fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
 
-% pctmin = 1/100/2;
-% pctmax = 1-1/100/2;
-% zmin = noiseDistribution.locationOfCDFPercentile(pctmin);
-% zmax = noiseDistribution.locationOfCDFPercentile(pctmax);
-% spline_optimal.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
-% fprintf('expected mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_optimal), std(spline_optimal.uniqueValuesAtHighestDerivative),spline_optimal.lambda );
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Try our old method
 
+spline_robust_old = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+spline_robust_old.rebuildOutlierDistributionAndAdjustWeightingsOldMethod();
+spline_robust_old.minimizeMeanSquareError(data.t,data.x);
+
+fprintf('robust mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_robust_old), std(spline_robust_old.uniqueValuesAtHighestDerivative),spline_robust_old.lambda );
+falseNegativeOutliers = setdiff(trueOutliers,spline_robust_old.indicesOfOutliers);
+falsePositiveOutliers = setdiff(spline_robust_old.indicesOfOutliers,trueOutliers);
+fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Try our 1 pass optimal method
+
+alpha = 0.5;
 spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-% spline_robust.minimize(@(spline) spline.expectedMeanSquareErrorFromCV() )
-
-spline_robust.rebuildOutlierDistribution();
+spline_robust.setToFullTensionWithInnerSVOnNoiseDistribution(alpha);
+spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
 spline_robust.minimizeMeanSquareError(data.t,data.x);
-% fprintf('(true alpha, true sigma2): (%f, %f)\n',sum(outlierIndices)/n, outlierFactor*outlierFactor*noiseDistribution.sigma^2);
 
-% spline_robust.minimizeMeanSquareError(data.t,data.x);
-
-% spline_robust.minimize(@(spline) spline.expectedMeanSquareErrorRobust() )
 fprintf('robust mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_robust), std(spline_robust.uniqueValuesAtHighestDerivative),spline_robust.lambda );
-
 falseNegativeOutliers = setdiff(trueOutliers,spline_robust.indicesOfOutliers);
 falsePositiveOutliers = setdiff(spline_robust.indicesOfOutliers,trueOutliers);
 fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
 
-% spline_robust.secondIteration();
-% fprintf('robust mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_robust), std(spline_robust.uniqueValuesAtHighestDerivative),spline_robust.lambda );
-% 
-% 
-% falseNegativeOutliers = setdiff(trueOutliers,spline_robust.indicesOfOutliers);
-% falsePositiveOutliers = setdiff(spline_robust.indicesOfOutliers,trueOutliers);
-% fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Try our 2 pass optimal method
+
+alpha = 0.5;
+spline_robust2x = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+spline_robust2x.setToFullTensionWithInnerSVOnNoiseDistribution(alpha);
+spline_robust2x.rebuildOutlierDistribution();
+spline_robust2x.setToFullTensionWithInnerSV(alpha);
+spline_robust2x.rebuildOutlierDistributionAndAdjustWeightings();
+spline_robust2x.minimizeMeanSquareError(data.t,data.x);
+
+fprintf('robust mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_robust2x), std(spline_robust2x.uniqueValuesAtHighestDerivative),spline_robust2x.lambda );
+falseNegativeOutliers = setdiff(trueOutliers,spline_robust2x.indicesOfOutliers);
+falsePositiveOutliers = setdiff(spline_robust2x.indicesOfOutliers,trueOutliers);
+fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -139,6 +157,8 @@ scatter(t_obs(trueOutliers),x_obs(trueOutliers),(6.5*scaleFactor)^2,'filled', 'M
 scatter(t_obs,x_obs,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 plot(tq,spline_optimal(tq),'k')
 plot(tq,spline_robust(tq),'b')
+plot(tq,spline_robust2x(tq),'r')
+plot(tq,spline_robust_old(tq),'g')
 
 
 return
