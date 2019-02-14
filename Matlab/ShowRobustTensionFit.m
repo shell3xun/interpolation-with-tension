@@ -58,8 +58,25 @@ fprintf('robust lambda (CV): (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
 
 % This gives us "full tension".
 
+alpha = 1/2;
 spline_x2 = RobustTensionSpline(t_data,x_data,noiseDistribution, 'lambda',spline_x.lambda,'alpha',1/10000);
-spline_x2.rebuildOutlierDistribution();
+spline_x2.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
+[outlierDistribution, alpha_outliers] = spline_x2.estimateOutlierDistribution();
+addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
+spline_x2.setInnerVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
+[outlierDistribution, alpha_outliers] = spline_x2.estimateOutlierDistribution();
+addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
+spline_x2.setInnerVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
+[outlierDistribution, alpha_outliers] = spline_x2.estimateOutlierDistribution();
+addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
+spline_x2.setInnerVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
+[outlierDistribution, alpha_outliers] = spline_x2.estimateOutlierDistribution();
+addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
+spline_x2.setInnerVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
+[outlierDistribution, alpha_outliers] = spline_x2.estimateOutlierDistribution();
+addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
+z_crossover = spline_x2.rebuildOutlierDistributionAndAdjustWeightings();
+spline_x2.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-abs(z_crossover),z_crossover) );
 
 % alpha = 1/10;
 % spline_x2.minimize(@(spline) abs(spline.sampleVarianceInPercentileRange(alpha/2,1-alpha/2)-spline.distribution.varianceInPercentileRange(alpha/2,1-alpha/2)))

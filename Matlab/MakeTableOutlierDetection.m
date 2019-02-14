@@ -64,7 +64,7 @@ else
 %     full_tension_sv_p25 = nothing_struct; vars{end+1} = 'full_tension_sv_p25';
 %     full_tension_sv_p125 = nothing_struct; vars{end+1} = 'full_tension_sv_p125';
     
-    optimal = nothing_struct; vars{end+1} = 'full_tension_innerSV_p6';
+    optimal = nothing_struct; vars{end+1} = 'optimal';
     
     full_tension_innerSV_p6 = nothing_struct; vars{end+1} = 'full_tension_innerSV_p6';
     full_tension_innerSV_p5 = nothing_struct; vars{end+1} = 'full_tension_innerSV_p5';
@@ -129,6 +129,10 @@ else
                     
                     total_outliers(iOutlierRatio,iStride,iSlope,iEnsemble) = length(trueOutlierIndices);
                     
+                    f = @(z) abs( (1-percentOutliers)*noiseDistribution.pdf(z) - percentOutliers*outlierDistribution.pdf(z) );
+                    z_crossover = abs(fminsearch(f,sqrt(noiseDistribution.variance)));
+                    crossoverOutliers = (abs(epsilon) > z_crossover);
+                    
                     x_obs = data.x + epsilon;
                     t_obs = data.t;
                     
@@ -148,16 +152,17 @@ else
                     
                     % 1st strategy
                     spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setToFullTensionWithInnerSVOnNoiseDistribution(alpha);
+                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     full_tension_innerSV_p6 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p6,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     % 2nd strategy
                     spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setToFullTensionWithInnerSVOnNoiseDistribution(alpha);
-                    spline_robust.rebuildOutlierDistribution();
-                    spline_robust.setToFullTensionWithInnerSV(alpha);
+                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
+                    [outlierDistribution, alpha_outliers] = spline_robust.estimateOutlierDistribution();
+                    addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
+                    spline_robust.setInnerVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     full_tension_innerSV_p6x2 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p6x2,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
@@ -168,16 +173,17 @@ else
                     
                     % 1st strategy
                     spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setToFullTensionWithInnerSVOnNoiseDistribution(alpha);
+                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     full_tension_innerSV_p5 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p5,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     % 2nd strategy
                     spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setToFullTensionWithInnerSVOnNoiseDistribution(alpha);
-                    spline_robust.rebuildOutlierDistribution();
-                    spline_robust.setToFullTensionWithInnerSV(alpha);
+                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
+                    [outlierDistribution, alpha_outliers] = spline_robust.estimateOutlierDistribution();
+                    addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
+                    spline_robust.setInnerVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     full_tension_innerSV_p5x2 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p5x2,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
@@ -189,16 +195,17 @@ else
                     
                     % 1st strategy
                     spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setToFullTensionWithInnerSVOnNoiseDistribution(alpha);
+                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     full_tension_innerSV_p4 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p4,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     % 2nd strategy
                     spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setToFullTensionWithInnerSVOnNoiseDistribution(alpha);
-                    spline_robust.rebuildOutlierDistribution();
-                    spline_robust.setToFullTensionWithInnerSV(alpha);
+                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
+                    [outlierDistribution, alpha_outliers] = spline_robust.estimateOutlierDistribution();
+                    addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
+                    spline_robust.setInnerVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     full_tension_innerSV_p4x2 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p4x2,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
@@ -210,16 +217,17 @@ else
                     
                     % 1st strategy
                     spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setToFullTensionWithInnerSVOnNoiseDistribution(alpha);
+                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     full_tension_innerSV_p25 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p25,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     % 2nd strategy
                     spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setToFullTensionWithInnerSVOnNoiseDistribution(alpha);
-                    spline_robust.rebuildOutlierDistribution();
-                    spline_robust.setToFullTensionWithInnerSV(alpha);
+                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
+                    [outlierDistribution, alpha_outliers] = spline_robust.estimateOutlierDistribution();
+                    addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
+                    spline_robust.setInnerVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     full_tension_innerSV_p25x2 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p25x2,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
@@ -231,16 +239,17 @@ else
                     
                     % 1st strategy
                     spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setToFullTensionWithInnerSVOnNoiseDistribution(alpha);
+                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     full_tension_innerSV_p125 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p125,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     % 2nd strategy
                     spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setToFullTensionWithInnerSVOnNoiseDistribution(alpha);
-                    spline_robust.rebuildOutlierDistribution();
-                    spline_robust.setToFullTensionWithInnerSV(alpha);
+                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
+                    [outlierDistribution, alpha_outliers] = spline_robust.estimateOutlierDistribution();
+                    addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
+                    spline_robust.setInnerVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     full_tension_innerSV_p125x2 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p125x2,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
