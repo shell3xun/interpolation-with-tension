@@ -63,6 +63,9 @@ else
     optimal_dist_optimal_weight = nothing_struct; vars{end+1} = 'optimal_dist_optimal_weight';
     optimal_dist_outlier_weight = nothing_struct; vars{end+1} = 'optimal_dist_outlier_weight';
     optimal_dist_crossover_weight = nothing_struct; vars{end+1} = 'optimal_dist_crossover_weight';
+    optimal_dist_no_outliers = nothing_struct; vars{end+1} = 'optimal_dist_no_outliers';
+    optimal_dist_no_true_outliers = nothing_struct; vars{end+1} = 'optimal_dist_no_true_outliers';
+    optimal_dist_magic_cutoff = nothing_struct; vars{end+1} = 'optimal_dist_magic_cutoff';
         
     for iOutlierRatio = 1:totalOutlierRatios
         percentOutliers = outlierRatios(iOutlierRatio);
@@ -163,6 +166,34 @@ else
                     spline_robust.distribution.w = @(z) (~naiveOutliers) .* spline_robust.noiseDistribution.w(z) + naiveOutliers .* spline_robust.outlierDistribution.w(z);
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     optimal_dist_crossover_weight = LogStatisticsFromSplineForOutlierDetectionTable(optimal_dist_crossover_weight,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    %%%%%%%%%%%%%%%%%%
+                    % Known distribution, discarded outliers
+                    %%%%%%%%%%%%%%%%%%
+                    spline_robust = RobustTensionSpline(t_obs(~outlierIndices),x_obs(~outlierIndices),noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust.minimizeMeanSquareError(data.t,data.x);
+                    optimal_dist_no_outliers = LogStatisticsFromSplineForOutlierDetectionTable(optimal_dist_no_outliers,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    %%%%%%%%%%%%%%%%%%
+                    % Known distribution, discarded crossover points
+                    %%%%%%%%%%%%%%%%%%
+                    spline_robust = RobustTensionSpline(t_obs(trueGoodIndices),x_obs(trueGoodIndices),noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust.minimizeMeanSquareError(data.t,data.x);
+                    optimal_dist_no_true_outliers = LogStatisticsFromSplineForOutlierDetectionTable(optimal_dist_no_true_outliers,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+
+                    %%%%%%%%%%%%%%%%%%
+                    % Known distribution, with estimated optimal cutoff and weightings
+                    %%%%%%%%%%%%%%%%%%
+                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    addedDistribution = AddedDistribution(percentOutliers,outlierDistribution,noiseDistribution);
+                    m=2/3;
+                    f = @(alpha) ((addedDistribution.variance-2*addedDistribution.varianceInRange(-Inf,addedDistribution.locationOfCDFPercentile(alpha/2)))^(1-m/2))/(1-alpha)^(m-1) + ((2*addedDistribution.varianceInRange(-Inf,addedDistribution.locationOfCDFPercentile(alpha/2)))^(1-m/2))/(alpha)^(m-1);
+                    alpha_crossover = fminsearch(f,0.01);
+                    z_crossover = abs(addedDistribution.locationOfCDFPercentile(alpha_crossover/2))/2;
+                    naiveOutliers = (abs(epsilon) > z_crossover);
+                    spline_robust.distribution.w = @(z) (~naiveOutliers) .* spline_robust.noiseDistribution.w(z) + naiveOutliers .* spline_robust.outlierDistribution.w(z);
+                    spline_robust.minimizeMeanSquareError(data.t,data.x);
+                    optimal_dist_magic_cutoff = LogStatisticsFromSplineForOutlierDetectionTable(optimal_dist_magic_cutoff,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
 
                 end
                 fprintf('\n');
@@ -187,6 +218,8 @@ optimal_dist.dmse = dmse(optimal_dist.mse);
 optimal_dist_optimal_weight.dmse = dmse(optimal_dist_optimal_weight.mse);
 optimal_dist_outlier_weight.dmse = dmse(optimal_dist_outlier_weight.mse);
 optimal_dist_crossover_weight.dmse = dmse(optimal_dist_crossover_weight.mse);
+optimal_dist_no_outliers.dmse = dmse(optimal_dist_no_outliers.mse);
+optimal_dist_no_true_outliers.dmse = dmse(optimal_dist_no_true_outliers.mse);
 
 print_pct = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.1f (%.1f-%.1f) ',100*mean(stats.dmse(iOutlierRatio,iStride,iSlope,:)),minpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))), maxpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))) );
 
@@ -207,6 +240,8 @@ for iOutlierRatio = 1:totalOutlierRatios
             print_pct(optimal_dist_optimal_weight,iOutlierRatio,iStride,iSlope);
             print_pct(optimal_dist_outlier_weight,iOutlierRatio,iStride,iSlope);
             print_pct(optimal_dist_crossover_weight,iOutlierRatio,iStride,iSlope);
+            print_pct(optimal_dist_no_outliers,iOutlierRatio,iStride,iSlope);
+            print_pct(optimal_dist_no_true_outliers,iOutlierRatio,iStride,iSlope);
 
             fprintf(' \\\\ \n');
             

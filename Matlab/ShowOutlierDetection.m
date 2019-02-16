@@ -4,7 +4,7 @@ LoadFigureDefaults
 shouldUseStudentTDistribution = 1;
 
 percentOutliers = 0.25;
-outlierFactor = 40;
+outlierFactor = 50;
 
 slopes = [-2; -3; -4];
 slope = -3;
@@ -81,6 +81,7 @@ end
 trueAddedDistribution = AddedDistribution(percentOutliers,outlierDistribution,noiseDistribution);
 fprintf('sqrt(variance) (noise, outlier)=(%.1f, %.1f)\n',sqrt(noiseDistribution.variance),sqrt(outlierDistribution.variance));
 fprintf('sqrt(sample variance) (noise, outlier)=(%.1f, %.1f)\n',sqrt(mean(epsilon(~outlierIndices).^2)),sqrt(mean(epsilon(outlierIndices).^2)));
+fprintf('true alpha: %.2f\n',sum(outlierIndices)/n);
 
 tq = linspace(min(t_obs),max(t_obs),10*length(t_obs));
 % [D,tD] = TensionSpline.FiniteDifferenceMatrixNoBoundary(2,data.t(indices),2);
@@ -157,12 +158,21 @@ fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),len
 %
 % Try our 1 pass optimal method
 
+RobustTensionSpline.estimateOutlierDistributionFromKnownNoise(epsilon,noiseDistribution);
+
 alpha = 0.5;
 spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-lambda_full = spline_robust.lambda;
+% spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
+% spline_robust.setToFullTensionWithIteratedIQSV();
+spline_robust.setToFullTensionWithIteratedIQAD();
+lambda_full = spline_robust.lambda
 [empiricalOutlierDistribution,empiricalAlpha] = spline_robust.estimateOutlierDistribution();
+fprintf('(alpha,sqrt(var))=(%.2f,%.1f m)\n',empiricalAlpha,sqrt(empiricalOutlierDistribution.variance));
 newAddedDistribution = AddedDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution);
+
+% spline_robust.minimize(@(spline) trueAddedDistribution.andersonDarlingError(spline.epsilon))
+% [empiricalOutlierDistribution,empiricalAlpha] = spline_robust.estimateOutlierDistribution();
+% fprintf('(alpha,sqrt(var))=(%.2f,%.1f m)\n',empiricalAlpha,sqrt(empiricalOutlierDistribution.variance));
 
 zmax = max(abs(spline_robust.epsilonAtIndices(crossoverGoodIndices)));
 zmin = min(abs(spline_robust.epsilonAtIndices(crossoverOutliers)));
@@ -182,6 +192,7 @@ cd2 = interp1(z_noise,noise_cdf,z)+interp1(z_outlier,outlier_cdf,z);
 % Let actually compute the mse at different crossover points
 % z_mse = linspace(min(zmax,zmin),max(zmax,zmin),10)';
 z_mse = z_outlier( z_outlier < zmax );
+cat(1,z_mse,zmax);
 if isempty(z_mse)
    z_mse = zmin + (zmax-zmin)/2; 
 end
@@ -218,9 +229,11 @@ fprintf('z_opt: %.1f, pdfs: noise likelihood %.2g\n',zmin,(empiricalAlpha/(1-emp
 %%%%%%%%%%
 % figure out how well the two distributions are split
 spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-spline_robust.setInnerVarianceToExpectedValue(alpha,1.25*noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-lambda_full = spline_robust.lambda;
+% spline_robust.setInnerVarianceToExpectedValue(alpha,2.0*noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
+spline_robust.setToFullTensionWithIteratedIQSV(1.0);
+lambda_full = spline_robust.lambda
 [empiricalOutlierDistribution,empiricalAlpha] = spline_robust.estimateOutlierDistribution();
+fprintf('(alpha,sqrt(var))=(%.2f,%.1f m)\n',empiricalAlpha,sqrt(empiricalOutlierDistribution.variance));
 newAddedDistribution = AddedDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution);
 
 %%%%%%%%%%
@@ -242,6 +255,7 @@ cd2 = interp1(z_noise,noise_cdf,z)+interp1(z_outlier,outlier_cdf,z);
 % Let actually compute the mse at different crossover points
 % z_mse = linspace(min(zmax,zmin),max(zmax,zmin),10)';
 z_mse = z_outlier( z_outlier < zmax );
+cat(1,z_mse,zmax);
 if isempty(z_mse)
    z_mse = zmin + (zmax-zmin)/2; 
 end
@@ -271,8 +285,9 @@ fprintf('z_opt: %.1f, pdfs: noise likelihood %.2g\n',zmin,(empiricalAlpha/(1-emp
 plot(z_mse,mse/mse0,'k')
 [minMSE,index] = min(mse,[],'omitnan');
 fprintf('optimal mse: %.2f m\n', minMSE );
-fprintf('z_opt: %.1f, pdfs: noise likelihood %.2g\n',zmin,(empiricalAlpha/(1-empiricalAlpha))*empiricalOutlierDistribution.cdf(-z_mse(index))/noiseDistribution.cdf(-z_mse(index)));
+fprintf('z_opt: %.1f, pdfs: noise likelihood %.2g\n',z_mse(index),(empiricalAlpha/(1-empiricalAlpha))*empiricalOutlierDistribution.cdf(-z_mse(index))/noiseDistribution.cdf(-z_mse(index)));
 
+spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
 z_crossover = z_mse(index);
 spline_robust.distribution = newAddedDistribution;
 epsilonSpline = spline_robust.epsilon;
