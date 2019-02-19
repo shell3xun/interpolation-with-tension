@@ -57,26 +57,18 @@ else
     nothing_struct = struct('mse',nothing,'neff_se',nothing,'false_negatives', nothing, 'false_positives', nothing);
     
     total_outliers = nothing; vars{end+1} = 'total_outliers';
-    
-%     full_tension_sv_p6 = nothing_struct; vars{end+1} = 'full_tension_sv_p6';
-%     full_tension_sv_p5 = nothing_struct; vars{end+1} = 'full_tension_sv_p5';
-%     full_tension_sv_p4 = nothing_struct; vars{end+1} = 'full_tension_sv_p4';
-%     full_tension_sv_p25 = nothing_struct; vars{end+1} = 'full_tension_sv_p25';
-%     full_tension_sv_p125 = nothing_struct; vars{end+1} = 'full_tension_sv_p125';
-    
+      
     optimal = nothing_struct; vars{end+1} = 'optimal';
-    
-    full_tension_innerSV_p6 = nothing_struct; vars{end+1} = 'full_tension_innerSV_p6';
-    full_tension_innerSV_p5 = nothing_struct; vars{end+1} = 'full_tension_innerSV_p5';
-    full_tension_innerSV_p4 = nothing_struct; vars{end+1} = 'full_tension_innerSV_p4';
-    full_tension_innerSV_p25 = nothing_struct; vars{end+1} = 'full_tension_innerSV_p25';
-    full_tension_innerSV_p125 = nothing_struct; vars{end+1} = 'full_tension_innerSV_p125';
-    
-    full_tension_innerSV_p6x2 = nothing_struct; vars{end+1} = 'full_tension_innerSV_p6x2';
-    full_tension_innerSV_p5x2 = nothing_struct; vars{end+1} = 'full_tension_innerSV_p5x2';
-    full_tension_innerSV_p4x2 = nothing_struct; vars{end+1} = 'full_tension_innerSV_p4x2';
-    full_tension_innerSV_p25x2 = nothing_struct; vars{end+1} = 'full_tension_innerSV_p25x2';
-    full_tension_innerSV_p125x2 = nothing_struct; vars{end+1} = 'full_tension_innerSV_p125x2';
+    outlier_cutoff_odds100 = nothing_struct; vars{end+1} = 'outlier_cutoff_odds100';
+    outlier_cutoff_odds300 = nothing_struct; vars{end+1} = 'outlier_cutoff_odds300';
+    outlier_cutoff_odds1000 = nothing_struct; vars{end+1} = 'outlier_cutoff_odds1000';
+    outlier_cutoff_odds3000 = nothing_struct; vars{end+1} = 'outlier_cutoff_odds3000';
+    outlier_cutoff_odds10000 = nothing_struct; vars{end+1} = 'outlier_cutoff_odds10000';    
+    outlier_cutoff_odds30000 = nothing_struct; vars{end+1} = 'outlier_cutoff_odds30000';
+    outlier_cutoff_odds100000 = nothing_struct; vars{end+1} = 'outlier_cutoff_odds100000';
+    outlier_cutoff_odds300000 = nothing_struct; vars{end+1} = 'outlier_cutoff_odds300000';
+    outlier_cutoff_odds1000000 = nothing_struct; vars{end+1} = 'outlier_cutoff_odds1000000';
+    outlier_cutoff_odds3000000 = nothing_struct; vars{end+1} = 'outlier_cutoff_odds3000000';
         
     for iOutlierRatio = 1:totalOutlierRatios
         percentOutliers = outlierRatios(iOutlierRatio);
@@ -143,117 +135,110 @@ else
 
                     % Optimal MSE solution, given the default settings
                     spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.minimizeMeanSquareError(data.t,data.x);
+                    spline_robust.minimizeExpectedMeanSquareError();
                     optimal = LogStatisticsFromSplineForOutlierDetectionTable(optimal,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     %%%%%%%%%%%%%%%%%%
-                    alpha = 3/5; % .6
+                    odds = 1e2;
                     %%%%%%%%%%%%%%%%%%
-                    
-                    % 1st strategy
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
-                    spline_robust.minimizeMeanSquareError(data.t,data.x);
-                    full_tension_innerSV_p6 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p6,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    % 2nd strategy
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-                    [outlierDistribution, alpha_outliers] = spline_robust.estimateOutlierDistribution();
-                    addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
-                    spline_robust.setInnerVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
-                    spline_robust.minimizeMeanSquareError(data.t,data.x);
-                    full_tension_innerSV_p6x2 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p6x2,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    %%%%%%%%%%%%%%%%%%
-                    alpha = 1/2; % .5
-                    %%%%%%%%%%%%%%%%%%
-                    
-                    % 1st strategy
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
-                    spline_robust.minimizeMeanSquareError(data.t,data.x);
-                    full_tension_innerSV_p5 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p5,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    % 2nd strategy
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-                    [outlierDistribution, alpha_outliers] = spline_robust.estimateOutlierDistribution();
-                    addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
-                    spline_robust.setInnerVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
-                    spline_robust.minimizeMeanSquareError(data.t,data.x);
-                    full_tension_innerSV_p5x2 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p5x2,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
 
+                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust.setToFullTensionWithIteratedIQAD();
+                    lambda_full = spline_robust.lambda;
+                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
+                    spline_robust.minimizeExpectedMeanSquareError();
+                    outlier_cutoff_odds100 = LogStatisticsFromSplineForOutlierDetectionTable(outlier_cutoff_odds100,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     %%%%%%%%%%%%%%%%%%
-                    alpha = 2/5; % .4
+                    odds = 3e2;
                     %%%%%%%%%%%%%%%%%%
-                    
-                    % 1st strategy
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
-                    spline_robust.minimizeMeanSquareError(data.t,data.x);
-                    full_tension_innerSV_p4 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p4,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    % 2nd strategy
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-                    [outlierDistribution, alpha_outliers] = spline_robust.estimateOutlierDistribution();
-                    addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
-                    spline_robust.setInnerVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
-                    spline_robust.minimizeMeanSquareError(data.t,data.x);
-                    full_tension_innerSV_p4x2 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p4x2,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
 
+                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust.lambda = lambda_full;
+                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
+                    spline_robust.minimizeExpectedMeanSquareError();
+                    outlier_cutoff_odds300 = LogStatisticsFromSplineForOutlierDetectionTable(outlier_cutoff_odds300,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     %%%%%%%%%%%%%%%%%%
-                    alpha = 1/4; % .25
+                    odds = 1e3;
                     %%%%%%%%%%%%%%%%%%
-                    
-                    % 1st strategy
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
-                    spline_robust.minimizeMeanSquareError(data.t,data.x);
-                    full_tension_innerSV_p25 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p25,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    % 2nd strategy
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-                    [outlierDistribution, alpha_outliers] = spline_robust.estimateOutlierDistribution();
-                    addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
-                    spline_robust.setInnerVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
-                    spline_robust.minimizeMeanSquareError(data.t,data.x);
-                    full_tension_innerSV_p25x2 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p25x2,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
 
+                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust.lambda = lambda_full;
+                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
+                    spline_robust.minimizeExpectedMeanSquareError();
+                    outlier_cutoff_odds1000 = LogStatisticsFromSplineForOutlierDetectionTable(outlier_cutoff_odds1000,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     %%%%%%%%%%%%%%%%%%
-                    alpha = 1/8; % .125
+                    odds = 3e3;
                     %%%%%%%%%%%%%%%%%%
-                    
-                    % 1st strategy
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
-                    spline_robust.minimizeMeanSquareError(data.t,data.x);
-                    full_tension_innerSV_p125 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p125,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    % 2nd strategy
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-                    spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-                    [outlierDistribution, alpha_outliers] = spline_robust.estimateOutlierDistribution();
-                    addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
-                    spline_robust.setInnerVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings();
-                    spline_robust.minimizeMeanSquareError(data.t,data.x);
-                    full_tension_innerSV_p125x2 = LogStatisticsFromSplineForOutlierDetectionTable(full_tension_innerSV_p125x2,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
 
+                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust.lambda = lambda_full;
+                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
+                    spline_robust.minimizeExpectedMeanSquareError();
+                    outlier_cutoff_odds3000 = LogStatisticsFromSplineForOutlierDetectionTable(outlier_cutoff_odds3000,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    %%%%%%%%%%%%%%%%%%
+                    odds = 1e4;
+                    %%%%%%%%%%%%%%%%%%
+
+                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust.lambda = lambda_full;
+                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
+                    spline_robust.minimizeExpectedMeanSquareError();
+                    outlier_cutoff_odds10000 = LogStatisticsFromSplineForOutlierDetectionTable(outlier_cutoff_odds10000,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    %%%%%%%%%%%%%%%%%%
+                    odds = 3e4;
+                    %%%%%%%%%%%%%%%%%%
+
+                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust.lambda = lambda_full;
+                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
+                    spline_robust.minimizeExpectedMeanSquareError();
+                    outlier_cutoff_odds30000 = LogStatisticsFromSplineForOutlierDetectionTable(outlier_cutoff_odds30000,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    %%%%%%%%%%%%%%%%%%
+                    odds = 1e5;
+                    %%%%%%%%%%%%%%%%%%
+
+                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust.lambda = lambda_full;
+                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
+                    spline_robust.minimizeExpectedMeanSquareError();
+                    outlier_cutoff_odds100000 = LogStatisticsFromSplineForOutlierDetectionTable(outlier_cutoff_odds100000,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    %%%%%%%%%%%%%%%%%%
+                    odds = 3e5;
+                    %%%%%%%%%%%%%%%%%%
+                    
+                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust.lambda = lambda_full;
+                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
+                    spline_robust.minimizeExpectedMeanSquareError();
+                    outlier_cutoff_odds300000 = LogStatisticsFromSplineForOutlierDetectionTable(outlier_cutoff_odds300000,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    %%%%%%%%%%%%%%%%%%
+                    odds = 1e6;
+                    %%%%%%%%%%%%%%%%%%
+                    
+                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust.lambda = lambda_full;
+                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
+                    spline_robust.minimizeExpectedMeanSquareError();
+                    outlier_cutoff_odds1000000 = LogStatisticsFromSplineForOutlierDetectionTable(outlier_cutoff_odds1000000,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    %%%%%%%%%%%%%%%%%%
+                    odds = 3e6;
+                    %%%%%%%%%%%%%%%%%%
+                    
+                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust.lambda = lambda_full;
+                    spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
+                    spline_robust.minimizeExpectedMeanSquareError();
+                    outlier_cutoff_odds3000000 = LogStatisticsFromSplineForOutlierDetectionTable(outlier_cutoff_odds3000000,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
                 end
                 fprintf('\n');
             end
@@ -282,44 +267,44 @@ end
 % compute the change in means square error
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dmse = @(mse) mse./optimal.mse-1;
+dmse = @(mse) log10(mse./optimal.mse);
 pct_range = 0.90;%0.6827; % Chosen to match 1-sigma for a Gaussian (these are not Gaussian).
 minpct = @(values) 100*values(ceil( ((1-pct_range)/2)*length(values)));
 maxpct = @(values) 100*values(floor( ((1+pct_range)/2)*length(values)));
 
 optimal.dmse = dmse(optimal.mse);
-full_tension_innerSV_p6.dmse = dmse(full_tension_innerSV_p6.mse);
-full_tension_innerSV_p5.dmse = dmse(full_tension_innerSV_p5.mse);
-full_tension_innerSV_p4.dmse = dmse(full_tension_innerSV_p4.mse);
-full_tension_innerSV_p25.dmse = dmse(full_tension_innerSV_p25.mse);
-full_tension_innerSV_p125.dmse = dmse(full_tension_innerSV_p125.mse);
+outlier_cutoff_odds100.dmse = dmse(outlier_cutoff_odds100.mse);
+outlier_cutoff_odds300.dmse = dmse(outlier_cutoff_odds300.mse);
+outlier_cutoff_odds1000.dmse = dmse(outlier_cutoff_odds1000.mse);
+outlier_cutoff_odds3000.dmse = dmse(outlier_cutoff_odds3000.mse);
+outlier_cutoff_odds10000.dmse = dmse(outlier_cutoff_odds10000.mse);
+outlier_cutoff_odds30000.dmse = dmse(outlier_cutoff_odds30000.mse);
+outlier_cutoff_odds100000.dmse = dmse(outlier_cutoff_odds100000.mse);
+outlier_cutoff_odds300000.dmse = dmse(outlier_cutoff_odds300000.mse);
+outlier_cutoff_odds1000000.dmse = dmse(outlier_cutoff_odds1000000.mse);
+outlier_cutoff_odds3000000.dmse = dmse(outlier_cutoff_odds3000000.mse);
 
-full_tension_innerSV_p6x2.dmse = dmse(full_tension_innerSV_p6x2.mse);
-full_tension_innerSV_p5x2.dmse = dmse(full_tension_innerSV_p5x2.mse);
-full_tension_innerSV_p4x2.dmse = dmse(full_tension_innerSV_p4x2.mse);
-full_tension_innerSV_p25x2.dmse = dmse(full_tension_innerSV_p25x2.mse);
-full_tension_innerSV_p125x2.dmse = dmse(full_tension_innerSV_p125x2.mse);
-
-print_pct = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.1f (%.1f-%.1f) ',100*mean(stats.dmse(iOutlierRatio,iStride,iSlope,:)),minpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))), maxpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))) );
+print_pct = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.1f (%.1f-%.1f) ',100*median(stats.dmse(iOutlierRatio,iStride,iSlope,:)),minpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))), maxpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))) );
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % compute false positive/negative rate
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-printall = @(stats) fprintf('%.1f/%.1f (%.1f/%.1f)\n', mean(stats.false_positives(:)), mean(stats.false_negatives(:)), median(stats.false_positives(:)), median(stats.false_negatives(:)));
-
-printall(full_tension_innerSV_p6);
-printall(full_tension_innerSV_p5);
-printall(full_tension_innerSV_p4);
-printall(full_tension_innerSV_p25);
-printall(full_tension_innerSV_p125);
-
-printall(full_tension_innerSV_p6x2);
-printall(full_tension_innerSV_p5x2);
-printall(full_tension_innerSV_p4x2);
-printall(full_tension_innerSV_p25x2);
-printall(full_tension_innerSV_p125x2);
-
-% printcol = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.1f/%.1f (%.1f/%.1f) ', mean(stats.false_positives(iOutlierRatio,iStride,iSlope,:)), mean(stats.false_negatives(iOutlierRatio,iStride,iSlope,:)), median(stats.false_positives(iOutlierRatio,iStride,iSlope,:)), median(stats.false_negatives(iOutlierRatio,iStride,iSlope,:)) );
-printcol = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %#.3g/%#.3g m$^2$ (%#.3g) (%d/%d) ', median(stats.mse(iOutlierRatio,iStride,iSlope,:)),mean(stats.mse(iOutlierRatio,iStride,iSlope,:)), median(stats.neff_se(iOutlierRatio,iStride,iSlope,:)), median(stats.false_positives(iOutlierRatio,iStride,iSlope,:)), median(stats.false_negatives(iOutlierRatio,iStride,iSlope,:)) );
+% printall = @(stats) fprintf('%.1f/%.1f (%.1f/%.1f)\n', mean(stats.false_positives(:)), mean(stats.false_negatives(:)), median(stats.false_positives(:)), median(stats.false_negatives(:)));
+% 
+% printall(outlier_cutoff_odds100);
+% printall(outlier_cutoff_odds300);
+% printall(outlier_cutoff_odds1000);
+% printall(outlier_cutoff_odds3000);
+% printall(outlier_cutoff_odds10000);
+% 
+% printall(outlier_cutoff_odds30000);
+% printall(outlier_cutoff_odds100000);
+% printall(full_tension_innerSV_p4x2);
+% printall(full_tension_innerSV_p25x2);
+% printall(full_tension_innerSV_p125x2);
+% 
+% % printcol = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.1f/%.1f (%.1f/%.1f) ', mean(stats.false_positives(iOutlierRatio,iStride,iSlope,:)), mean(stats.false_negatives(iOutlierRatio,iStride,iSlope,:)), median(stats.false_positives(iOutlierRatio,iStride,iSlope,:)), median(stats.false_negatives(iOutlierRatio,iStride,iSlope,:)) );
+% printcol = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %#.3g/%#.3g m$^2$ (%#.3g) (%d/%d) ', median(stats.mse(iOutlierRatio,iStride,iSlope,:)),mean(stats.mse(iOutlierRatio,iStride,iSlope,:)), median(stats.neff_se(iOutlierRatio,iStride,iSlope,:)), median(stats.false_positives(iOutlierRatio,iStride,iSlope,:)), median(stats.false_negatives(iOutlierRatio,iStride,iSlope,:)) );
 
 
 fprintf('\n\n');
@@ -342,18 +327,16 @@ for iOutlierRatio = 1:totalOutlierRatios
 %             printcol(full_tension_innerSV_p25x2,iOutlierRatio,iStride,iSlope);
 %             printcol(full_tension_innerSV_p125x2,iOutlierRatio,iStride,iSlope);
             
-            print_pct(full_tension_innerSV_p6,iOutlierRatio,iStride,iSlope);
-            print_pct(full_tension_innerSV_p5,iOutlierRatio,iStride,iSlope);
-            print_pct(full_tension_innerSV_p4,iOutlierRatio,iStride,iSlope);
-            print_pct(full_tension_innerSV_p25,iOutlierRatio,iStride,iSlope);
-            print_pct(full_tension_innerSV_p125,iOutlierRatio,iStride,iSlope);
-            
-            print_pct(full_tension_innerSV_p6x2,iOutlierRatio,iStride,iSlope);
-            print_pct(full_tension_innerSV_p5x2,iOutlierRatio,iStride,iSlope);
-            print_pct(full_tension_innerSV_p4x2,iOutlierRatio,iStride,iSlope);
-            print_pct(full_tension_innerSV_p25x2,iOutlierRatio,iStride,iSlope);
-            print_pct(full_tension_innerSV_p125x2,iOutlierRatio,iStride,iSlope);
-            
+            print_pct(outlier_cutoff_odds100,iOutlierRatio,iStride,iSlope);
+            print_pct(outlier_cutoff_odds300,iOutlierRatio,iStride,iSlope);
+            print_pct(outlier_cutoff_odds1000,iOutlierRatio,iStride,iSlope);
+            print_pct(outlier_cutoff_odds3000,iOutlierRatio,iStride,iSlope);
+            print_pct(outlier_cutoff_odds10000,iOutlierRatio,iStride,iSlope);           
+            print_pct(outlier_cutoff_odds30000,iOutlierRatio,iStride,iSlope);
+            print_pct(outlier_cutoff_odds100000,iOutlierRatio,iStride,iSlope);
+            print_pct(outlier_cutoff_odds300000,iOutlierRatio,iStride,iSlope);
+            print_pct(outlier_cutoff_odds1000000,iOutlierRatio,iStride,iSlope);
+           
             fprintf(' \\\\ \n');
             
         end

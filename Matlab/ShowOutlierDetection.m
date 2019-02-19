@@ -83,6 +83,11 @@ fprintf('sqrt(variance) (noise, outlier)=(%.1f, %.1f)\n',sqrt(noiseDistribution.
 fprintf('sqrt(sample variance) (noise, outlier)=(%.1f, %.1f)\n',sqrt(mean(epsilon(~outlierIndices).^2)),sqrt(mean(epsilon(outlierIndices).^2)));
 fprintf('true alpha: %.2f\n',sum(outlierIndices)/n);
 
+% to be used for ranged minimization when blind
+shouldMinimizeBlind = 1;
+f = @(z) abs( (percentOutliers/(1-percentOutliers))*outlierDistribution.cdf(-abs(z))/noiseDistribution.cdf(-abs(z)) - 200);
+z_crossover = abs(fminsearch(f,sqrt(noiseDistribution.variance)));
+
 tq = linspace(min(t_obs),max(t_obs),10*length(t_obs));
 % [D,tD] = TensionSpline.FiniteDifferenceMatrixNoBoundary(2,data.t(indices),2);
 % spline_clean = TensionSpline(data.t(indices),data.x(indices),noiseDistribution, 'S', S, 'lambda',0);
@@ -101,8 +106,14 @@ compute_ms_error = @(spline) (mean(mean(  (data.x - spline(data.t)).^2,2 ),1));
 %
 % Toss out the points that are outliers, and perform the best fit.
 
-spline_optimal = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-spline_optimal.minimizeMeanSquareError(data.t,data.x);
+spline_optimal = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',0/10000);
+if shouldMinimizeBlind == 1
+    spline_optimal.minimizeExpectedMeanSquareError();
+    %     spline_optimal.minimize( @(spline) spline.expectedMeanSquareErrorInterquartile() );
+    %     spline_optimal.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-z_crossover,z_crossover) );
+else
+    spline_optimal.minimizeMeanSquareError(data.t,data.x);
+end
 
 baseline_optimal_mse = compute_ms_error(spline_optimal);
 fprintf('optimal mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', baseline_optimal_mse, std(spline_optimal.uniqueValuesAtHighestDerivative),spline_optimal.lambda );
@@ -170,7 +181,8 @@ lambda_full = spline_robust.lambda;
 fprintf('(alpha,sqrt(var))=(%.2f,%.1f m)\n',empiricalAlpha,sqrt(empiricalOutlierDistribution.variance));
 newAddedDistribution = AddedDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution);
 
-outlierOddsArray = 10.^linspace(log10(1),log10(1e7),15)';
+outlierOddsArray = 10.^linspace(log10(10),log10(1e8),15)';
+% outlierOddsArray = cat(1,outlierOddsArray,1e14);
 z_mse = zeros(size(outlierOddsArray));
 mse = zeros(size(outlierOddsArray));
 lambdas = zeros(size(outlierOddsArray));
@@ -180,18 +192,37 @@ for iOdds = 1:length(outlierOddsArray)
     z_mse(iOdds) = fminsearch(f,sqrt(noiseDistribution.variance));
     
     spline_robust.distribution = newAddedDistribution;
+    spline_robust.outlierDistribution = empiricalOutlierDistribution;
+    spline_robust.alpha = empiricalAlpha;
     
-    noiseIndices = abs(epsilon_full) <= z_mse(index);
+    noiseIndices = abs(epsilon_full) <= z_mse(iOdds);
+    spline_robust.sigma = noiseIndices .* sqrt(noiseDistribution.variance) + (~noiseIndices) .* sqrt(empiricalOutlierDistribution.variance);
     spline_robust.distribution.w = @(z) noiseIndices .* noiseDistribution.w(z) + (~noiseIndices) .* empiricalOutlierDistribution.w(z);
     spline_robust.lambda = lambda_full;
-    spline_robust.minimizeMeanSquareError(data.t,data.x);
+
+    if shouldMinimizeBlind == 1
+        spline_robust.minimizeExpectedMeanSquareError();
+%         spline_optimal.minimize( @(spline) spline.expectedMeanSquareErrorInterquartile() );
+%         spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-z_crossover,z_crossover) );
+    else
+        spline_robust.minimizeMeanSquareError(data.t,data.x);
+    end
+    
     lambdas(iOdds) = spline_robust.lambda;
     mse(iOdds) = compute_ms_error(spline_robust);
 end
 
 figure
+subplot(1,2,1)
 plot(z_mse,mse), hold on
 plot(z_mse,baseline_optimal_mse*ones(size(z_mse)));
+xlog
+ylim([0.8*min(min(mse),baseline_optimal_mse) 2*baseline_optimal_mse])
+subplot(1,2,2)
+plot(outlierOddsArray,mse), hold on
+plot(outlierOddsArray,baseline_optimal_mse*ones(size(z_mse)));
+xlog
+ylim([0.8*min(min(mse),baseline_optimal_mse) 2*baseline_optimal_mse])
 
 [minMSE,index] = min(mse,[],'omitnan');
 
@@ -200,9 +231,19 @@ fprintf('z_opt: %.1f, odds %.2g\n',z_mse(index),outlierOddsArray(index));
 
 noiseIndices = abs(epsilon_full) <= z_mse(index);
 spline_robust.distribution = newAddedDistribution;
+spline_robust.outlierDistribution = empiricalOutlierDistribution;
+spline_robust.alpha = empiricalAlpha;
+spline_robust.sigma = noiseIndices .* sqrt(noiseDistribution.variance) + (~noiseIndices) .* sqrt(empiricalOutlierDistribution.variance);
 spline_robust.distribution.w = @(z) noiseIndices .* noiseDistribution.w(z) + (~noiseIndices) .* empiricalOutlierDistribution.w(z);
 spline_robust.lambda = lambda_full;
-spline_robust.minimizeMeanSquareError(data.t,data.x);
+
+if shouldMinimizeBlind == 1
+    spline_robust.minimizeExpectedMeanSquareError();
+%     spline_optimal.minimize( @(spline) spline.expectedMeanSquareErrorInterquartile() );
+%     spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-z_crossover,z_crossover) );
+else
+    spline_robust.minimizeMeanSquareError(data.t,data.x);
+end
 
 fprintf('robust mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_robust), std(spline_robust.uniqueValuesAtHighestDerivative),spline_robust.lambda );
 falseNegativeOutliers = setdiff(trueOutliers,spline_robust.indicesOfOutliers);

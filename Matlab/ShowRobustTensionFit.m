@@ -76,8 +76,9 @@ plot(tq,spline_x(tq))
 plot(tq,spline_7x(tq))
 plot(tq,spline_x2(tq),'k','LineWidth', 2)
 
-z_crossover = spline_x2.rebuildOutlierDistributionAndAdjustWeightings(1e3);
-spline_x2.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-abs(z_crossover),z_crossover) );
+z_crossover = spline_x2.rebuildOutlierDistributionAndAdjustWeightings(1e6);
+spline_x2.minimizeExpectedMeanSquareError();
+% spline_x2.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-abs(z_crossover),z_crossover) );
 
 plot(tq,spline_x2(tq),'k','LineWidth', 1)
 
