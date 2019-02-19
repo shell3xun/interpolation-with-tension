@@ -113,3 +113,8 @@ subplot(sp2)
 scatter(t_data(spline_y.indicesOfOutliers),y_data(spline_y.indicesOfOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
 scatter(t_data(spline_y.indicesOfOutliers),y_data(spline_y.indicesOfOutliers),(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 plot(tq,spline_y(tq))
+
+
+[fn,sn] = powspec(tq(2)-tq(1),diff(spline_x2(tq)')/(tq(2)-tq(1)));
+figure
+plot(fn,sn), xlog, ylog

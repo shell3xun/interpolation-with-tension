@@ -7,7 +7,7 @@ percentOutliers = 0.25;
 outlierFactor = 50;
 
 slopes = [-2; -3; -4];
-slope = -3;
+slopes = -4;
 totalSlopes = length(slopes);
 
 S = 2;
@@ -15,7 +15,7 @@ T = S;
 K = S+1;
 
 result_stride = 2*[1;4;16;64];
-result_stride = 200;
+result_stride = 150;
 totalStrides = length(result_stride);
 
 % matern signal parameters
@@ -104,7 +104,8 @@ compute_ms_error = @(spline) (mean(mean(  (data.x - spline(data.t)).^2,2 ),1));
 spline_optimal = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
 spline_optimal.minimizeMeanSquareError(data.t,data.x);
 
-fprintf('optimal mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_optimal), std(spline_optimal.uniqueValuesAtHighestDerivative),spline_optimal.lambda );
+baseline_optimal_mse = compute_ms_error(spline_optimal);
+fprintf('optimal mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', baseline_optimal_mse, std(spline_optimal.uniqueValuesAtHighestDerivative),spline_optimal.lambda );
 falseNegativeOutliers = setdiff(trueOutliers,spline_optimal.indicesOfOutliers);
 falsePositiveOutliers = setdiff(spline_optimal.indicesOfOutliers,trueOutliers);
 fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
@@ -160,19 +161,68 @@ fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),len
 
 RobustTensionSpline.estimateOutlierDistributionFromKnownNoise(epsilon,noiseDistribution);
 
-alpha = 0.5;
-spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-% spline_robust.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
-% spline_robust.setToFullTensionWithIteratedIQSV();
+spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',0/10000);
 spline_robust.setToFullTensionWithIteratedIQAD();
-lambda_full = spline_robust.lambda
+epsilon_full = spline_robust.epsilon;
+lambda_full = spline_robust.lambda;
+
 [empiricalOutlierDistribution,empiricalAlpha] = spline_robust.estimateOutlierDistribution();
 fprintf('(alpha,sqrt(var))=(%.2f,%.1f m)\n',empiricalAlpha,sqrt(empiricalOutlierDistribution.variance));
 newAddedDistribution = AddedDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution);
 
-% spline_robust.minimize(@(spline) trueAddedDistribution.andersonDarlingError(spline.epsilon))
-% [empiricalOutlierDistribution,empiricalAlpha] = spline_robust.estimateOutlierDistribution();
-% fprintf('(alpha,sqrt(var))=(%.2f,%.1f m)\n',empiricalAlpha,sqrt(empiricalOutlierDistribution.variance));
+outlierOddsArray = 10.^linspace(log10(1),log10(1e7),15)';
+z_mse = zeros(size(outlierOddsArray));
+mse = zeros(size(outlierOddsArray));
+lambdas = zeros(size(outlierOddsArray));
+for iOdds = 1:length(outlierOddsArray)
+    outlierOdds = outlierOddsArray(iOdds);
+    f = @(z) abs( (empiricalAlpha/(1-empiricalAlpha))*empiricalOutlierDistribution.cdf(-abs(z))/noiseDistribution.cdf(-abs(z)) - outlierOdds);
+    z_mse(iOdds) = fminsearch(f,sqrt(noiseDistribution.variance));
+    
+    spline_robust.distribution = newAddedDistribution;
+    
+    noiseIndices = abs(epsilon_full) <= z_mse(index);
+    spline_robust.distribution.w = @(z) noiseIndices .* noiseDistribution.w(z) + (~noiseIndices) .* empiricalOutlierDistribution.w(z);
+    spline_robust.lambda = lambda_full;
+    spline_robust.minimizeMeanSquareError(data.t,data.x);
+    lambdas(iOdds) = spline_robust.lambda;
+    mse(iOdds) = compute_ms_error(spline_robust);
+end
+
+figure
+plot(z_mse,mse), hold on
+plot(z_mse,baseline_optimal_mse*ones(size(z_mse)));
+
+[minMSE,index] = min(mse,[],'omitnan');
+
+fprintf('optimal mse: %.2f m\n', minMSE );
+fprintf('z_opt: %.1f, odds %.2g\n',z_mse(index),outlierOddsArray(index));
+
+noiseIndices = abs(epsilon_full) <= z_mse(index);
+spline_robust.distribution = newAddedDistribution;
+spline_robust.distribution.w = @(z) noiseIndices .* noiseDistribution.w(z) + (~noiseIndices) .* empiricalOutlierDistribution.w(z);
+spline_robust.lambda = lambda_full;
+spline_robust.minimizeMeanSquareError(data.t,data.x);
+
+fprintf('robust mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_robust), std(spline_robust.uniqueValuesAtHighestDerivative),spline_robust.lambda );
+falseNegativeOutliers = setdiff(trueOutliers,spline_robust.indicesOfOutliers);
+falsePositiveOutliers = setdiff(spline_robust.indicesOfOutliers,trueOutliers);
+fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Figure
+
+figure
+scatter(t_obs(spline_robust.indicesOfOutliers),x_obs(spline_robust.indicesOfOutliers),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
+scatter(t_obs(trueOutliers),x_obs(trueOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
+scatter(t_obs,x_obs,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
+plot(tq,spline_optimal(tq),'k')
+plot(tq,spline_robust(tq),'b')
+
+return
+
+
 
 zmax = max(abs(spline_robust.epsilonAtIndices(crossoverGoodIndices)));
 zmin = min(abs(spline_robust.epsilonAtIndices(crossoverOutliers)));
@@ -198,16 +248,7 @@ if isempty(z_mse)
 end
 mse = zeros(size(z_mse));
 
-for iZ = 1:length(z_mse)
-    z_crossover = z_mse(iZ);
-    spline_robust.distribution = newAddedDistribution;
-    epsilonSpline = spline_robust.epsilon;
-    noiseIndices = epsilonSpline > -z_crossover & epsilonSpline < z_crossover;
-    spline_robust.distribution.w = @(z) noiseIndices .* noiseDistribution.w(z) + (~noiseIndices) .* outlierDistribution.w(z);
-    spline_robust.lambda = lambda_full;
-    spline_robust.minimizeMeanSquareError(data.t,data.x);
-    mse(iZ) = compute_ms_error(spline_robust);
-end
+
 
 figure
 subplot(1,2,1)
@@ -330,16 +371,7 @@ fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),len
 
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% Figure
 
-figure
-scatter(t_obs(spline_robust.indicesOfOutliers),x_obs(spline_robust.indicesOfOutliers),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
-scatter(t_obs(trueOutliers),x_obs(trueOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
-scatter(t_obs,x_obs,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
-plot(tq,spline_optimal(tq),'k')
-plot(tq,spline_robust(tq),'b')
 % plot(tq,spline_robust2x(tq),'r')
 % plot(tq,spline_robust_old(tq),'g')
 
