@@ -25,12 +25,12 @@ else
     totalSlopes = length(slopes);
 
     strides = [5;20;80;200];
-    strides = 200;
+%     strides = 200;
     totalStrides = length(strides);
-    totalEnsembles = 11; % best to choose an odd number for median
+    totalEnsembles = 51; % best to choose an odd number for median
     
-    outlierRatios = [0; 0.025; 0.15; 0.25];
-    outlierRatios = 0.25;
+    outlierRatios = [0.05; 0.15; 0.25];
+%     outlierRatios = 0.0;
     totalOutlierRatios = length(outlierRatios);
     
     % spline fit parameters
@@ -128,6 +128,11 @@ else
                     x_obs = data.x + epsilon;
                     t_obs = data.t;
                     
+                    beta = 1/400;
+                    zmin = noiseDistribution.locationOfCDFPercentile(beta/2);
+                    zmax = noiseDistribution.locationOfCDFPercentile(1-beta/2);
+                    expectedVariance = noiseDistribution.varianceInRange(zmin,zmax);
+                    
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                     % Unblinded best fit with standard tension spline
                     
@@ -136,6 +141,7 @@ else
                     % Optimal MSE solution, given the default settings
                     spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.minimizeExpectedMeanSquareError();
+%                     spline_robust.minimize(@(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax,expectedVariance));
                     optimal = LogStatisticsFromSplineForOutlierDetectionTable(optimal,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     %%%%%%%%%%%%%%%%%%
@@ -245,7 +251,7 @@ else
         end
     end
     
-%     save(filename, vars{:});
+    save(filename, vars{:});
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

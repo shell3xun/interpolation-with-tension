@@ -65,6 +65,8 @@ spline_x2 = RobustTensionSpline(t_data,x_data,noiseDistribution, 'lambda',spline
 spline_x2.setToFullTensionWithIteratedIQAD();
 spline_x2.lambda
 
+return
+
 %%%%%%%%%%%%%%%%%%%%%
 % Grab drifter 7 and plot that
 spline_7x = TensionSpline(drifters.t{7},drifters.x{7},noiseDistribution);
@@ -76,9 +78,15 @@ plot(tq,spline_x(tq))
 plot(tq,spline_7x(tq))
 plot(tq,spline_x2(tq),'k','LineWidth', 2)
 
+% [empiricalOutlierDistribution,empiricalAlpha] = spline_robust.estimateOutlierDistribution();
+% noiseOdds = 3;
+% f = @(z) abs( (1-empiricalAlpha)*noiseDistribution.pdf(z) - noiseOdds*empiricalAlpha*empiricalOutlierDistribution.pdf(z) );
+% zoutlier = abs(fminsearch(f,sqrt(noiseDistribution.variance)));
+% spline_x2.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier) );
+                    
 z_crossover = spline_x2.rebuildOutlierDistributionAndAdjustWeightings(1e6);
 spline_x2.minimizeExpectedMeanSquareError();
-% spline_x2.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-abs(z_crossover),z_crossover) );
+spline_x2.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-abs(z_crossover),z_crossover) );
 
 plot(tq,spline_x2(tq),'k','LineWidth', 1)
 
