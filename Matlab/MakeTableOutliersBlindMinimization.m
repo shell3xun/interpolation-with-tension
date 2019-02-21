@@ -63,7 +63,7 @@ else
     total_outliers = nothing; vars{end+1} = 'total_outliers';
     
     optimal = nothing_struct; vars{end+1} = 'optimal';
-    robust_beta2_optimal = nothing_struct; vars{end+1} = 'robust_beta50_optimal';
+    robust_beta2_optimal = nothing_struct; vars{end+1} = 'robust_beta2_optimal';
     robust_beta50_optimal = nothing_struct; vars{end+1} = 'robust_beta50_optimal';
     robust_beta100_optimal = nothing_struct; vars{end+1} = 'robust_beta100_optimal';
     robust_beta200_optimal = nothing_struct; vars{end+1} = 'robust_beta200_optimal';
@@ -276,7 +276,7 @@ minpct = @(values) 100*values(ceil( ((1-pct_range)/2)*sum(~isnan(values))));
 maxpct = @(values) 100*values(floor( ((1+pct_range)/2)*sum(~isnan(values))));
 
 optimal.dmse = dmse(optimal.mse);
-robust_beta2_optimal.dmse = dmse(robust_beta2_optimal.mse);
+% robust_beta2_optimal.dmse = dmse(robust_beta2_optimal.mse);
 robust_beta50_optimal.dmse = dmse(robust_beta50_optimal.mse);
 robust_beta100_optimal.dmse = dmse(robust_beta100_optimal.mse);
 robust_beta200_optimal.dmse = dmse(robust_beta200_optimal.mse);
@@ -296,7 +296,7 @@ printcol = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %#.3g/%#.3g m$^2$ (%
 print_dmse_all = @(stats) fprintf('& %.2f (%.2f) (%.2f-%.2f)\n',100*mean(stats.dmse(:),'omitnan'),100*median(stats.dmse(:),'omitnan'),minpct(sort(stats.dmse(:))), maxpct(sort(stats.dmse(:))) );
 print_dmse_outlier = @(stats,iOutlierRatio) fprintf('& %.2f (%.2f) (%.2f-%.2f)\n',mean(reshape(stats.dmse(iOutlierRatio,:,:,:),[],1),'omitnan'),median(reshape(stats.dmse(iOutlierRatio,:,:,:),[],1),'omitnan'),minpct(sort(stats.dlambda(:)))/100, maxpct(sort(stats.dlambda(:)))/100 );
 
-print_dmse_all(robust_beta2_optimal);
+% print_dmse_all(robust_beta2_optimal);
 print_dmse_all(robust_beta50_optimal);
 print_dmse_all(robust_beta100_optimal);
 print_dmse_all(robust_beta200_optimal);
@@ -314,7 +314,7 @@ print_dmse_all(robust_weighted);
 % Analyze the lambda---negative values indicate undertensioning, positive
 % values indicate over tensioning
 dlambda = @(stats) log10(stats.lambda ./ optimal.lambda);
-robust_beta2_optimal.dlambda = dlambda(robust_beta2_optimal);
+% robust_beta2_optimal.dlambda = dlambda(robust_beta2_optimal);
 robust_beta50_optimal.dlambda = dlambda(robust_beta50_optimal);
 robust_beta100_optimal.dlambda = dlambda(robust_beta100_optimal);
 robust_beta200_optimal.dlambda = dlambda(robust_beta200_optimal);
@@ -335,7 +335,7 @@ print_dlambda = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.2f (%.2f) (%.
 print_dlambda_all = @(stats) fprintf('& %.2f (%.2f) (%.2f-%.2f)\n',mean(stats.dlambda(:),'omitnan'),median(stats.dlambda(:),'omitnan'),minpct(sort(stats.dlambda(:)))/100, maxpct(sort(stats.dlambda(:)))/100 );
 print_dlambda_outlier = @(stats,iOutlierRatio) fprintf('& %.2f (%.2f) (%.2f-%.2f)\n',mean(reshape(stats.dlambda(iOutlierRatio,:,:,:),[],1),'omitnan'),median(reshape(stats.dlambda(iOutlierRatio,:,:,:),[],1),'omitnan'),minpct(sort(stats.dlambda(:)))/100, maxpct(sort(stats.dlambda(:)))/100 );
 
-print_dlambda_all(robust_beta2_optimal);
+% print_dlambda_all(robust_beta2_optimal);
 print_dlambda_all(robust_beta50_optimal);
 print_dlambda_all(robust_beta100_optimal);
 print_dlambda_all(robust_beta200_optimal);
@@ -361,18 +361,24 @@ print_dlambda_all(robust_weighted);
 % all_all_maxpct = @(a,b,c,d,e,f) [maxpct(sort(a.dmse(:))),maxpct(sort(b.dmse(:))),maxpct(sort(c.dmse(:))),maxpct(sort(d.dmse(:))),maxpct(sort(e.dmse(:))),maxpct(sort(f.dmse(:)))];
 % all_all_maxpct(robust_beta50_optimal, robust_beta100_optimal, robust_beta200_optimal, robust_beta400_optimal, robust_beta800_optimal,robust_beta800_optimal)
 
+print_something_outlier = @(stat,iOutlierRatio) print_dlambda_outlier(stat,iOutlierRatio);
+
 fprintf('\n\n');
 fprintf('\\begin{tabular}{r | lllll} stride & optimal mse ($n_{eff}$) & blind optimal & robust & false pos/neg & robust 2nd & false pos/neg \\\\ \\hline \\hline \n');
 for iOutlierRatio = 1:totalOutlierRatios
     
-    print_dmse_outlier(robust_noiseOdds1over10,iOutlierRatio);
-    print_dmse_outlier(robust_noiseOdds1over3,iOutlierRatio);
-    print_dmse_outlier(robust_noiseOdds1,iOutlierRatio);
-    print_dmse_outlier(robust_noiseOdds2,iOutlierRatio);
-    print_dmse_outlier(robust_noiseOdds3,iOutlierRatio);
-    print_dmse_outlier(robust_noiseOdds4,iOutlierRatio);
-    print_dmse_outlier(robust_noiseOdds10,iOutlierRatio);
-    print_dmse_outlier(robust_weighted,iOutlierRatio);
+    print_something_outlier(robust_beta50_optimal,iOutlierRatio);
+    print_something_outlier(robust_beta200_optimal,iOutlierRatio);
+    print_something_outlier(robust_beta800_optimal,iOutlierRatio);
+    
+    print_something_outlier(robust_noiseOdds1over10,iOutlierRatio);
+    print_something_outlier(robust_noiseOdds1over3,iOutlierRatio);
+    print_something_outlier(robust_noiseOdds1,iOutlierRatio);
+    print_something_outlier(robust_noiseOdds2,iOutlierRatio);
+    print_something_outlier(robust_noiseOdds3,iOutlierRatio);
+    print_something_outlier(robust_noiseOdds4,iOutlierRatio);
+    print_something_outlier(robust_noiseOdds10,iOutlierRatio);
+    print_something_outlier(robust_weighted,iOutlierRatio);
     
     fprintf(' \\\\ \n');
     

@@ -6,6 +6,22 @@ outlierDistribution = StudentTDistribution(outlierFactor*sigma,3.0);
 
 addedDistribution = AddedDistribution(percentOutliers,outlierDistribution,noiseDistribution);
 
+
+% f_cdf = @(z) (percentOutliers/(1-percentOutliers))*outlierDistribution.cdf(-abs(z))/noiseDistribution.cdf(-abs(z));
+% f_pdf = @(z) (percentOutliers/(1-percentOutliers))*outlierDistribution.pdf(-abs(z))/noiseDistribution.pdf(-abs(z));
+% z = 10.^linspace(log10(1),log10(1e5),100)';
+% cdf_ratio = zeros(size(z));
+% pdf_ratio = zeros(size(z));
+% for iZ=1:length(z)
+%     cdf_ratio(iZ) = f_cdf(z(iZ));
+%     pdf_ratio(iZ) = f_pdf(z(iZ));
+% end
+% 
+% figure
+% plot(z,cdf_ratio),hold on, plot(z,pdf_ratio),ylog,xlog
+% 
+% return
+
 alphaValues = 10.^(linspace(log10(1e-3),log10(.5),100)');
 mse = zeros(size(alphaValues));
 m = 2/3;
