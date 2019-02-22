@@ -65,8 +65,6 @@ spline_x2 = RobustTensionSpline(t_data,x_data,noiseDistribution, 'lambda',spline
 spline_x2.setToFullTensionWithIteratedIQAD();
 spline_x2.lambda
 
-return
-
 %%%%%%%%%%%%%%%%%%%%%
 % Grab drifter 7 and plot that
 spline_7x = TensionSpline(drifters.t{7},drifters.x{7},noiseDistribution);

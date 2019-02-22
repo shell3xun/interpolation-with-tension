@@ -32,7 +32,7 @@ else
     strides = [5;20;80;200];
     strides = 200;
     totalStrides = length(strides);
-    totalEnsembles = 31; % best to choose an odd number for median
+    totalEnsembles = 11; % best to choose an odd number for median
     
     outlierRatios = [0.0 0.05 0.15 0.25];
     outlierRatios = 0.15;
@@ -155,7 +155,7 @@ else
                     % Un-blind best fit with rejection
                     
                     spline.lambda = lambda_full;
-                    spline.rebuildOutlierDistributionAndAdjustWeightings(3e6);
+                    spline.rebuildOutlierDistributionAndAdjustWeightings(1e5);
                     
                     spline.minimizeMeanSquareError(data.t,data.x);
                     optimal = LogStatisticsFromSplineForOutlierTable(optimal,linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);    
@@ -193,7 +193,7 @@ end
 
 % Analyze the mse
 
-dmse = @(mse) mse./optimal.mse-1;
+dmse = @(mse) mse./robust_noiseOdds1_no_rejects.mse-1;
 pct_range = 0.6827; % Chosen to match 1-sigma for a Gaussian (these are not Gaussian).
 minpct = @(values) 100*values(ceil( ((1-pct_range)/2)*length(values)));
 maxpct = @(values) 100*values(floor( ((1+pct_range)/2)*length(values)));
