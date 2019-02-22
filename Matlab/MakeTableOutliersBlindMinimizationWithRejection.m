@@ -30,12 +30,12 @@ else
     totalSlopes = length(slopes);
 
     strides = [5;20;80;200];
-    strides = 200;
+%     strides = 200;
     totalStrides = length(strides);
-    totalEnsembles = 11; % best to choose an odd number for median
+    totalEnsembles = 51; % best to choose an odd number for median
     
-    outlierRatios = [0.0 0.05 0.15 0.25];
-    outlierRatios = 0.15;
+    outlierRatios = [0.05 0.15 0.25];
+%     outlierRatios = 0.15;
     totalOutlierRatios = length(outlierRatios);
     
     % spline fit parameters
@@ -43,7 +43,8 @@ else
     T = S;
     K = S+1;
     
-    vars = {'S', 'T', 'slopes', 'strides', 'outlierRatios', 'totalEnsembles'};
+    
+    varnames = {'S', 'T', 'slopes', 'strides', 'outlierRatios', 'totalEnsembles'};
     
     % matern signal parameters
     sigma_u = 0.20;
@@ -61,13 +62,22 @@ else
     nothing = nan(totalOutlierRatios, totalStrides, totalSlopes, totalEnsembles);
     nothing_struct = struct('mse',nothing,'neff_se',nothing,'lambda',nothing,'nonOutlierEffectiveSampleSize',nothing,'nonOutlierSampleVariance',nothing,'false_negatives', nothing, 'false_positives', nothing,'rejects',nothing);
     
-    total_outliers = nothing; vars{end+1} = 'total_outliers';
-    
-    optimal = nothing_struct; vars{end+1} = 'optimal';
-    robust_noiseOdds1_no_rejects = nothing_struct; vars{end+1} = 'robust_noiseOdds1_no_rejects';
-    robust_noiseOdds1over3 = nothing_struct; vars{end+1} = 'robust_noiseOdds1over3';
-    robust_noiseOdds1 = nothing_struct; vars{end+1} = 'robust_noiseOdds1';
-    robust_noiseOdds3 = nothing_struct; vars{end+1} = 'robust_noiseOdds3';
+    total_outliers = nothing; varnames{end+1} = 'total_outliers';
+ 
+    stat_structs = cell(1,1);
+    stat_structs{1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1_rejection_ratio_none';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_3_rejection_ratio_none';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_varCross_rejection_ratio_none';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1_rejection_ratio_1e4';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_3_rejection_ratio_1e4';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_varCross_rejection_ratio_1e4';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1_rejection_ratio_1e5';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_3_rejection_ratio_1e5';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_varCross_rejection_ratio_1e5';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1_rejection_ratio_1e6';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_3_rejection_ratio_1e6';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_varCross_rejection_ratio_1e6';
+    varnames{end+1} = 'stat_structs';
     
     for iOutlierRatio = 1:totalOutlierRatios
         percentOutliers = outlierRatios(iOutlierRatio);
@@ -133,54 +143,99 @@ else
                     spline.setToFullTensionWithIteratedIQAD();
                     lambda_full = spline.lambda;
                     epsilon_full = spline.epsilon;
-                    
-                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    % Blind best fit without rejection
-                    
-                    noiseOdds = 1;
                     [empiricalOutlierDistribution,empiricalAlpha] = spline.estimateOutlierDistribution();
-                    f = @(z) abs((1-empiricalAlpha)*noiseDistribution.pdf(z)./(empiricalAlpha*empiricalOutlierDistribution.pdf(z))-noiseOdds);
-                    zoutlier = abs(fminsearch(f,sqrt(spline.noiseDistribution.variance)));
-                    spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier) );
-                    robust_noiseOdds1_no_rejects = LogStatisticsFromSplineForOutlierTable(robust_noiseOdds1_no_rejects,linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    
-                    addedDistribution = AddedDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution);
-                    weakAddedDistribution = AddedDistribution(empiricalAlpha/1.5,StudentTDistribution(sqrt((addedDistribution.variance-(1-empiricalAlpha/1.5)*noiseDistribution.variance)/(3*empiricalAlpha/2)),3.0),noiseDistribution);
-                    strongAddedDistribution = AddedDistribution(1.5*empiricalAlpha,StudentTDistribution(sqrt((addedDistribution.variance-(1-empiricalAlpha*1.5)*noiseDistribution.variance)/(3*empiricalAlpha*1.5)),3.0),noiseDistribution);  
-                    f = @(z) abs(weakAddedDistribution.varianceInRange(0,z)-strongAddedDistribution.varianceInRange(0,z));
-                    zvariance_crossover = fminsearch(f,zoutlier);
                     
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    % Un-blind best fit with rejection
+                    % Blind fits without rejection
+                    
+                    minimizationPDFRatio = 1;
+                    [zoutlier,expectedVariance] = RobustTensionSpline.locationOfNoiseToOutlierPDFRatio(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,minimizationPDFRatio);
+                    minimizeWithRatio1 = @(spline) spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
+                    
+                    minimizationPDFRatio = 3;
+                    [zoutlier,expectedVariance] = RobustTensionSpline.locationOfNoiseToOutlierPDFRatio(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,minimizationPDFRatio);
+                    minimizeWithRatio3 = @(spline) spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
+                    
+                    [zoutlier,expectedVariance] = RobustTensionSpline.varianceCrossOverFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution);
+                    minimizeWithVarianceCrossover = @(spline) spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
                     
                     spline.lambda = lambda_full;
-                    spline.rebuildOutlierDistributionAndAdjustWeightings(1e5);
+                    minimizeWithRatio1(spline);
+                    iStruct = 1;
+                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
-                    spline.minimizeMeanSquareError(data.t,data.x);
-                    optimal = LogStatisticsFromSplineForOutlierTable(optimal,linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);    
+                    spline.lambda = lambda_full;
+                    minimizeWithRatio3(spline);
+                    iStruct = iStruct+1;
+                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    spline.lambda = lambda_full;
+                    iStruct = iStruct+1;
+                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    % Blind best fit by minimizing the expected
-                    % variance of the noise within different cutoffs based
-                    % on the empirical fit
+                    % Un-blind best fit with rejection ratio 1e4
                     
-
+                    rejectionPDFRatio = 1e4;
+                    spline.sigma = RobustTensionSpline.sigmaFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,epsilon_full,rejectionPDFRatio);
                     
-                    noiseOdds = 1;
-                    f = @(z) abs((1-spline.alpha)*spline.noiseDistribution.pdf(z)./(spline.alpha*spline.outlierDistribution.pdf(z))-noiseOdds);
-                    zoutlier = abs(fminsearch(f,sqrt(spline.noiseDistribution.variance)));
-                    spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier) );
+                    spline.lambda = lambda_full;
+                    minimizeWithRatio1(spline);
+                    iStruct = iStruct+1;
+                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
-                    lambda_opt = spline.lambda;
-                    robust_noiseOdds1 = LogStatisticsFromSplineForOutlierTable(robust_noiseOdds1,linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    spline.lambda = lambda_full;
+                    minimizeWithRatio3(spline);
+                    iStruct = iStruct+1;
+                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
-                    spline.lambda = lambda_opt*10^(.2);
-                    robust_noiseOdds1over3 = LogStatisticsFromSplineForOutlierTable(robust_noiseOdds1over3,linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    spline.lambda = lambda_full;
+                    minimizeWithVarianceCrossover(spline);
+                    iStruct = iStruct+1;
+                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
-                    spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zvariance_crossover,zvariance_crossover) );
-                    robust_noiseOdds3 = LogStatisticsFromSplineForOutlierTable(robust_noiseOdds3,linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
-
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    % Un-blind best fit with rejection ratio 1e5
+                    
+                    rejectionPDFRatio = 1e5;
+                    spline.sigma = RobustTensionSpline.sigmaFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,epsilon_full,rejectionPDFRatio);
+                    
+                    spline.lambda = lambda_full;
+                    minimizeWithRatio1(spline);
+                    iStruct = iStruct+1;
+                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    spline.lambda = lambda_full;
+                    minimizeWithRatio3(spline);
+                    iStruct = iStruct+1;
+                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    spline.lambda = lambda_full;
+                    minimizeWithVarianceCrossover(spline);
+                    iStruct = iStruct+1;
+                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    % Un-blind best fit with rejection ratio 1e6
+                    
+                    rejectionPDFRatio = 1e6;
+                    spline.sigma = RobustTensionSpline.sigmaFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,epsilon_full,rejectionPDFRatio);
+                    
+                    spline.lambda = lambda_full;
+                    minimizeWithRatio1(spline);
+                    iStruct = iStruct+1;
+                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    spline.lambda = lambda_full;
+                    minimizeWithRatio3(spline);
+                    iStruct = iStruct+1;
+                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+                    spline.lambda = lambda_full;
+                    minimizeWithVarianceCrossover(spline);
+                    iStruct = iStruct+1;
+                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
                     
                 end
                 fprintf('\n');
@@ -188,47 +243,47 @@ else
         end
     end
     
-    save(filename, vars{:});
+    save(filename, varnames{:});
 end
 
 % Analyze the mse
 
-dmse = @(mse) mse./robust_noiseOdds1_no_rejects.mse-1;
+dmse = @(stats) log10(stats.mse./stat_structs{1}.mse);
 pct_range = 0.6827; % Chosen to match 1-sigma for a Gaussian (these are not Gaussian).
-minpct = @(values) 100*values(ceil( ((1-pct_range)/2)*length(values)));
-maxpct = @(values) 100*values(floor( ((1+pct_range)/2)*length(values)));
+minpct = @(values) 100*(10^values(ceil( ((1-pct_range)/2)*length(values)))-1);
+maxpct = @(values) 100*(10^values(floor( ((1+pct_range)/2)*length(values)))-1);
 
-optimal.dmse = dmse(optimal.mse);
-robust_noiseOdds1_no_rejects.dmse = dmse(robust_noiseOdds1_no_rejects.mse);
-robust_noiseOdds1over3.dmse = dmse(robust_noiseOdds1over3.mse);
-robust_noiseOdds1.dmse = dmse(robust_noiseOdds1.mse);
-robust_noiseOdds3.dmse = dmse(robust_noiseOdds3.mse);
+for i=1:length(stat_structs)
+    stat_structs{i}.dmse = dmse(stat_structs{i});
+end
+
 
 print_pct = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.1f (%.1f-%.1f) ',100*mean(stats.dmse(iOutlierRatio,iStride,iSlope,:)),minpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))), maxpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))) );
 printcol = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %#.3g/%#.3g m$^2$ (%#.3g) (%d/%d) ', median(stats.mse(iOutlierRatio,iStride,iSlope,:)),mean(stats.mse(iOutlierRatio,iStride,iSlope,:)), median(stats.neff_se(iOutlierRatio,iStride,iSlope,:)), median(stats.false_positives(iOutlierRatio,iStride,iSlope,:)), median(stats.false_negatives(iOutlierRatio,iStride,iSlope,:)) );
-print_dmse_all = @(stats) fprintf('& %.2f (%.2f) (%.2f-%.2f)\n',100*mean(stats.dmse(:)),100*median(stats.dmse(:)),minpct(sort(stats.dmse(:))), maxpct(sort(stats.dmse(:))) );
+print_dmse_all = @(stats) fprintf('%s: & %.2f (%.2f) (%.2f-%.2f)\n',stats.name,100*(10^mean(stats.dmse(:))-1),100*(10^median(stats.dmse(:))-1),minpct(sort(stats.dmse(:))), maxpct(sort(stats.dmse(:))) );
 
 fprintf('---dmse---\n');
-print_dmse_all(robust_noiseOdds1_no_rejects);
-print_dmse_all(robust_noiseOdds1over3);
-print_dmse_all(robust_noiseOdds1);
-print_dmse_all(robust_noiseOdds3);
+for i=1:length(stat_structs)
+    print_dmse_all( stat_structs{i} );
+end
 
 % Analyze the lambda---negative values indicate undertensioning, positive
 % values indicate over tensioning
-dlambda = @(stats) log10(stats.lambda ./ optimal.lambda);
-robust_noiseOdds1over3.dlambda = dlambda(robust_noiseOdds1over3);
-robust_noiseOdds1.dlambda = dlambda(robust_noiseOdds1);
-robust_noiseOdds3.dlambda = dlambda(robust_noiseOdds3);
+dlambda = @(stats) log10(stats.lambda ./ stat_structs{1}.lambda);
+for i=1:length(stat_structs)
+    stat_structs{i}.dlambda = dlambda(stat_structs{i});
+end
 
 print_dlambda = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.2f (%.2f) (%.2f-%.2f) ',mean(stats.dlambda(iOutlierRatio,iStride,iSlope,:)),median(stats.dlambda(iOutlierRatio,iStride,iSlope,:)),minpct(sort(stats.dlambda(iOutlierRatio,iStride,iSlope,:)))/100, maxpct(sort(stats.dlambda(iOutlierRatio,iStride,iSlope,:)))/100 );
 
 print_dlambda_all = @(stats) fprintf('& %.2f (%.2f) (%.2f-%.2f)\n',mean(stats.dlambda(:)),median(stats.dlambda(:)),minpct(sort(stats.dlambda(:)))/100, maxpct(sort(stats.dlambda(:)))/100 );
 
 fprintf('---dlambda---\n');
-print_dlambda_all(robust_noiseOdds1over3);
-print_dlambda_all(robust_noiseOdds1);
-print_dlambda_all(robust_noiseOdds3);
+for i=1:length(stat_structs)
+    print_dlambda_all( stat_structs{i} );
+end
+
+return
 
 % all_maxpct = @(a,b,c,d,e,f,iOutlierRatio,iStride,iSlope) [maxpct(sort(a.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(b.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(c.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(d.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(e.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(f.dmse(iOutlierRatio,iStride,iSlope,:)))];
 % 

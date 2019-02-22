@@ -63,7 +63,8 @@ extraVarianceFactor = 2.0;
 spline_x2 = RobustTensionSpline(t_data,x_data,noiseDistribution, 'lambda',spline_x.lambda,'alpha',1/10000);
 % spline_x2.setToFullTensionWithIteratedIQSV(2.0);
 spline_x2.setToFullTensionWithIteratedIQAD();
-spline_x2.lambda
+lambda_full = spline_x2.lambda;
+epsilon_full = spline_x2.epsilon;
 
 %%%%%%%%%%%%%%%%%%%%%
 % Grab drifter 7 and plot that
@@ -81,10 +82,20 @@ plot(tq,spline_x2(tq),'k','LineWidth', 2)
 % f = @(z) abs( (1-empiricalAlpha)*noiseDistribution.pdf(z) - noiseOdds*empiricalAlpha*empiricalOutlierDistribution.pdf(z) );
 % zoutlier = abs(fminsearch(f,sqrt(noiseDistribution.variance)));
 % spline_x2.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier) );
-                    
-z_crossover = spline_x2.rebuildOutlierDistributionAndAdjustWeightings(1e6);
-spline_x2.minimizeExpectedMeanSquareError();
-spline_x2.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-abs(z_crossover),z_crossover) );
+
+[empiricalOutlierDistribution,empiricalAlpha] = spline_x2.estimateOutlierDistribution();
+minimizationPDFRatio = 1;
+[zoutlier,expectedVariance] = RobustTensionSpline.locationOfNoiseToOutlierPDFRatio(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,minimizationPDFRatio);
+minimizeWithRatio1 = @(spline) spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
+
+rejectionPDFRatio = 1e6;
+spline_x2.sigma = RobustTensionSpline.sigmaFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,epsilon_full,rejectionPDFRatio);
+minimizeWithRatio1(spline_x2);
+
+% 
+% z_crossover = spline_x2.rebuildOutlierDistributionAndAdjustWeightings(1e6);
+% spline_x2.minimizeExpectedMeanSquareError();
+% spline_x2.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-abs(z_crossover),z_crossover) );
 
 plot(tq,spline_x2(tq),'k','LineWidth', 1)
 

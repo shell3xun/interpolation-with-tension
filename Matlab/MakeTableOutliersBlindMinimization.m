@@ -32,9 +32,10 @@ else
     strides = [5;20;80;200];
 %     strides = 200;
     totalStrides = length(strides);
-    totalEnsembles = 51; % best to choose an odd number for median
+    totalEnsembles = 21; % best to choose an odd number for median
     
     outlierRatios = [0.0 0.05 0.15 0.25];
+    outlierRatios = 0.15;
     totalOutlierRatios = length(outlierRatios);
     
     % spline fit parameters
@@ -76,6 +77,7 @@ else
     robust_noiseOdds3 = nothing_struct; vars{end+1} = 'robust_noiseOdds3';
     robust_noiseOdds4 = nothing_struct; vars{end+1} = 'robust_noiseOdds4';
     robust_noiseOdds10 = nothing_struct; vars{end+1} = 'robust_noiseOdds10';
+    robust_varianceCrossover = nothing_struct; vars{end+1} = 'robust_varianceCrossover';
     robust_weighted = nothing_struct; vars{end+1} = 'robust_weighted';
                     
     for iOutlierRatio = 1:totalOutlierRatios
@@ -190,6 +192,9 @@ else
                     spline_robust.setToFullTensionWithIteratedIQAD();
                     [empiricalOutlierDistribution,empiricalAlpha] = spline_robust.estimateOutlierDistribution();
                     epsilon_full = spline_robust.epsilon;
+                    addedDistribution = AddedDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution);
+                    
+                    expectedVarianceDistribution = addedDistribution;
                     
                     if empiricalAlpha == 0 || isempty(empiricalOutlierDistribution)
                         continue;
@@ -198,45 +203,61 @@ else
                     noiseOdds = 1/10;
                     f = @(z) abs((1-empiricalAlpha)*noiseDistribution.pdf(z)./(empiricalAlpha*empiricalOutlierDistribution.pdf(z))-noiseOdds);
                     zoutlier = abs(fminsearch(f,sqrt(noiseDistribution.variance)));
-                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier) );
+                    expectedVariance = expectedVarianceDistribution.varianceInRange(-zoutlier,zoutlier);
+                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
                     robust_noiseOdds1over10 = LogStatisticsFromSplineForOutlierTable(robust_noiseOdds1over10,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     noiseOdds = 1/3;
                     f = @(z) abs((1-empiricalAlpha)*noiseDistribution.pdf(z)./(empiricalAlpha*empiricalOutlierDistribution.pdf(z))-noiseOdds);
                     zoutlier = abs(fminsearch(f,sqrt(noiseDistribution.variance)));
-                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier) );
+                    expectedVariance = expectedVarianceDistribution.varianceInRange(-zoutlier,zoutlier);
+                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
                     robust_noiseOdds1over3 = LogStatisticsFromSplineForOutlierTable(robust_noiseOdds1over3,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
 
                     noiseOdds = 1;
                     f = @(z) abs((1-empiricalAlpha)*noiseDistribution.pdf(z)./(empiricalAlpha*empiricalOutlierDistribution.pdf(z))-noiseOdds);
                     zoutlier = abs(fminsearch(f,sqrt(noiseDistribution.variance)));
-                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier) );
+                    expectedVariance = expectedVarianceDistribution.varianceInRange(-zoutlier,zoutlier);
+                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
                     robust_noiseOdds1 = LogStatisticsFromSplineForOutlierTable(robust_noiseOdds1,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     noiseOdds = 2;
                     f = @(z) abs((1-empiricalAlpha)*noiseDistribution.pdf(z)./(empiricalAlpha*empiricalOutlierDistribution.pdf(z))-noiseOdds);
                     zoutlier = abs(fminsearch(f,sqrt(noiseDistribution.variance)));
-                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier) );
+                    expectedVariance = expectedVarianceDistribution.varianceInRange(-zoutlier,zoutlier);
+                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
                     robust_noiseOdds2 = LogStatisticsFromSplineForOutlierTable(robust_noiseOdds2,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     noiseOdds = 3;
                     f = @(z) abs((1-empiricalAlpha)*noiseDistribution.pdf(z)./(empiricalAlpha*empiricalOutlierDistribution.pdf(z))-noiseOdds);
                     zoutlier = abs(fminsearch(f,sqrt(noiseDistribution.variance)));
-                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier) );
+                    expectedVariance = expectedVarianceDistribution.varianceInRange(-zoutlier,zoutlier);
+                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
                     robust_noiseOdds3 = LogStatisticsFromSplineForOutlierTable(robust_noiseOdds3,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     noiseOdds = 4;
                     f = @(z) abs((1-empiricalAlpha)*noiseDistribution.pdf(z)./(empiricalAlpha*empiricalOutlierDistribution.pdf(z))-noiseOdds);
                     zoutlier = abs(fminsearch(f,sqrt(noiseDistribution.variance)));
-                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier) );
+                    expectedVariance = expectedVarianceDistribution.varianceInRange(-zoutlier,zoutlier);
+                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
                     robust_noiseOdds4 = LogStatisticsFromSplineForOutlierTable(robust_noiseOdds4,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     noiseOdds = 10;
                     f = @(z) abs((1-empiricalAlpha)*noiseDistribution.pdf(z)./(empiricalAlpha*empiricalOutlierDistribution.pdf(z))-noiseOdds);
                     zoutlier = abs(fminsearch(f,sqrt(noiseDistribution.variance)));
-                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier) );
+                    expectedVariance = expectedVarianceDistribution.varianceInRange(-zoutlier,zoutlier);
+                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
                     robust_noiseOdds10 = LogStatisticsFromSplineForOutlierTable(robust_noiseOdds10,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                                         
+                    
+                    weakAddedDistribution = AddedDistribution(empiricalAlpha/1.5,StudentTDistribution(sqrt((addedDistribution.variance-(1-empiricalAlpha/1.5)*noiseDistribution.variance)/(3*empiricalAlpha/2)),3.0),noiseDistribution);
+                    strongAddedDistribution = AddedDistribution(1.5*empiricalAlpha,StudentTDistribution(sqrt((addedDistribution.variance-(1-empiricalAlpha*1.5)*noiseDistribution.variance)/(3*empiricalAlpha*1.5)),3.0),noiseDistribution);
+                    f = @(z) abs(weakAddedDistribution.varianceInRange(0,z)-strongAddedDistribution.varianceInRange(0,z));
+                    zvariance_crossover = fminbnd(f,sqrt(noiseDistribution.variance),sqrt(strongAddedDistribution.variance));
+                    expectedVariance = expectedVarianceDistribution.varianceInRange(-zvariance_crossover,zvariance_crossover);
+                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zvariance_crossover,zvariance_crossover,expectedVariance) );
+                    robust_varianceCrossover = LogStatisticsFromSplineForOutlierTable(robust_varianceCrossover,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                     % Blind best fit by minimizing the expected mean square
                     % error weighted by probability.
@@ -276,7 +297,7 @@ minpct = @(values) 100*values(ceil( ((1-pct_range)/2)*sum(~isnan(values))));
 maxpct = @(values) 100*values(floor( ((1+pct_range)/2)*sum(~isnan(values))));
 
 optimal.dmse = dmse(optimal.mse);
-% robust_beta2_optimal.dmse = dmse(robust_beta2_optimal.mse);
+robust_beta2_optimal.dmse = dmse(robust_beta2_optimal.mse);
 robust_beta50_optimal.dmse = dmse(robust_beta50_optimal.mse);
 robust_beta100_optimal.dmse = dmse(robust_beta100_optimal.mse);
 robust_beta200_optimal.dmse = dmse(robust_beta200_optimal.mse);
@@ -289,6 +310,7 @@ robust_noiseOdds2.dmse = dmse(robust_noiseOdds2.mse);
 robust_noiseOdds3.dmse = dmse(robust_noiseOdds3.mse);
 robust_noiseOdds4.dmse = dmse(robust_noiseOdds4.mse);
 robust_noiseOdds10.dmse = dmse(robust_noiseOdds10.mse);
+robust_varianceCrossover.dmse = dmse(robust_varianceCrossover.mse);
 robust_weighted.dmse = dmse(robust_weighted.mse);
 
 print_pct = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.1f (%.1f-%.1f) ',100*median(stats.dmse(iOutlierRatio,iStride,iSlope,:),'omitnan'),minpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))), maxpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))) );
@@ -296,7 +318,7 @@ printcol = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %#.3g/%#.3g m$^2$ (%
 print_dmse_all = @(stats) fprintf('& %.2f (%.2f) (%.2f-%.2f)\n',100*mean(stats.dmse(:),'omitnan'),100*median(stats.dmse(:),'omitnan'),minpct(sort(stats.dmse(:))), maxpct(sort(stats.dmse(:))) );
 print_dmse_outlier = @(stats,iOutlierRatio) fprintf('& %.2f (%.2f) (%.2f-%.2f)\n',mean(reshape(stats.dmse(iOutlierRatio,:,:,:),[],1),'omitnan'),median(reshape(stats.dmse(iOutlierRatio,:,:,:),[],1),'omitnan'),minpct(sort(stats.dlambda(:)))/100, maxpct(sort(stats.dlambda(:)))/100 );
 
-% print_dmse_all(robust_beta2_optimal);
+print_dmse_all(robust_beta2_optimal);
 print_dmse_all(robust_beta50_optimal);
 print_dmse_all(robust_beta100_optimal);
 print_dmse_all(robust_beta200_optimal);
@@ -309,12 +331,13 @@ print_dmse_all(robust_noiseOdds2);
 print_dmse_all(robust_noiseOdds3);
 print_dmse_all(robust_noiseOdds4);
 print_dmse_all(robust_noiseOdds10);
+print_dmse_all(robust_varianceCrossover);
 print_dmse_all(robust_weighted);
 
 % Analyze the lambda---negative values indicate undertensioning, positive
 % values indicate over tensioning
 dlambda = @(stats) log10(stats.lambda ./ optimal.lambda);
-% robust_beta2_optimal.dlambda = dlambda(robust_beta2_optimal);
+robust_beta2_optimal.dlambda = dlambda(robust_beta2_optimal);
 robust_beta50_optimal.dlambda = dlambda(robust_beta50_optimal);
 robust_beta100_optimal.dlambda = dlambda(robust_beta100_optimal);
 robust_beta200_optimal.dlambda = dlambda(robust_beta200_optimal);
@@ -327,6 +350,7 @@ robust_noiseOdds2.dlambda = dlambda(robust_noiseOdds2);
 robust_noiseOdds3.dlambda = dlambda(robust_noiseOdds3);
 robust_noiseOdds4.dlambda = dlambda(robust_noiseOdds4);
 robust_noiseOdds10.dlambda = dlambda(robust_noiseOdds10);
+robust_varianceCrossover.dlambda = dlambda(robust_varianceCrossover);
 robust_weighted.dlambda = dlambda(robust_weighted);
 
 
@@ -335,7 +359,7 @@ print_dlambda = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.2f (%.2f) (%.
 print_dlambda_all = @(stats) fprintf('& %.2f (%.2f) (%.2f-%.2f)\n',mean(stats.dlambda(:),'omitnan'),median(stats.dlambda(:),'omitnan'),minpct(sort(stats.dlambda(:)))/100, maxpct(sort(stats.dlambda(:)))/100 );
 print_dlambda_outlier = @(stats,iOutlierRatio) fprintf('& %.2f (%.2f) (%.2f-%.2f)\n',mean(reshape(stats.dlambda(iOutlierRatio,:,:,:),[],1),'omitnan'),median(reshape(stats.dlambda(iOutlierRatio,:,:,:),[],1),'omitnan'),minpct(sort(stats.dlambda(:)))/100, maxpct(sort(stats.dlambda(:)))/100 );
 
-% print_dlambda_all(robust_beta2_optimal);
+print_dlambda_all(robust_beta2_optimal);
 print_dlambda_all(robust_beta50_optimal);
 print_dlambda_all(robust_beta100_optimal);
 print_dlambda_all(robust_beta200_optimal);
@@ -348,6 +372,7 @@ print_dlambda_all(robust_noiseOdds2);
 print_dlambda_all(robust_noiseOdds3);
 print_dlambda_all(robust_noiseOdds4);
 print_dlambda_all(robust_noiseOdds10);
+print_dlambda_all(robust_varianceCrossover);
 print_dlambda_all(robust_weighted);
 
 % all_maxpct = @(a,b,c,d,e,f,iOutlierRatio,iStride,iSlope) [maxpct(sort(a.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(b.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(c.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(d.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(e.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(f.dmse(iOutlierRatio,iStride,iSlope,:)))];
@@ -378,6 +403,7 @@ for iOutlierRatio = 1:totalOutlierRatios
     print_something_outlier(robust_noiseOdds3,iOutlierRatio);
     print_something_outlier(robust_noiseOdds4,iOutlierRatio);
     print_something_outlier(robust_noiseOdds10,iOutlierRatio);
+    print_something_outlier(robust_varianceCrossover,iOutlierRatio);
     print_something_outlier(robust_weighted,iOutlierRatio);
     
     fprintf(' \\\\ \n');
