@@ -3,7 +3,7 @@ LoadFigureDefaults
 
 shouldUseStudentTDistribution = 1;
 
-percentOutliers = 0.25;
+percentOutliers = 0.0;
 outlierFactor = 50;
 
 slopes = [-2; -3; -4];

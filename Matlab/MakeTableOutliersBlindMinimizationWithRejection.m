@@ -258,7 +258,7 @@ for i=1:length(stat_structs)
 end
 
 
-print_pct = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.1f (%.1f-%.1f) ',100*mean(stats.dmse(iOutlierRatio,iStride,iSlope,:)),minpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))), maxpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))) );
+print_dmse = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.1f (%.1f-%.1f) ',100*(10^mean(stats.dmse(iOutlierRatio,iStride,iSlope,:))-1),minpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))), maxpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))) );
 printcol = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %#.3g/%#.3g m$^2$ (%#.3g) (%d/%d) ', median(stats.mse(iOutlierRatio,iStride,iSlope,:)),mean(stats.mse(iOutlierRatio,iStride,iSlope,:)), median(stats.neff_se(iOutlierRatio,iStride,iSlope,:)), median(stats.false_positives(iOutlierRatio,iStride,iSlope,:)), median(stats.false_negatives(iOutlierRatio,iStride,iSlope,:)) );
 print_dmse_all = @(stats) fprintf('%s: & %.2f (%.2f) (%.2f-%.2f)\n',stats.name,100*(10^mean(stats.dmse(:))-1),100*(10^median(stats.dmse(:))-1),minpct(sort(stats.dmse(:))), maxpct(sort(stats.dmse(:))) );
 
@@ -283,8 +283,6 @@ for i=1:length(stat_structs)
     print_dlambda_all( stat_structs{i} );
 end
 
-return
-
 % all_maxpct = @(a,b,c,d,e,f,iOutlierRatio,iStride,iSlope) [maxpct(sort(a.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(b.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(c.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(d.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(e.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(f.dmse(iOutlierRatio,iStride,iSlope,:)))];
 % 
 % ratioed_maxpct = @(a,b,c,d,e,f,iOutlierRatio) [maxpct(sort(reshape(a.dmse(iOutlierRatio,:,:,:),[],1))),maxpct(sort(reshape(b.dmse(iOutlierRatio,:,:,:),[],1))),maxpct(sort(reshape(c.dmse(iOutlierRatio,:,:,:),[],1))),maxpct(sort(reshape(d.dmse(iOutlierRatio,:,:,:),[],1))),maxpct(sort(reshape(e.dmse(iOutlierRatio,:,:,:),[],1))),maxpct(sort(reshape(f.dmse(iOutlierRatio,:,:,:),[],1)))];
@@ -304,6 +302,10 @@ for iOutlierRatio = 1:totalOutlierRatios
         for iStride=1:length(strides)
             fprintf('%d ', strides(iStride));
                         
+            for i=1:length(stat_structs)
+                print_dlambda( stat_structs{i},iOutlierRatio,iStride,iSlope );
+            end
+            
 %             print_pct(robust_beta50_optimal,iOutlierRatio,iStride,iSlope);
 %             print_pct(robust_beta100_optimal,iOutlierRatio,iStride,iSlope);
 %             print_pct(robust_beta200_optimal,iOutlierRatio,iStride,iSlope);
@@ -318,9 +320,9 @@ for iOutlierRatio = 1:totalOutlierRatios
 %             print_pct(robust_noiseOdds10,iOutlierRatio,iStride,iSlope);
 %             print_pct(robust_weighted,iOutlierRatio,iStride,iSlope);
             
-            print_dlambda(robust_noiseOdds1over3,iOutlierRatio,iStride,iSlope);
-            print_dlambda(robust_noiseOdds1,iOutlierRatio,iStride,iSlope);
-            print_dlambda(robust_noiseOdds3,iOutlierRatio,iStride,iSlope);
+%             print_dlambda(robust_noiseOdds1over3,iOutlierRatio,iStride,iSlope);
+%             print_dlambda(robust_noiseOdds1,iOutlierRatio,iStride,iSlope);
+%             print_dlambda(robust_noiseOdds3,iOutlierRatio,iStride,iSlope);
             
             fprintf(' \\\\ \n');
             
