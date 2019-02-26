@@ -115,7 +115,7 @@ else
                     
                     outlierThreshold = noiseDistribution.locationOfCDFPercentile(1-1/10000/2);
                     trueOutlierIndices = find(abs(epsilon) > outlierThreshold);
-                    trueGoodIndices = setdiff(1:n,trueOutlierIndices);
+                    truenonOutlierIndices = setdiff(1:n,trueOutlierIndices);
                     
                     total_outliers(iOutlierRatio,iStride,iSlope,iEnsemble) = length(trueOutlierIndices);
                     
@@ -146,7 +146,7 @@ else
                     lambda0 = spline_robust.lambda;
                     
                     alpha = 0.4;
-                    spline_robust.setToFullTensionWithInnerSV(alpha);
+                    spline_robust.setToFullTensionWithIQSV(alpha);
                     full_tension_blind_sv_alpha8 = LogStatisticsFromSplineForFullTensionTable(full_tension_blind_sv_alpha8,linearIndex,spline_robust,compute_ms_error,z_crossover,outlierCrossoverIndices,outlierIndices);
                     spline_robust.lambda = lambda0;
                     spline_robust.setToFullTensionWithSV(alpha);
@@ -154,7 +154,7 @@ else
                     
                     alpha = 1/2;
                     spline_robust.lambda = lambda0;
-                    spline_robust.setToFullTensionWithInnerSV(alpha);
+                    spline_robust.setToFullTensionWithIQSV(alpha);
                     full_tension_blind_sv_alpha10 = LogStatisticsFromSplineForFullTensionTable(full_tension_blind_sv_alpha10,linearIndex,spline_robust,compute_ms_error,z_crossover,outlierCrossoverIndices,outlierIndices);
                     spline_robust.lambda = lambda0;
                     spline_robust.setToFullTensionWithSV(alpha);
@@ -162,7 +162,7 @@ else
                     
                     alpha = 1/4;
                     spline_robust.lambda = lambda0;
-                    spline_robust.setToFullTensionWithInnerSV(alpha);
+                    spline_robust.setToFullTensionWithIQSV(alpha);
                     full_tension_blind_sv_alpha20 = LogStatisticsFromSplineForFullTensionTable(full_tension_blind_sv_alpha20,linearIndex,spline_robust,compute_ms_error,z_crossover,outlierCrossoverIndices,outlierIndices);
                     spline_robust.lambda = lambda0;
                     spline_robust.setToFullTensionWithSV(alpha);
@@ -170,7 +170,7 @@ else
 
                     alpha = 1/8;
                     spline_robust.lambda = lambda0;
-                    spline_robust.setToFullTensionWithInnerSV(alpha);
+                    spline_robust.setToFullTensionWithIQSV(alpha);
                     full_tension_blind_sv_alpha100 = LogStatisticsFromSplineForFullTensionTable(full_tension_blind_sv_alpha100,linearIndex,spline_robust,compute_ms_error,z_crossover,outlierCrossoverIndices,outlierIndices);
                     spline_robust.lambda = lambda0;
                     spline_robust.setToFullTensionWithSV(alpha);

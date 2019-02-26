@@ -115,7 +115,7 @@ else
                     
                     outlierThreshold = noiseDistribution.locationOfCDFPercentile(1-1/10000/2);
                     trueOutlierIndices = find(abs(epsilon) > outlierThreshold);
-                    trueGoodIndices = setdiff(1:n,trueOutlierIndices);
+                    truenonOutlierIndices = setdiff(1:n,trueOutlierIndices);
                     
                     total_outliers(iOutlierRatio,iStride,iSlope,iEnsemble) = length(trueOutlierIndices);
                     
@@ -175,7 +175,7 @@ end
 % Figure
 
 % figure
-% scatter(t_obs(spline_robust_optimal.indicesOfOutliers),x_obs(spline_robust_optimal.indicesOfOutliers),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
+% scatter(t_obs(spline_robust_optimal.outlierIndices),x_obs(spline_robust_optimal.outlierIndices),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
 % scatter(t_obs(trueOutlierIndices),x_obs(trueOutlierIndices),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
 % scatter(t_obs,x_obs,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 % tq = linspace(min(t_obs),max(t_obs),10*length(t_obs));

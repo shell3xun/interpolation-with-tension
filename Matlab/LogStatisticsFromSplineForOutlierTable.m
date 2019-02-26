@@ -5,8 +5,8 @@ stats.neff_se(linearIndex) = spline.effectiveSampleSizeFromVarianceOfTheMean;
 stats.lambda(linearIndex) = spline.lambda;
 stats.nonOutlierEffectiveSampleSize(linearIndex) = spline.effectiveSampleSizeFromVarianceOfTheMeanForIndices(~outlierIndices);
 stats.nonOutlierSampleVariance(linearIndex) = mean(spline.epsilonAtIndices(~outlierIndices).^2);
-stats.false_negatives(linearIndex) = length(setdiff(trueOutlierIndices,spline.indicesOfOutliers));
-stats.false_positives(linearIndex) = length(setdiff(spline.indicesOfOutliers,trueOutlierIndices));
+stats.false_negatives(linearIndex) = length(setdiff(trueOutlierIndices,spline.outlierIndices));
+stats.false_positives(linearIndex) = length(setdiff(spline.outlierIndices,trueOutlierIndices));
 if length(varargin) >= 1
     stats.rejects(linearIndex) = varargin{1};
 end

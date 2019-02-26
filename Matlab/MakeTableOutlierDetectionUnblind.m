@@ -114,7 +114,7 @@ else
                     
                     outlierThreshold = noiseDistribution.locationOfCDFPercentile(1-1/10000/2);
                     trueOutlierIndices = find(abs(epsilon) > outlierThreshold);
-                    trueGoodIndices = setdiff(1:n,trueOutlierIndices);
+                    truenonOutlierIndices = setdiff(1:n,trueOutlierIndices);
                     
                     total_outliers(iOutlierRatio,iStride,iSlope,iEnsemble) = length(trueOutlierIndices);
                     
@@ -177,7 +177,7 @@ else
                     %%%%%%%%%%%%%%%%%%
                     % Known distribution, discarded crossover points
                     %%%%%%%%%%%%%%%%%%
-                    spline_robust = RobustTensionSpline(t_obs(trueGoodIndices),x_obs(trueGoodIndices),noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustTensionSpline(t_obs(truenonOutlierIndices),x_obs(truenonOutlierIndices),noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     optimal_dist_no_true_outliers = LogStatisticsFromSplineForOutlierDetectionTable(optimal_dist_no_true_outliers,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
 

@@ -64,12 +64,12 @@ for iSlope = 1:length(slopes)
             % One measure of outlier
             outlierThreshold = noiseDistribution.locationOfCDFPercentile(1-1/10000/2);
             trueOutliers = find(abs(epsilon) > outlierThreshold);
-            goodIndices = setdiff(1:n,trueOutliers);
+            nonOutlierIndices = setdiff(1:n,trueOutliers);
              
             f = @(z) abs( (1-percentOutliers)*noiseDistribution.pdf(z) - percentOutliers*outlierDistribution.pdf(z) );
             z_crossover = abs(fminsearch(f,sqrt(noiseDistribution.variance)));
             crossoverOutliers = find(abs(epsilon) > outlierThreshold);
-            crossoverGoodIndices = setdiff(1:n,crossoverOutliers);
+            crossovernonOutlierIndices = setdiff(1:n,crossoverOutliers);
             
             x_obs = data.x + epsilon;
             t_obs = data.t;  
@@ -117,8 +117,8 @@ end
 
 baseline_optimal_mse = compute_ms_error(spline_optimal);
 fprintf('optimal mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', baseline_optimal_mse, std(spline_optimal.uniqueValuesAtHighestDerivative),spline_optimal.lambda );
-falseNegativeOutliers = setdiff(trueOutliers,spline_optimal.indicesOfOutliers);
-falsePositiveOutliers = setdiff(spline_optimal.indicesOfOutliers,trueOutliers);
+falseNegativeOutliers = setdiff(trueOutliers,spline_optimal.outlierIndices);
+falsePositiveOutliers = setdiff(spline_optimal.outlierIndices,trueOutliers);
 fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -130,8 +130,8 @@ fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),len
 % spline_robust_old.minimizeMeanSquareError(data.t,data.x);
 % 
 % fprintf('robust mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_robust_old), std(spline_robust_old.uniqueValuesAtHighestDerivative),spline_robust_old.lambda );
-% falseNegativeOutliers = setdiff(trueOutliers,spline_robust_old.indicesOfOutliers);
-% falsePositiveOutliers = setdiff(spline_robust_old.indicesOfOutliers,trueOutliers);
+% falseNegativeOutliers = setdiff(trueOutliers,spline_robust_old.outlierIndices);
+% falsePositiveOutliers = setdiff(spline_robust_old.outlierIndices,trueOutliers);
 % fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
 
 
@@ -141,10 +141,10 @@ fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),len
 
 % spline_robust_old = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
 % lambda_opt = spline_robust_old.minimize( @(spline) trueAddedDistribution.andersonDarlingError(spline.epsilon) );
-% zmax = max(abs(spline_robust_old.epsilonAtIndices(crossoverGoodIndices)));
+% zmax = max(abs(spline_robust_old.epsilonAtIndices(crossovernonOutlierIndices)));
 % zmin = min(abs(spline_robust_old.epsilonAtIndices(crossoverOutliers)));
 % 
-% z_noise = sort(abs(spline_robust_old.epsilonAtIndices(crossoverGoodIndices)));
+% z_noise = sort(abs(spline_robust_old.epsilonAtIndices(crossovernonOutlierIndices)));
 % noise_cdf = 1-(1:length(z_noise))'/length(z_noise);
 % z_outlier = sort(abs(spline_robust_old.epsilonAtIndices(crossoverOutliers)));
 % outlier_cdf = (1:length(z_outlier))'/length(z_outlier);
@@ -162,8 +162,8 @@ fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),len
 % epsilon_min = spline_robust_old.epsilon;
 % 
 % fprintf('robust mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_robust_old), std(spline_robust_old.uniqueValuesAtHighestDerivative),spline_robust_old.lambda );
-% falseNegativeOutliers = setdiff(trueOutliers,spline_robust_old.indicesOfOutliers);
-% falsePositiveOutliers = setdiff(spline_robust_old.indicesOfOutliers,trueOutliers);
+% falseNegativeOutliers = setdiff(trueOutliers,spline_robust_old.outlierIndices);
+% falsePositiveOutliers = setdiff(spline_robust_old.outlierIndices,trueOutliers);
 % fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -246,8 +246,8 @@ else
 end
 
 fprintf('robust mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_robust), std(spline_robust.uniqueValuesAtHighestDerivative),spline_robust.lambda );
-falseNegativeOutliers = setdiff(trueOutliers,spline_robust.indicesOfOutliers);
-falsePositiveOutliers = setdiff(spline_robust.indicesOfOutliers,trueOutliers);
+falseNegativeOutliers = setdiff(trueOutliers,spline_robust.outlierIndices);
+falsePositiveOutliers = setdiff(spline_robust.outlierIndices,trueOutliers);
 fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -255,7 +255,7 @@ fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),len
 % Figure
 
 figure
-scatter(t_obs(spline_robust.indicesOfOutliers),x_obs(spline_robust.indicesOfOutliers),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
+scatter(t_obs(spline_robust.outlierIndices),x_obs(spline_robust.outlierIndices),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
 scatter(t_obs(trueOutliers),x_obs(trueOutliers),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
 scatter(t_obs,x_obs,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 plot(tq,spline_optimal(tq),'k')
@@ -265,12 +265,12 @@ return
 
 
 
-zmax = max(abs(spline_robust.epsilonAtIndices(crossoverGoodIndices)));
+zmax = max(abs(spline_robust.epsilonAtIndices(crossovernonOutlierIndices)));
 zmin = min(abs(spline_robust.epsilonAtIndices(crossoverOutliers)));
 fprintf('zmax: %.1f, pdfs: noise likelihood %.2g\n',zmax,(empiricalAlpha/(1-empiricalAlpha))*empiricalOutlierDistribution.cdf(-zmax)/noiseDistribution.cdf(-zmax));
 fprintf('zmin: %.1f, pdfs: noise likelihood %.2g\n',zmin,(empiricalAlpha/(1-empiricalAlpha))*empiricalOutlierDistribution.cdf(-zmin)/noiseDistribution.cdf(-zmin));
 
-z_noise = sort(abs(spline_robust.epsilonAtIndices(crossoverGoodIndices)));
+z_noise = sort(abs(spline_robust.epsilonAtIndices(crossovernonOutlierIndices)));
 noise_cdf = 1-(1:length(z_noise))'/length(z_noise);
 z_outlier = sort(abs(spline_robust.epsilonAtIndices(crossoverOutliers)));
 outlier_cdf = (1:length(z_outlier))'/length(z_outlier);
@@ -311,7 +311,7 @@ fprintf('z_opt: %.1f, pdfs: noise likelihood %.2g\n',zmin,(empiricalAlpha/(1-emp
 %%%%%%%%%%
 % figure out how well the two distributions are split
 spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-% spline_robust.setInnerVarianceToExpectedValue(alpha,2.0*noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
+% spline_robust.setInterquartileSampleVarianceToExpectedValue(alpha,2.0*noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
 spline_robust.setToFullTensionWithIteratedIQSV(1.0);
 lambda_full = spline_robust.lambda
 [empiricalOutlierDistribution,empiricalAlpha] = spline_robust.estimateOutlierDistribution();
@@ -320,12 +320,12 @@ newAddedDistribution = AddedDistribution(empiricalAlpha,empiricalOutlierDistribu
 
 %%%%%%%%%%
 % figure out how well the two distributions are split
-zmax = max(abs(spline_robust.epsilonAtIndices(crossoverGoodIndices)));
+zmax = max(abs(spline_robust.epsilonAtIndices(crossovernonOutlierIndices)));
 zmin = min(abs(spline_robust.epsilonAtIndices(crossoverOutliers)));
 fprintf('zmax: %.1f, pdfs: noise likelihood %.2g\n',zmax,(empiricalAlpha/(1-empiricalAlpha))*empiricalOutlierDistribution.cdf(-zmax)/noiseDistribution.cdf(-zmax));
 fprintf('zmin: %.1f, pdfs: noise likelihood %.2g\n',zmin,(empiricalAlpha/(1-empiricalAlpha))*empiricalOutlierDistribution.cdf(-zmin)/noiseDistribution.cdf(-zmin));
 
-z_noise = sort(abs(spline_robust.epsilonAtIndices(crossoverGoodIndices)));
+z_noise = sort(abs(spline_robust.epsilonAtIndices(crossovernonOutlierIndices)));
 noise_cdf = 1-(1:length(z_noise))'/length(z_noise);
 z_outlier = sort(abs(spline_robust.epsilonAtIndices(crossoverOutliers)));
 outlier_cdf = (1:length(z_outlier))'/length(z_outlier);
@@ -385,8 +385,8 @@ spline_robust.minimizeMeanSquareError(data.t,data.x);
 % spline_robust.minimizeMeanSquareError(data.t,data.x);
 
 fprintf('robust mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_robust), std(spline_robust.uniqueValuesAtHighestDerivative),spline_robust.lambda );
-falseNegativeOutliers = setdiff(trueOutliers,spline_robust.indicesOfOutliers);
-falsePositiveOutliers = setdiff(spline_robust.indicesOfOutliers,trueOutliers);
+falseNegativeOutliers = setdiff(trueOutliers,spline_robust.outlierIndices);
+falsePositiveOutliers = setdiff(spline_robust.outlierIndices,trueOutliers);
 fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
 
 
@@ -397,17 +397,17 @@ fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),len
 
 % alpha = 0.5;
 % spline_robust2x = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
-% spline_robust2x.setInnerVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
+% spline_robust2x.setInterquartileSampleVarianceToExpectedValue(alpha,noiseDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
 % [outlierDistribution, alpha_outliers] = spline_robust2x.estimateOutlierDistribution();
 % addedDistribution = AddedDistribution(alpha_outliers,outlierDistribution,noiseDistribution);
-% spline_robust2x.setInnerVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
+% spline_robust2x.setInterquartileSampleVarianceToExpectedValue(alpha,addedDistribution.varianceInPercentileRange(alpha/2,1-alpha/2));
 % 
 % spline_robust2x.rebuildOutlierDistributionAndAdjustWeightings();
 % spline_robust2x.minimizeMeanSquareError(data.t,data.x);
 % 
 % fprintf('robust mse: %.2f m, acceleration: %.3g, lambda: %.3g\n', compute_ms_error(spline_robust2x), std(spline_robust2x.uniqueValuesAtHighestDerivative),spline_robust2x.lambda );
-% falseNegativeOutliers = setdiff(trueOutliers,spline_robust2x.indicesOfOutliers);
-% falsePositiveOutliers = setdiff(spline_robust2x.indicesOfOutliers,trueOutliers);
+% falseNegativeOutliers = setdiff(trueOutliers,spline_robust2x.outlierIndices);
+% falsePositiveOutliers = setdiff(spline_robust2x.outlierIndices,trueOutliers);
 % fprintf('False positives: %d, negatives: %d\n',length(falsePositiveOutliers),length(falseNegativeOutliers))
 
 

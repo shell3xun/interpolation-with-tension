@@ -99,7 +99,7 @@ else
                 
                 outlierThreshold = noiseDistribution.locationOfCDFPercentile(1-1/10000/2);
                 trueOutlierIndices = find(abs(epsilon) > outlierThreshold);
-                trueGoodIndices = setdiff(1:n,trueOutlierIndices);
+                truenonOutlierIndices = setdiff(1:n,trueOutlierIndices);
                 
                 total_outliers(iStride,iSlope,iEnsemble) = length(trueOutlierIndices);
                 

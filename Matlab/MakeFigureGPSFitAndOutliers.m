@@ -49,7 +49,7 @@ fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 s = 1/1000;
 plot(t/3600,s*robustfit(t), 'LineWidth', 1.0*scaleFactor, 'Color',0.0*[1.0 1.0 1.0]), hold on
 plot(t/3600,s*splinefit(t), 'LineWidth', 1.0*scaleFactor, 'Color',0.4*[1.0 1.0 1.0])
-scatter(drifters.t{choiceDrifter}(robustfit.indicesOfOutliers)/3600,s*drifters.x{choiceDrifter}(robustfit.indicesOfOutliers),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
+scatter(drifters.t{choiceDrifter}(robustfit.outlierIndices)/3600,s*drifters.x{choiceDrifter}(robustfit.outlierIndices),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
 scatter(drifters.t{choiceDrifter}/3600,s*drifters.x{choiceDrifter},(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 xlabel('t (hours)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 ylabel('x (km)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
@@ -71,7 +71,7 @@ end
 
 figure
 plot(t/3600,s*y, 'LineWidth', 1.0*scaleFactor, 'Color',0.0*[1.0 1.0 1.0]), hold on
-scatter(drifters.t{choiceDrifter}(gpsfit.indicesOfOutliers)/3600,s*drifters.y{choiceDrifter}(gpsfit.indicesOfOutliers),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
+scatter(drifters.t{choiceDrifter}(gpsfit.outlierIndices)/3600,s*drifters.y{choiceDrifter}(gpsfit.outlierIndices),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
 scatter(drifters.t{choiceDrifter}/3600,s*drifters.y{choiceDrifter},(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 xlabel('t (hours)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 ylabel('x (km)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
