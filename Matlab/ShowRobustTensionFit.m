@@ -10,7 +10,7 @@ addpath('support')
 shouldSaveFigures = 0;
 
 % Drifter to highlight in the final plots. Drifter 7 has no outliers
-choiceDrifter = 7;
+choiceDrifter = 6;
 
 if Site == 1
     drifters = load('sample_data/rho1_drifters_projected_ungridded.mat');

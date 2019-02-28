@@ -166,5 +166,34 @@ where it's divided into two added components So now let's say we magically know 
     (N_o + N_n) \cdot  \textrm{MSE}(\lambda) =& || \left( \mathbf{S^n_\lambda} - I \right) \mathbf{x} ||^2 - N_n \sigma_n^2  + 2  \sigma_n^2  \Tr \mathbf{S^n_\lambda} \\
     & || \left( \mathbf{S^o_\lambda} - I \right) \mathbf{x} ||^2 -  N_o \sigma_o^2 + 2 \sigma_o^2  \Tr \mathbf{S^o_\lambda}
 \end{align}
-
+Which is
+\begin{align}
+    (N_o + N_n) \cdot  \textrm{MSE}(\lambda) =& N_n \left(1-\frac{1}{n^n_\textrm{eff}} \right) - N_n \sigma_n^2  + 2 N_n \frac{\sigma_n^2}{n^n_\textrm{eff}} \\
+    & || \left( \mathbf{S^o_\lambda} - I \right) \mathbf{x} ||^2 -  N_o \sigma_o^2 + 2 \sigma_o^2  \Tr \mathbf{S^o_\lambda}
+    \end{align}
+    which is likely just,
+    \begin{align}
+    (N_o + N_n) \cdot  \textrm{MSE}(\lambda) =& N_n \frac{\sigma_n^2}{n^n_\textrm{eff}} + N_o \frac{\sigma_o^2}{n^o_\textrm{eff}}
+    \end{align}
+Using that,
+\begin{equation}
+n_{\textrm{eff}} = C \cdot \left(\frac{\sigma}{u_{\textrm{rms}}\Delta t}\right)^m
+\end{equation}
+The $\Delta t$ changes in proportion to the number of each set of points, $\Delta t = \frac{T}{N}$, so
+\begin{equation}
+n_{\textrm{eff}} = C \cdot \left(\frac{\sigma N}{u_{\textrm{rms}}T}\right)^m
+\end{equation}
+Inserting this into our equation for the MSE,
+    \begin{align}
+ \textrm{MSE}(\lambda) =&\frac{ \left(u_{\textrm{rms}}T\right)^m}{N_o + N_n} \left( N_n \frac{\sigma_n^2}{ \left( \sigma_n N_n \right)^m } + N_o \frac{\sigma_o^2}{ \left( \sigma_o N_o \right)^m} \right) \\
+ =& \left(u_{\textrm{rms}}T\right)^m\left( (1-\alpha) \frac{\sigma_n^{2-m}}{  (N_n)^m } + \alpha \frac{\sigma_o^{2-m}}{  (N_o)^m} \right) \\
+  =& \left(\frac{u_{\textrm{rms}}T}{N}\right)^m\left( \frac{\sigma_n^{2-m}}{  (1-\alpha)^{m-1} } + \frac{\sigma_o^{2-m}}{  (\alpha)^{m-1}} \right)
+    \end{align}
+    
+    Lets say we had equal parts outlier and noise, so $2N$ total points.
+        \begin{align}
+ \textrm{MSE}(\lambda) =&\frac{ \left(u_{\textrm{rms}}T\right)^m}{2} \left(  \frac{\sigma_n^2}{ \left( \sigma_n N \right)^m } +  \frac{\sigma_o^2}{ \left( \sigma_o N \right)^m} \right)
+    \end{align}
+    The problem here is that our effective sample size is not additive... so this doesn't reduce to the right value.
+   
 \end{document}  
