@@ -45,6 +45,7 @@ spline_y = RobustTensionSpline(t_data,y_data,noiseDistribution);
 %%%%%%%%%%%%%%%%%%%%%
 % Grab drifter 7 and plot that
 spline_7x = TensionSpline(drifters.t{7},drifters.x{7},noiseDistribution);
+spline_7y = TensionSpline(drifters.t{7},drifters.y{7},noiseDistribution);
 
 subplot(sp1)
 scatter(t_data(spline_x.outlierIndices),x_data(spline_x.outlierIndices),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
@@ -54,13 +55,14 @@ plot(tq,spline_7x(tq))
 
 
 fprintf('robust a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
-fprintf('robust a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
-
+% fprintf('robust a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
+fprintf('robust a_rms: (%.3g, %.3g)\n', std(spline_7x.uniqueValuesAtHighestDerivative), std(spline_7y.uniqueValuesAtHighestDerivative) );
 
 subplot(sp2)
 scatter(t_data(spline_y.outlierIndices),y_data(spline_y.outlierIndices),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
 scatter(t_data(spline_y.outlierIndices),y_data(spline_y.outlierIndices),(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 plot(tq,spline_y(tq))
+plot(tq,spline_7y(tq))
 
 
 return

@@ -101,7 +101,15 @@ ylabel('autocorrelation', 'FontSize', figure_axis_label_size, 'FontName', figure
 xlim([0 s*maxT])
 ylim([-0.2 1.0])
 
-print('-depsc2', '../figures/gps_autocorrelation.eps')
+rho = @(dt) exp(max(-abs(dt)/100., - abs(dt)/760 -1.3415)) ;
+hold on
+plot(s*dt,rho(dt))
+
+% 
+% [p,S,mu] = polyfit(dt(1:1200),log(AC(1:1200)),5);
+% hold on, plot(s*dt,exp(polyval(p,dt,[],mu)));
+
+% print('-depsc2', '../figures/gps_autocorrelation.eps')
 
 return
 
