@@ -1,7 +1,3 @@
-% Site 1 or site 2?
-Site = 1;
-
-
 % AMS figure widths, given in picas, converted to points (1 pica=12 points)
 scaleFactor = 1;
 LoadFigureDefaults
@@ -12,11 +8,19 @@ shouldSaveFigures = 0;
 % Drifter to highlight in the final plots. Drifter 7 has no outliers
 choiceDrifter = 6;
 
-if Site == 1
-    drifters = load('sample_data/rho1_drifters_projected_ungridded.mat');
-else
-    drifters = load('sample_data/rho2_drifters_projected_ungridded.mat');
-end
+drifters = open('sample_data/raw_rho1_drifters.mat');
+
+t_drifter = (drifters.date{choiceDrifter}-drifters.lastDeployment)*24*60*60;
+spline = GPSTensionSpline(t_drifter,drifters.lat{choiceDrifter},drifters.lon{choiceDrifter},'shouldUseRobustFit',0);
+[outlierDistribution,alpha] = spline.setSigmaFromOutlierDistribution();
+
+tq = linspace(min(t_drifter),max(t_drifter),10*length(t_drifter))';
+[x,y] = spline.xyAtTime(tq);
+figure
+scatter(spline.x,spline.y,(2.5)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
+plot(x,y),axis equal
+
+return
 
 % Pull out the data of interest
 x_data = drifters.x{choiceDrifter};

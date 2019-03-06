@@ -9,7 +9,7 @@
 scaleFactor = 1;
 LoadFigureDefaults
 
-shouldLoadExistingResults = 0;
+shouldLoadExistingResults = 1;
 
 rms = @(z) sqrt( mean( z.^2 ) );
 
@@ -146,8 +146,6 @@ x = reshape(sigma./(measured_u_rms.*dt),[],1);
 y = reshape((measured_a_rms.^2 ).*measured_lambda,[],1);
 scatter(x,y)
 
-return
-
 % figure
 % 
 % subplot(3,1,1)
@@ -173,6 +171,8 @@ return
 % xlabel('dof from \Gamma')
 % ylabel('var dof')
 
+measured_dof_se_mean = mean(measured_dof_se,3);
+measured_dof_se_std = std(measured_dof_se,1,3);
 
 FigureSize = [50 50 figure_width_1col+7 150*scaleFactor];
 
@@ -186,11 +186,12 @@ fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 m = zeros(length(totalSlopes),1);
 b = zeros(length(totalSlopes),1);
 for iSlope = 1:totalSlopes
-    plotHandles(iSlope) = scatter(gamma(:,iSlope),measured_dof_se(:,iSlope)); hold on
+    plotHandles(iSlope) = scatter(reshape(sigma./(measured_u_rms.*dt),[],1),reshape(measured_dof_se,[],1)); hold on
     
     x = gamma_mean(:,iSlope);
     y = measured_dof_se_mean(:,iSlope);
-    sigma2 = (measured_dof_se_std(:,iSlope).*measured_dof_se_std(:,iSlope))./ensembles;
+    
+    sigma2 = (measured_dof_se_std(:,iSlope).*measured_dof_se_std(:,iSlope))./totalEnsembles;
     
 %     [m(iSlope),b(iSlope)] = LinearBestFitWithVariableError(x,y,sigma2);
 %     plot(x, m(iSlope)*x + b(iSlope))
@@ -210,7 +211,7 @@ leg.Location = 'northwest';
 set( gca, 'FontSize', figure_axis_tick_size);
 
 tightfig
-print('-depsc2', '../figures/dofVsGamma.eps')
+% print('-depsc2', '../figures/dofVsGamma.eps')
 
 return
 % Best fit to a straight line, using the estimate of the standard error for
