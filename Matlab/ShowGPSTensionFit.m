@@ -32,6 +32,17 @@ subplot(2,1,2)
 scatter(spline.t,spline.spline_y.x,(2.5)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
 plot(tq,spline.spline_y(tq))
 
+
+[x_T, t_T] = spline.spline_x.uniqueValuesAtHighestDerivative;
+[y_T, t_T] = spline.spline_y.uniqueValuesAtHighestDerivative;
+figure
+subplot(3,1,1)
+plot(t_T,x_T)
+subplot(3,1,2)
+plot(t_T,y_T)
+subplot(3,1,3)
+plot(t_T,sqrt(x_T.^2 + y_T.^2))
+
 % q = x - mean(x);
 % r = y - mean(y);
 % M_qq = mean(q.*q);
