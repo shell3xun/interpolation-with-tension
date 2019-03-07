@@ -11,14 +11,43 @@ choiceDrifter = 6;
 drifters = open('sample_data/raw_rho1_drifters.mat');
 
 t_drifter = (drifters.date{choiceDrifter}-drifters.lastDeployment)*24*60*60;
-spline = GPSTensionSpline(t_drifter,drifters.lat{choiceDrifter},drifters.lon{choiceDrifter},'shouldUseRobustFit',0);
-[outlierDistribution,alpha] = spline.setSigmaFromOutlierDistribution();
+spline = GPSTensionSpline(t_drifter,drifters.lat{choiceDrifter},drifters.lon{choiceDrifter},'shouldUseRobustFit',1);
+% [outlierDistribution,alpha] = spline.setSigmaFromOutlierDistribution();
 
 tq = linspace(min(t_drifter),max(t_drifter),10*length(t_drifter))';
 [x,y] = spline.xyAtTime(tq);
 figure
 scatter(spline.x,spline.y,(2.5)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
 plot(x,y),axis equal
+
+figure
+scatter(spline.q,spline.r,(2.5)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
+plot(spline.spline_x(tq),spline.spline_y(tq))
+
+% q = x - mean(x);
+% r = y - mean(y);
+% M_qq = mean(q.*q);
+% M_rr = mean(r.*r);
+% M_qr = mean(q.*r);
+% [A, B] = eig([M_qq, M_qr; M_qr, M_rr]);
+% v = A(:,2);
+% theta = atan(v(2)/v(1));
+% minD = B(1,1);
+% maxD = B(end,end);
+% 
+% theta = theta + pi/2;
+% x_tilde = q*cos(theta) + r*sin(theta);
+% y_tilde = -q*sin(theta) + r*cos(theta);
+
+
+
+return
+figure
+subplot(2,2,[1 3])
+plot(spline.q,spline.r), axis equal
+subplot(2,2,2), plot(tq,x_tilde), subplot(2,2,4), plot(tq,y_tilde)
+% figure
+% plot(q,r), axis equal
 
 return
 
