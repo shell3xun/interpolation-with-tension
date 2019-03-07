@@ -24,6 +24,14 @@ figure
 scatter(spline.q,spline.r,(2.5)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
 plot(spline.spline_x(tq),spline.spline_y(tq))
 
+figure
+subplot(2,1,1)
+scatter(spline.t,spline.spline_x.x,(2.5)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
+plot(tq,spline.spline_x(tq))
+subplot(2,1,2)
+scatter(spline.t,spline.spline_y.x,(2.5)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
+plot(tq,spline.spline_y(tq))
+
 % q = x - mean(x);
 % r = y - mean(y);
 % M_qq = mean(q.*q);
