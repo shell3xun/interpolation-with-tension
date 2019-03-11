@@ -17,19 +17,20 @@ t = t_drifter;
 x = spline.x;
 y = spline.y;
 
-spline_x_constrained = TensionSpline(t,x,spline.distribution,'S',spline.spline_x.S+1);
-spline_x_constrained.lambda = 1e35;
-spline_y_constrained = TensionSpline(t,y,spline.distribution,'S',spline.spline_y.S+1);
-spline_y_constrained.lambda = 1e32;
-
-x_rms = x-spline_x_constrained(t);
-y_rms = y-spline_y_constrained(t);
-
-spline_x_rms = RobustTensionSpline(t,x_rms,spline.distribution,'S',spline.spline_x.S);
-spline_y_rms = RobustTensionSpline(t,y_rms,spline.distribution,'S',spline.spline_y.S);
+spline_xy = BivariateTensionSpline(t,x,y,StudentTDistribution(8.5,4.5),'shouldUseRobustFit',1);
+spline_xy.setSigmaFromOutlierDistribution();
 
 tq = linspace(min(spline.t),max(spline.t),10*length(spline.t));
+[xq,yq] = spline_xy.xyAtTime(tq);
 
 figure
 scatter(x,y,(2.5)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
-plot(spline_x_constrained(tq) + spline_x_rms(tq),spline_y_constrained(tq) + spline_y_rms(tq)),axis equal
+plot(xq,yq,'k','LineWidth',1.5),axis equal
+
+spline_xy.minimizeExpectedMeanSquareErrorInNoiseRange(1)
+[xq,yq] = spline_xy.xyAtTime(tq);
+plot(xq,yq)
+
+% figure
+% scatter(t,y,(2.5)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
+% plot(tq,yq)
