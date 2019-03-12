@@ -31,6 +31,13 @@ spline_xy.minimizeExpectedMeanSquareErrorInNoiseRange(1)
 [xq,yq] = spline_xy.xyAtTime(tq);
 plot(xq,yq)
 
+t_drifter = (drifters.date{7}-drifters.lastDeployment)*24*60*60;
+spline7 = GPSTensionSpline(t_drifter,drifters.lat{7},drifters.lon{7},'lon0',spline.lon0);
+
+tq = linspace(min(spline7.t),max(spline7.t),10*length(spline7.t));
+[xq,yq] = spline7.xyAtTime(tq);
+plot(xq,yq)
+
 % figure
 % scatter(t,y,(2.5)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
 % plot(tq,yq)
