@@ -16,9 +16,9 @@
 shouldUseStudentTDistribution = 1;
 
 if shouldUseStudentTDistribution == 1
-    filename = 'MSETableOutliersBlindMinimizationWithRejectionStudentT.mat';
+    filename = 'MSETableOutliersBlindMinimizationWithSigmaStudentT.mat';
 else
-    filename = 'MSETableOutliersBlindMinimizationRejectionNormal.mat';
+    filename = 'MSETableOutliersBlindMinimizationSigmaNormal.mat';
 end
 
 if exist(filename,'file')
@@ -30,12 +30,12 @@ else
     totalSlopes = length(slopes);
 
     strides = [5;20;80;200];
-%     strides = 200;
+%      strides = 200;
     totalStrides = length(strides);
-    totalEnsembles = 51; % best to choose an odd number for median
+    totalEnsembles = 11; % best to choose an odd number for median
     
     outlierRatios = [0.05 0.15 0.25];
-%     outlierRatios = 0.15;
+     outlierRatios = 0.15;
     totalOutlierRatios = length(outlierRatios);
     
     % spline fit parameters
@@ -65,18 +65,8 @@ else
     total_outliers = nothing; varnames{end+1} = 'total_outliers';
  
     stat_structs = cell(1,1);
-    stat_structs{1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1_rejection_ratio_none';
-    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_3_rejection_ratio_none';
-    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_varCross_rejection_ratio_none';
-    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1_rejection_ratio_1e4';
-    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_3_rejection_ratio_1e4';
-    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_varCross_rejection_ratio_1e4';
-    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1_rejection_ratio_1e5';
-    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_3_rejection_ratio_1e5';
-    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_varCross_rejection_ratio_1e5';
-    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1_rejection_ratio_1e6';
-    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_3_rejection_ratio_1e6';
-    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_varCross_rejection_ratio_1e6';
+    stat_structs{1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1_sigma';
     varnames{end+1} = 'stat_structs';
     
     for iOutlierRatio = 1:totalOutlierRatios
@@ -139,8 +129,8 @@ else
                     linearIndex = sub2ind(size(nothing),iOutlierRatio,iStride,iSlope,iEnsemble);
                     
                     alpha = 1/10000;
-                    spline = RobustTensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected,'alpha',alpha);
-                    spline.setToFullTensionWithIteratedIQAD();
+                    spline = RobustTensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionIterated,'alpha',alpha,'outlierMethod',OutlierMethod.doNothing);
+                    
                     lambda_full = spline.lambda;
                     epsilon_full = spline.epsilon;
                     [empiricalOutlierDistribution,empiricalAlpha] = RobustTensionSpline.estimateOutlierDistributionFromKnownNoise(epsilon_full,noiseDistribution);
@@ -155,86 +145,18 @@ else
                     minimizationPDFRatio = 3;
                     [zoutlier,expectedVariance] = RobustTensionSpline.locationOfNoiseToOutlierPDFRatio(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,minimizationPDFRatio);
                     minimizeWithRatio3 = @(spline) spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
-                    
-                    [zoutlier,expectedVariance] = RobustTensionSpline.varianceCrossOverFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution);
-                    minimizeWithVarianceCrossover = @(spline) spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
-                    
+                                        
                     spline.lambda = lambda_full;
                     minimizeWithRatio1(spline);
                     iStruct = 1;
                     stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     spline.lambda = lambda_full;
-                    minimizeWithRatio3(spline);
-                    iStruct = iStruct+1;
-                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    spline.lambda = lambda_full;
-                    iStruct = iStruct+1;
-                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    % Un-blind best fit with rejection ratio 1e4
-                    
-                    rejectionPDFRatio = 1e4;
-                    spline.sigma = RobustTensionSpline.sigmaFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,epsilon_full,rejectionPDFRatio);
-                    
-                    spline.lambda = lambda_full;
+                    spline.sigma = spline.noiseDistribution.w(epsilon_full);
                     minimizeWithRatio1(spline);
                     iStruct = iStruct+1;
                     stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
-                    spline.lambda = lambda_full;
-                    minimizeWithRatio3(spline);
-                    iStruct = iStruct+1;
-                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    spline.lambda = lambda_full;
-                    minimizeWithVarianceCrossover(spline);
-                    iStruct = iStruct+1;
-                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    % Un-blind best fit with rejection ratio 1e5
-                    
-                    rejectionPDFRatio = 1e5;
-                    spline.sigma = RobustTensionSpline.sigmaFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,epsilon_full,rejectionPDFRatio);
-                    
-                    spline.lambda = lambda_full;
-                    minimizeWithRatio1(spline);
-                    iStruct = iStruct+1;
-                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    spline.lambda = lambda_full;
-                    minimizeWithRatio3(spline);
-                    iStruct = iStruct+1;
-                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    spline.lambda = lambda_full;
-                    minimizeWithVarianceCrossover(spline);
-                    iStruct = iStruct+1;
-                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    % Un-blind best fit with rejection ratio 1e6
-                    
-                    rejectionPDFRatio = 1e6;
-                    spline.sigma = RobustTensionSpline.sigmaFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,epsilon_full,rejectionPDFRatio);
-                    
-                    spline.lambda = lambda_full;
-                    minimizeWithRatio1(spline);
-                    iStruct = iStruct+1;
-                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    spline.lambda = lambda_full;
-                    minimizeWithRatio3(spline);
-                    iStruct = iStruct+1;
-                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-                    spline.lambda = lambda_full;
-                    minimizeWithVarianceCrossover(spline);
-                    iStruct = iStruct+1;
-                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     
                 end
@@ -303,7 +225,7 @@ for iOutlierRatio = 1:totalOutlierRatios
             fprintf('%d ', strides(iStride));
                         
             for i=1:length(stat_structs)
-                print_dlambda( stat_structs{i},iOutlierRatio,iStride,iSlope );
+                print_dmse( stat_structs{i},iOutlierRatio,iStride,iSlope );
             end
             
 %             print_pct(robust_beta50_optimal,iOutlierRatio,iStride,iSlope);
