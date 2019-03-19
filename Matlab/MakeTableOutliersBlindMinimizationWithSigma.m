@@ -26,16 +26,16 @@ if exist(filename,'file')
     totalOutlierRatios = size(total_outliers,1);
 else
     slopes = [-2; -3; -4];
-    slopes = -3;
+%     slopes = -3;
     totalSlopes = length(slopes);
 
     strides = [5;20;80;200];
 %      strides = 200;
     totalStrides = length(strides);
-    totalEnsembles = 11; % best to choose an odd number for median
+    totalEnsembles = 51; % best to choose an odd number for median
     
     outlierRatios = [0.05 0.15 0.25];
-     outlierRatios = 0.15;
+%      outlierRatios = 0.15;
     totalOutlierRatios = length(outlierRatios);
     
     % spline fit parameters
