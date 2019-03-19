@@ -67,6 +67,7 @@ else
     stat_structs = cell(1,1);
     stat_structs{1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1';
     stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1_sigma';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1_min_expected';
     varnames{end+1} = 'stat_structs';
     
     for iOutlierRatio = 1:totalOutlierRatios
@@ -140,24 +141,38 @@ else
                     
                     minimizationPDFRatio = 1;
                     [zoutlier,expectedVariance] = RobustTensionSpline.locationOfNoiseToOutlierPDFRatio(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,minimizationPDFRatio);
+                    expectedMSERatio1 =  @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance);
                     minimizeWithRatio1 = @(spline) spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
-                    
-                    minimizationPDFRatio = 3;
-                    [zoutlier,expectedVariance] = RobustTensionSpline.locationOfNoiseToOutlierPDFRatio(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,minimizationPDFRatio);
-                    minimizeWithRatio3 = @(spline) spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
-                                        
+                                                            
                     spline.lambda = lambda_full;
                     minimizeWithRatio1(spline);
+                    
+                    expectedMSEDefaultSigma = expectedMSERatio1(spline);
+                    trueMSEDefaultSigma = compute_ms_error(spline);
+                    
                     iStruct = 1;
                     stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     spline.lambda = lambda_full;
                     spline.sigma = spline.noiseDistribution.w(epsilon_full);
                     minimizeWithRatio1(spline);
+                    
+                    expectedMSERefinedSigma = expectedMSERatio1(spline);
+                    trueMSERefinedSigma = compute_ms_error(spline);
+                    
                     iStruct = iStruct+1;
                     stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     
+                    if (expectedMSEDefaultSigma < expectedMSERefinedSigma)
+                        spline.sigma = sqrt(spline.distribution.variance);
+                        spline.lambda = lambda_full;
+                        minimizeWithRatio1(spline);
+                    end
+                    
+                    iStruct = iStruct+1;
+                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+
                     
                 end
                 fprintf('\n');

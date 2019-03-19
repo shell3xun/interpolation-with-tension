@@ -18,7 +18,8 @@ x = spline.x;
 y = spline.y;
 
 spline_xy = BivariateTensionSpline(t,x,y,StudentTDistribution(8.5,4.5),'shouldUseRobustFit',1);
-spline_xy.setSigmaFromOutlierDistribution();
+spline_xy.estimateOutlierDistribution();
+mse1 = spline_xy.minimizeExpectedMeanSquareErrorInNoiseRange();
 
 tq = linspace(min(spline.t),max(spline.t),10*length(spline.t));
 [xq,yq] = spline_xy.xyAtTime(tq);
@@ -27,7 +28,9 @@ figure
 scatter(x,y,(2.5)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
 plot(xq,yq,'k','LineWidth',1.5),axis equal
 
-spline_xy.minimizeExpectedMeanSquareErrorInNoiseRange(1)
+spline_xy.setSigmaFromFullTensionSolution();
+mse2 = spline_xy.minimizeExpectedMeanSquareErrorInNoiseRange();
+
 [xq,yq] = spline_xy.xyAtTime(tq);
 plot(xq,yq)
 
