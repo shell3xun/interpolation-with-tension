@@ -27,15 +27,16 @@ if exist(filename,'file')
     totalOutlierRatios = size(total_outliers,1);
 else
     slopes = [-2; -3; -4];
-%     slopes = -3;
+    slopes = -3;
     totalSlopes = length(slopes);
 
-    strides = [5;20;200];
+    strides = [5;20;80;200];
 %     strides = 200;
     totalStrides = length(strides);
     totalEnsembles = 51; % best to choose an odd number for median
     
-    outlierRatios = [0; 0.015; 0.15];
+    outlierRatios = [0.0 0.05 0.15 0.25];
+%     outlierRatios = 0.15;
     totalOutlierRatios = length(outlierRatios);
     
     % spline fit parameters
@@ -43,7 +44,7 @@ else
     T = S;
     K = S+1;
     
-    vars = {'S', 'T', 'slopes', 'strides', 'outlierRatios', 'totalEnsembles'};
+    varnames = {'S', 'T', 'slopes', 'strides', 'outlierRatios', 'totalEnsembles'};
     
     % matern signal parameters
     sigma_u = 0.20;
@@ -58,17 +59,36 @@ else
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % preallocate the variables we need to save
     %
-    nothing = zeros(totalOutlierRatios, totalStrides, totalSlopes, totalEnsembles);
-    nothing_struct = struct('mse',nothing,'neff_se',nothing,'false_negatives', nothing, 'false_positives', nothing);
+    nothing = nan(totalOutlierRatios, totalStrides, totalSlopes, totalEnsembles);
+    nothing_struct = struct('mse',nothing,'neff_se',nothing,'lambda',nothing,'nonOutlierEffectiveSampleSize',nothing,'nonOutlierSampleVariance',nothing,'false_negatives', nothing, 'false_positives', nothing,'rejects',nothing);
     
-    total_outliers = nothing; vars{end+1} = 'total_outliers';
+    total_outliers = nothing; varnames{end+1} = 'total_outliers';
+        
+    stat_structs = cell(1,1);
     
-    optimal = nothing_struct; vars{end+1} = 'optimal';
-    robust_beta50_optimal = nothing_struct; vars{end+1} = 'robust_beta50_optimal';
-    robust_beta100_optimal = nothing_struct; vars{end+1} = 'robust_beta100_optimal';
-    robust_beta200_optimal = nothing_struct; vars{end+1} = 'robust_beta200_optimal';
-    robust_beta400_optimal = nothing_struct; vars{end+1} = 'robust_beta400_optimal';
-    robust_beta800_optimal = nothing_struct; vars{end+1} = 'robust_beta800_optimal';
+    stat_structs{1} = nothing_struct; stat_structs{end}.name = 'nonrobust_expected_mse';
+    
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha0_optimal';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha0_beta50';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha0_beta100';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha0_beta200';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha0_beta400';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha0_beta800';
+    
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha100_optimal';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha100_beta50';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha100_beta100';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha100_beta200';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha100_beta400';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha100_beta800';
+    
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha10000_optimal';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha10000_beta50';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha10000_beta100';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha10000_beta200';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha10000_beta400';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'robust_alpha10000_beta800';
+    varnames{end+1} = 'stat_structs';
         
     for iOutlierRatio = 1:totalOutlierRatios
         percentOutliers = outlierRatios(iOutlierRatio);
@@ -98,9 +118,11 @@ else
                     if shouldUseStudentTDistribution == 1
                         nu = 4.5; sigma =  8.5;
                         noiseDistribution = StudentTDistribution(sigma,nu);
+                        outlierDistribution = StudentTDistribution(outlierFactor*sigma,3.0);
                     else
                         sigma = 10;
                         noiseDistribution = NormalDistribution(sigma);
+                        outlierDistribution = NormalDistribution(outlierFactor*sigma);
                     end
                     outlierIndices = rand(n,1)<=percentOutliers;
                     outlierIndices([1 n]) = 0;
@@ -108,8 +130,8 @@ else
                     epsilon_noise = zeros(n,1);
                     epsilon_outlier = zeros(n,1);
                     
-                    epsilon_noise(~outlierIndices) = noiseDistribution.rand(sum(~outlierIndices));
-                    epsilon_outlier(outlierIndices) = outlierFactor*noiseDistribution.rand(sum(outlierIndices));
+                    epsilon_noise(~outlierIndices) = noiseDistribution.rand(sum(~outlierIndices),1);
+                    epsilon_outlier(outlierIndices) = outlierDistribution.rand(sum(outlierIndices),1);
                     
                     epsilon = epsilon_noise + epsilon_outlier;
                     
@@ -123,95 +145,59 @@ else
                     t_obs = data.t;
                     
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    % Unblinded best fit with standard tension spline
-                    
+                    % Blinded best fit with standard tension spline
                     linearIndex = sub2ind(size(nothing),iOutlierRatio,iStride,iSlope,iEnsemble);
+                    iStruct = 0;
                     
-                    alpha = 1/10000;
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected,'alpha',alpha);
-                    spline_robust.minimizeMeanSquareError(data.t,data.x);
-                    optimal = LogStatisticsFromSplineForOutlierTable(optimal,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices);
+                    spline = TensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.optimalIterated);
+                    iStruct = iStruct+1;
+                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
-                    beta = 1/50;
-                    zmin = noiseDistribution.locationOfCDFPercentile(beta/2);
-                    zmax = noiseDistribution.locationOfCDFPercentile(1-beta/2);
-                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
-                    robust_beta50_optimal = LogStatisticsFromSplineForOutlierTable(robust_beta50_optimal,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices);
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    % Blinded best fit with robust tension splines
                     
-                    beta = 1/100;
-                    zmin = noiseDistribution.locationOfCDFPercentile(beta/2);
-                    zmax = noiseDistribution.locationOfCDFPercentile(1-beta/2);
-                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
-                    robust_beta100_optimal = LogStatisticsFromSplineForOutlierTable(robust_beta100_optimal,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices);
+                    alphaValues = [0, 1/100, 1/10000];
+                    betaValues = 1./[50, 100, 200, 400, 800];
                     
-                    beta = 1/200;
-                    zmin = noiseDistribution.locationOfCDFPercentile(beta/2);
-                    zmax = noiseDistribution.locationOfCDFPercentile(1-beta/2);
-                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
-                    robust_beta200_optimal = LogStatisticsFromSplineForOutlierTable(robust_beta200_optimal,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices);
-                    
-                    beta = 1/400;
-                    zmin = noiseDistribution.locationOfCDFPercentile(beta/2);
-                    zmax = noiseDistribution.locationOfCDFPercentile(1-beta/2);
-                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
-                    robust_beta400_optimal = LogStatisticsFromSplineForOutlierTable(robust_beta400_optimal,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices);
-                    
-                    beta = 1/800;
-                    zmin = noiseDistribution.locationOfCDFPercentile(beta/2);
-                    zmax = noiseDistribution.locationOfCDFPercentile(1-beta/2);
-                    spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
-                    robust_beta800_optimal = LogStatisticsFromSplineForOutlierTable(robust_beta800_optimal,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices);
+                    for alpha=alphaValues
+                        spline = RobustTensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected,'alpha',alpha,'outlierMethod',OutlierMethod.doNothing);
+                        spline.minimizeMeanSquareError(data.t,data.x);
+                        iStruct = iStruct+1;
+                        stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+                        
+                        for beta=betaValues
+                            zmin = noiseDistribution.locationOfCDFPercentile(beta/2);
+                            zmax = noiseDistribution.locationOfCDFPercentile(1-beta/2);
+                            spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
+                            
+                            iStruct = iStruct+1;
+                            stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+                        end
+                    end
+
                 end
                 fprintf('\n');
             end
         end
     end
     
-    save(filename, vars{:});
+    save(filename, varnames{:});
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% Figure
-
-% figure
-% scatter(t_obs(spline_robust_optimal.outlierIndices),x_obs(spline_robust_optimal.outlierIndices),(8.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r'), hold on
-% scatter(t_obs(trueOutlierIndices),x_obs(trueOutlierIndices),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
-% scatter(t_obs,x_obs,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
-% tq = linspace(min(t_obs),max(t_obs),10*length(t_obs));
-% plot(tq,spline_optimal(tq),'k')
-% plot(tq,spline_robust_optimal(tq),'b')
-% % plot(tq,spline_robust_cv(tq),'m')
-% return;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-dmse = @(mse) mse./optimal.mse-1;
 pct_range = 0.90;%0.6827; % Chosen to match 1-sigma for a Gaussian (these are not Gaussian).
 minpct = @(values) 100*values(ceil( ((1-pct_range)/2)*length(values)));
 maxpct = @(values) 100*values(floor( ((1+pct_range)/2)*length(values)));
 
-optimal.dmse = dmse(optimal.mse);
-robust_beta50_optimal.dmse = dmse(robust_beta50_optimal.mse);
-robust_beta100_optimal.dmse = dmse(robust_beta100_optimal.mse);
-robust_beta200_optimal.dmse = dmse(robust_beta200_optimal.mse);
-robust_beta400_optimal.dmse = dmse(robust_beta400_optimal.mse);
-robust_beta800_optimal.dmse = dmse(robust_beta800_optimal.mse);
+minrange = @(values) values(ceil( ((1-pct_range)/2)*length(values)));
+maxrange = @(values) values(floor( ((1+pct_range)/2)*length(values)));
 
-print_pct = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.1f (%.1f-%.1f) ',100*mean(stats.dmse(iOutlierRatio,iStride,iSlope,:)),minpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))), maxpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))) );
+print_mse = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.1f (%.1f-%.1f) ',100*mean(stats.mse(iOutlierRatio,iStride,iSlope,:)),minpct(sort(stats.mse(iOutlierRatio,iStride,iSlope,:))), maxpct(sort(stats.mse(iOutlierRatio,iStride,iSlope,:))) );
 
-printcol = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %#.3g/%#.3g m$^2$ (%#.3g) (%d/%d) ', median(stats.mse(iOutlierRatio,iStride,iSlope,:)),mean(stats.mse(iOutlierRatio,iStride,iSlope,:)), median(stats.neff_se(iOutlierRatio,iStride,iSlope,:)), median(stats.false_positives(iOutlierRatio,iStride,iSlope,:)), median(stats.false_negatives(iOutlierRatio,iStride,iSlope,:)) );
-
-all_maxpct = @(a,b,c,d,e,f,iOutlierRatio,iStride,iSlope) [maxpct(sort(a.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(b.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(c.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(d.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(e.dmse(iOutlierRatio,iStride,iSlope,:))),maxpct(sort(f.dmse(iOutlierRatio,iStride,iSlope,:)))];
-
-ratioed_maxpct = @(a,b,c,d,e,f,iOutlierRatio) [maxpct(sort(reshape(a.dmse(iOutlierRatio,:,:,:),[],1))),maxpct(sort(reshape(b.dmse(iOutlierRatio,:,:,:),[],1))),maxpct(sort(reshape(c.dmse(iOutlierRatio,:,:,:),[],1))),maxpct(sort(reshape(d.dmse(iOutlierRatio,:,:,:),[],1))),maxpct(sort(reshape(e.dmse(iOutlierRatio,:,:,:),[],1))),maxpct(sort(reshape(f.dmse(iOutlierRatio,:,:,:),[],1)))];
-ratioed_maxpct(robust_beta50_optimal, robust_beta100_optimal, robust_beta200_optimal, robust_beta400_optimal, robust_beta800_optimal,robust_beta800_optimal,1)
-ratioed_maxpct(robust_beta50_optimal, robust_beta100_optimal, robust_beta200_optimal, robust_beta400_optimal, robust_beta800_optimal,robust_beta800_optimal,2)
-ratioed_maxpct(robust_beta50_optimal, robust_beta100_optimal, robust_beta200_optimal, robust_beta400_optimal, robust_beta800_optimal,robust_beta800_optimal,3)
-
-
-all_all_maxpct = @(a,b,c,d,e,f) [maxpct(sort(a.dmse(:))),maxpct(sort(b.dmse(:))),maxpct(sort(c.dmse(:))),maxpct(sort(d.dmse(:))),maxpct(sort(e.dmse(:))),maxpct(sort(f.dmse(:)))];
-all_all_maxpct(robust_beta50_optimal, robust_beta100_optimal, robust_beta200_optimal, robust_beta400_optimal, robust_beta800_optimal,robust_beta800_optimal)
+print_mse_all = @(stats) fprintf('%s: %.1f (%.1f-%.1f)\n',stats.name,sqrt(mean(stats.mse(:))),sqrt(minrange(sort(stats.mse(:)))), sqrt(maxrange(sort(stats.mse(:)))) );
+fprintf('---rmse---\n');
+for i=1:length(stat_structs)
+    print_mse_all( stat_structs{i} );
+end
 
 fprintf('\n\n');
 fprintf('\\begin{tabular}{r | lllll} stride & optimal mse ($n_{eff}$) & blind optimal & robust & false pos/neg & robust 2nd & false pos/neg \\\\ \\hline \\hline \n');
@@ -221,23 +207,9 @@ for iOutlierRatio = 1:totalOutlierRatios
         for iStride=1:length(strides)
             fprintf('%d ', strides(iStride));
             
-%             print_pct(robust_beta50_optimal,iOutlierRatio,iStride,iSlope);
-%             print_pct(robust_beta100_optimal,iOutlierRatio,iStride,iSlope);
-%             print_pct(robust_beta200_optimal,iOutlierRatio,iStride,iSlope);
-%             print_pct(robust_beta400_optimal,iOutlierRatio,iStride,iSlope);
-%             print_pct(robust_beta800_optimal,iOutlierRatio,iStride,iSlope);
-            
-            printcol(robust_beta50_optimal,iOutlierRatio,iStride,iSlope);
-            printcol(robust_beta100_optimal,iOutlierRatio,iStride,iSlope);
-            printcol(robust_beta200_optimal,iOutlierRatio,iStride,iSlope);
-            printcol(robust_beta400_optimal,iOutlierRatio,iStride,iSlope);
-            printcol(robust_beta800_optimal,iOutlierRatio,iStride,iSlope);
-            
-            
-            the_maxpct = all_maxpct(robust_beta50_optimal, robust_beta100_optimal, robust_beta200_optimal, robust_beta400_optimal, robust_beta800_optimal,robust_beta800_optimal,iOutlierRatio,iStride,iSlope);
-            [themin, indices] = sort(the_maxpct);
-            
-            fprintf('&\t %d, %d, %d ',indices(1),indices(2),indices(3));
+            for i=1:length(stat_structs)
+                print_mse( stat_structs{i},iOutlierRatio,iStride,iSlope );
+            end
             
             fprintf(' \\\\ \n');
             
