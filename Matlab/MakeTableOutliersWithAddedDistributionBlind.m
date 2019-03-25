@@ -1,16 +1,26 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
+% MakeTableOutliersWithAddedDistributionBlind
+%
+% This is the first (of two) scripts to test parameters used in the
+% manuscript.
+%
 % This script generates a signal using the Matern with three different
 % slopes. It then adds noise to the signal that include a known
 % (quantified) portion and an outlier portion. The script tries a variety
-% of added distributions to see which distribution performs the best.
+% of added distributions to see which distribution performs the best in
+% combination with a variety of range-restricted expected mean square error
+% minimizers.
 %
-% Note that this script uses *unblinded* data to minimize. So here we're
-% looking to see which distribution performs best. We later test minimizers
-% to see which performs best.
+% For student-t errors:
+% Overall, in terms of the smallest 90th percentile mean-square-error
+% *not* using an added distribution and simply doing a range restricted
+% minimization on the 99th percentile of expected noise is optimal. In
+% fact, it appears to outperform the normal minimizer when there are no
+% outliers.
 %
-% Overall, in terms of the smallest 90th percentile mean-square-error, the
-% added distribution with 1/10000 works best.
+% 2019/03/25 - JJE
+
 scaleFactor = 1;
 LoadFigureDefaults
 
@@ -159,8 +169,16 @@ else
                     alphaValues = [0, 1/100, 1/10000];
                     betaValues = 1./[50, 100, 200, 400, 800];
                     
-                    for alpha=alphaValues
-                        spline = RobustTensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected,'alpha',alpha,'outlierMethod',OutlierMethod.doNothing);
+                    for alpha=alphaValues                      
+                        if alpha > 0
+                            nu = 3.0;
+                            sigma = sqrt(noiseDistribution.variance*1000*(nu-2)/nu);
+                            distribution = AddedDistribution(alpha,StudentTDistribution(sigma,nu),noiseDistribution);
+                        else
+                            distribution = noiseDistribution;
+                        end
+                        
+                        spline = TensionSpline(t_obs,x_obs,distribution, 'S', S, 'lambda',Lambda.fullTensionExpected);
                         spline.minimizeMeanSquareError(data.t,data.x);
                         iStruct = iStruct+1;
                         stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
@@ -168,7 +186,8 @@ else
                         for beta=betaValues
                             zmin = noiseDistribution.locationOfCDFPercentile(beta/2);
                             zmax = noiseDistribution.locationOfCDFPercentile(1-beta/2);
-                            spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
+                            expectedVariance = noiseDistribution.varianceInRange(zmin,zmax);
+                            spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax,expectedVariance) );
                             
                             iStruct = iStruct+1;
                             stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
@@ -184,6 +203,30 @@ else
     save(filename, varnames{:});
 end
 
+% We find the lowest mean square error (mse) that was achieved with a blind
+% minimization technique, and then use that as the basis for comparison.
+optimal_blind_mse = min(cat(5,stat_structs{1}.mse,stat_structs{3}.mse,stat_structs{4}.mse,stat_structs{5}.mse,stat_structs{6}.mse,stat_structs{7}.mse,stat_structs{9}.mse,stat_structs{10}.mse,stat_structs{11}.mse,stat_structs{12}.mse,stat_structs{13}.mse,stat_structs{15}.mse,stat_structs{16}.mse,stat_structs{17}.mse,stat_structs{18}.mse,stat_structs{19}.mse),[],5);
+dmse = @(stats) log10(stats.mse./optimal_blind_mse);
+for i=1:length(stat_structs)
+    stat_structs{i}.dmse = dmse(stat_structs{i});
+end
+pct_range = 0.9; %0.6827; % Chosen to match 1-sigma for a Gaussian (these are not Gaussian).
+minpct = @(values) 100*(10^values(ceil( ((1-pct_range)/2)*length(values)))-1);
+maxpct = @(values) 100*(10^values(floor( ((1+pct_range)/2)*length(values)))-1);
+print_dmse_outlier = @(stats,iOutlierRatio) fprintf('%s: %.1f (%.1f-%.1f)\n',stats.name ,100*(10^mean(reshape(stats.dmse(iOutlierRatio,:,:,:),[],1))-1),minpct(sort(reshape(stats.dmse(iOutlierRatio,:,:,:),[],1))), maxpct(sort(reshape(stats.dmse(iOutlierRatio,:,:,:),[],1))) );
+for iOutlierRatio=1:length(outlierRatios)
+    fprintf('---dmse for %.2f outliers---\n',outlierRatios(iOutlierRatio));
+    for i=1:length(stat_structs)
+        print_dmse_outlier( stat_structs{i},iOutlierRatio );
+    end
+    fprintf('\n\n');
+end
+
+
+
+return
+
+
 pct_range = 0.90;%0.6827; % Chosen to match 1-sigma for a Gaussian (these are not Gaussian).
 minpct = @(values) 100*values(ceil( ((1-pct_range)/2)*length(values)));
 maxpct = @(values) 100*values(floor( ((1+pct_range)/2)*length(values)));
@@ -194,9 +237,20 @@ maxrange = @(values) values(floor( ((1+pct_range)/2)*length(values)));
 print_mse = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.1f (%.1f-%.1f) ',100*mean(stats.mse(iOutlierRatio,iStride,iSlope,:)),minpct(sort(stats.mse(iOutlierRatio,iStride,iSlope,:))), maxpct(sort(stats.mse(iOutlierRatio,iStride,iSlope,:))) );
 
 print_mse_all = @(stats) fprintf('%s: %.1f (%.1f-%.1f)\n',stats.name,sqrt(mean(stats.mse(:))),sqrt(minrange(sort(stats.mse(:)))), sqrt(maxrange(sort(stats.mse(:)))) );
-fprintf('---rmse---\n');
+fprintf('---rmse overall---\n');
 for i=1:length(stat_structs)
     print_mse_all( stat_structs{i} );
+end
+fprintf('\n\n');
+
+print_mse_outlier = @(stats,iOutlierRatio) fprintf('%s: %.1f (%.1f-%.1f)\n',stats.name ,sqrt(mean(reshape(stats.mse(iOutlierRatio,:,:,:),[],1))),sqrt(minrange(sort(reshape(stats.mse(iOutlierRatio,:,:,:),[],1)))), sqrt(maxrange(sort(reshape(stats.mse(iOutlierRatio,:,:,:),[],1))) ));
+
+for iOutlierRatio=1:length(outlierRatios)
+    fprintf('---rmse for %.2f outliers---\n',outlierRatios(iOutlierRatio));
+    for i=1:length(stat_structs)
+        print_mse_outlier( stat_structs{i},iOutlierRatio );
+    end
+    fprintf('\n\n');
 end
 
 fprintf('\n\n');
