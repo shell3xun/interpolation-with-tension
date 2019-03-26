@@ -32,12 +32,12 @@ else
     totalSlopes = length(slopes);
 
     strides = [5;20;80;200];
-     strides = 200;
+%      strides = 200;
     totalStrides = length(strides);
-    totalEnsembles = 11; % best to choose an odd number for median
+    totalEnsembles = 51; % best to choose an odd number for median
     
-    outlierRatios = [0.05 0.15 0.25];
-     outlierRatios = 0.15;
+    outlierRatios = [0 0.05 0.15 0.25];
+%      outlierRatios = 0.15;
     totalOutlierRatios = length(outlierRatios);
     
     % spline fit parameters
@@ -140,42 +140,54 @@ else
                     % Range-restricted expected mean square error. This is
                     % our baseline.
                     beta = 1/100;
-                    [~,mse0] = spline.minimizeExpectedMeanSquareErrorInPercentileRange(beta/2,1-beta/2);
+                    [lambda1,mse1] = spline.minimizeExpectedMeanSquareErrorInPercentileRange(beta/2,1-beta/2);
                     
                     iStruct = 1;
                     stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
-                    
-                    spline.sigma = spline.sigmaAtFullTension;
-                    [~,mse1] = spline.minimizeExpectedMeanSquareErrorInPercentileRange(beta/2,1-beta/2);
-                    
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    % Range-restricted expected mean square error using the
-                    % pdf crossover point.
-                    
-                    minimizationPDFRatio = 1;
-                    [lambda1,mse1] = spline.minimizeExpectedMeanSquareErrorInNoiseRange(minimizationPDFRatio);
-                    
+                    % Range-restricted expected mean square error, with
+                    % different initial sigma.
+                    spline.sigma = spline.sigmaAtFullTension;
+                    spline.lambda = spline.lambdaAtFullTension;
+                    [~,mse2] = spline.minimizeExpectedMeanSquareErrorInPercentileRange(beta/2,1-beta/2);
+                    if mse1 < mse2
+                        spline.sigma = sqrt(spline.distribution.variance);
+                        spline.lambda = lambda1;
+                    end
                     
                     iStruct = iStruct+1;
                     stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
-                    fprintf('expected (%.1f, %.1f) actual (%.1f, %.1f)\n',mse0,mse1,stat_structs{iStruct-1}.mse(linearIndex),stat_structs{iStruct}.mse(linearIndex));
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    % Range-restricted expected mean square error using the
+                    % pdf crossover point.
+                    spline.sigma = sqrt(spline.distribution.variance);
+                    spline.lambda = spline.lambdaAtFullTension;
+                    
+                    minimizationPDFRatio = 1;
+                    [lambda1,mse1] = spline.minimizeExpectedMeanSquareErrorInNoiseRange(minimizationPDFRatio);
+                    
+                    iStruct = iStruct+1;
+                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+                    
+%                     fprintf('expected (%.1f, %.1f) actual (%.1f, %.1f)\n',mse0,mse1,stat_structs{iStruct-1}.mse(linearIndex),stat_structs{iStruct}.mse(linearIndex));
 
                     
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                     % Using the full tension values, search for an
                     % alternative global minimum
-                    iStruct = iStruct+1;
-                    if spline.alpha > 0
-                        spline.sigma = spline.sigmaAtFullTension;
-                        [~,mse2] = spline.minimizeExpectedMeanSquareErrorInNoiseRange(minimizationPDFRatio);
-                        if mse1 < mse2
-                            spline.sigma = sqrt(spline.distribution.variance);
-                            spline.lambda = lambda1;
-                        end
-                    end
                     
+                    spline.sigma = spline.sigmaAtFullTension;
+                    spline.lambda = spline.lambdaAtFullTension;
+                    
+                    [~,mse2] = spline.minimizeExpectedMeanSquareErrorInNoiseRange(minimizationPDFRatio);
+                    if mse1 < mse2
+                        spline.sigma = sqrt(spline.distribution.variance);
+                        spline.lambda = lambda1;
+                    end
+                        
+                    iStruct = iStruct+1;
                     stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                 end

@@ -16,8 +16,8 @@ lon = drifters.lon{choiceDrifter};
 lon0 = min(lon)+(max(lon)-min(lon))/2;
 spline = GPSTensionSpline(t_drifter,lat,lon,'shouldUseRobustFit',1);
 
-spline.estimateOutlierDistribution();
-mse1 = spline.minimizeExpectedMeanSquareErrorInNoiseRange();
+% spline.estimateOutlierDistribution();
+% mse1 = spline.minimizeExpectedMeanSquareErrorInNoiseRange();
 
 tq = linspace(min(spline.t),max(spline.t),10*length(spline.t));
 [xq,yq] = spline.xyAtTime(tq);
@@ -25,12 +25,12 @@ tq = linspace(min(spline.t),max(spline.t),10*length(spline.t));
 figure
 scatter(spline.x,spline.y,(2.5)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
 plot(xq,yq,'k','LineWidth',1.5),axis equal
-
-spline.setSigmaFromFullTensionSolution();
-mse2 = spline.minimizeExpectedMeanSquareErrorInNoiseRange();
-
-[xq,yq] = spline.xyAtTime(tq);
-plot(xq,yq)
+return
+% spline.setSigmaFromFullTensionSolution();
+% mse2 = spline.minimizeExpectedMeanSquareErrorInNoiseRange();
+% 
+% [xq,yq] = spline.xyAtTime(tq);
+% plot(xq,yq)
 
 t_drifter = (drifters.date{7}-drifters.lastDeployment)*24*60*60;
 spline7 = GPSTensionSpline(t_drifter,drifters.lat{7},drifters.lon{7},'lon0',spline.lon0);
