@@ -25,7 +25,7 @@ tq = linspace(min(spline.t),max(spline.t),10*length(spline.t));
 figure
 scatter(spline.x,spline.y,(2.5)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
 plot(xq,yq,'k','LineWidth',1.5),axis equal
-return
+
 % spline.setSigmaFromFullTensionSolution();
 % mse2 = spline.minimizeExpectedMeanSquareErrorInNoiseRange();
 % 
