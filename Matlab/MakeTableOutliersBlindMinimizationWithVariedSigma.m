@@ -18,9 +18,9 @@
 shouldUseStudentTDistribution = 1;
 
 if shouldUseStudentTDistribution == 1
-    filename = 'MSETableOutliersBlindMinimizationWithSigmaStudentT.mat';
+    filename = 'MSETableOutliersBlindMinimizationWithVariedSigmaStudentT.mat';
 else
-    filename = 'MSETableOutliersBlindMinimizationSigmaNormal.mat';
+    filename = 'MSETableOutliersBlindMinimizationVariedSigmaNormal.mat';
 end
 
 if exist(filename,'file')
@@ -33,11 +33,11 @@ else
 
     strides = [5;20;80;200];
 %     strides = [80;200];
-%      strides = 200;
+     strides = 200;
     totalStrides = length(strides);
-    totalEnsembles = 101; % best to choose an odd number for median
+    totalEnsembles = 51; % best to choose an odd number for median
     
-    outlierRatios = [0 0.05 0.15 0.25];
+    outlierRatios = 0.25;
 %     outlierRatios = [0.15 0.25];
 %      outlierRatios = 0.15;
     totalOutlierRatios = length(outlierRatios);
@@ -69,10 +69,9 @@ else
     total_outliers = nothing; varnames{end+1} = 'total_outliers';
  
     stat_structs = cell(1,1);
-    stat_structs{1} = nothing_struct; stat_structs{end}.name = 'minimization_noise_range';
-    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_noise_range_sigma';
-    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1';
-    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1_sigma';
+    stat_structs{1} = nothing_struct; stat_structs{end}.name = 'sqrt_variance';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'studentt_sigma';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'studentt_sigma10x';
     varnames{end+1} = 'stat_structs';
     
     for iOutlierRatio = 1:totalOutlierRatios
@@ -136,69 +135,30 @@ else
                     
                     alpha = 0;
                     spline = TensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected);
-                    spline.estimateOutlierDistribution();
                     
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                     % Range-restricted expected mean square error. This is
                     % our baseline.
                     beta = 1/100;
-                    [lambda1,mse1] = spline.minimizeExpectedMeanSquareErrorInPercentileRange(beta/2,1-beta/2);
-%                     mse1_true = compute_ms_error(spline);
+                    spline.minimizeExpectedMeanSquareErrorInPercentileRange(beta/2,1-beta/2);
                     
                     iStruct = 1;
                     stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
-                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    % Range-restricted expected mean square error, with
-                    % different initial sigma.
-                    spline.sigma = spline.sigmaAtFullTension;
-                    spline.lambda = spline.lambdaAtFullTension;
-                    [~,mse2] = spline.minimizeExpectedMeanSquareErrorInPercentileRange(beta/2,1-beta/2);
-%                     mse2_true = compute_ms_error(spline);
-                    if mse1 < mse2
-                        spline.sigma = sqrt(spline.distribution.variance);
-                        spline.lambda = lambda1;
-%                         if (mse1_true/mse2_true > 1.1)
-%                             fprintf('Oops, bad choice. mse1 was worse by 10 percent.')
-%                         end
-%                     elseif (mse2_true/mse1_true > 1.1)
-%                         fprintf('Oops, bad choice. mse2 was worse by 10 percent.')
-                    end
+                    
+                    spline.sigma = spline.distribution.sigma;
+                    spline.minimizeExpectedMeanSquareErrorInPercentileRange(beta/2,1-beta/2);
                     
                     iStruct = iStruct+1;
                     stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
-                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    % Range-restricted expected mean square error using the
-                    % pdf crossover point.
-                    spline.sigma = sqrt(spline.distribution.variance);
-                    spline.lambda = spline.lambdaAtFullTension;
                     
-                    minimizationPDFRatio = 1;
-                    [lambda1,mse1] = spline.minimizeExpectedMeanSquareErrorInNoiseRange(minimizationPDFRatio);
+                    spline.sigma = 30*spline.distribution.sigma;
+                    spline.minimizeExpectedMeanSquareErrorInPercentileRange(beta/2,1-beta/2);
                     
                     iStruct = iStruct+1;
                     stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
-%                     fprintf('expected (%.1f, %.1f) actual (%.1f, %.1f)\n',mse0,mse1,stat_structs{iStruct-1}.mse(linearIndex),stat_structs{iStruct}.mse(linearIndex));
 
-                    
-                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    % Using the full tension values, search for an
-                    % alternative global minimum
-                    
-                    spline.sigma = spline.sigmaAtFullTension;
-                    spline.lambda = spline.lambdaAtFullTension;
-                    
-                    [~,mse2] = spline.minimizeExpectedMeanSquareErrorInNoiseRange(minimizationPDFRatio);
-                    if mse1 < mse2
-                        spline.sigma = sqrt(spline.distribution.variance);
-                        spline.lambda = lambda1;
-                    end
-                        
-                    iStruct = iStruct+1;
-                    stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
-                    
                 end
                 fprintf('\n');
             end
@@ -220,9 +180,11 @@ for i=1:length(stat_structs)
 end
 
 
-print_dmse = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.1f (%.1f-%.1f) ',100*(10^median(stats.dmse(iOutlierRatio,iStride,iSlope,:))-1),minpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))), maxpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))) );
+print_dmse = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %.3f (%.1f-%.1f) ',100*(10^mean(stats.dmse(iOutlierRatio,iStride,iSlope,:))-1),minpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))), maxpct(sort(stats.dmse(iOutlierRatio,iStride,iSlope,:))) );
 printcol = @(stats,iOutlierRatio,iStride,iSlope) fprintf('& %#.3g/%#.3g m$^2$ (%#.3g) (%d/%d) ', median(stats.mse(iOutlierRatio,iStride,iSlope,:)),mean(stats.mse(iOutlierRatio,iStride,iSlope,:)), median(stats.neff_se(iOutlierRatio,iStride,iSlope,:)), median(stats.false_positives(iOutlierRatio,iStride,iSlope,:)), median(stats.false_negatives(iOutlierRatio,iStride,iSlope,:)) );
 print_dmse_all = @(stats) fprintf('%s: & %.2f (%.2f) (%.2f-%.2f)\n',stats.name,100*(10^mean(stats.dmse(:))-1),100*(10^median(stats.dmse(:))-1),minpct(sort(stats.dmse(:))), maxpct(sort(stats.dmse(:))) );
+
+std_error = @(stats,iOutlierRatio,iStride,iSlope) fprintf('%.3f',100*(10^(std(stats.dmse(iOutlierRatio,iStride,iSlope,:))/sqrt(length(stats.dmse(iOutlierRatio,iStride,iSlope,:))))-1));
 
 fprintf('---dmse---\n');
 for i=1:length(stat_structs)
@@ -266,6 +228,7 @@ for iOutlierRatio = 1:totalOutlierRatios
                         
             for i=1:length(stat_structs)
                 print_dmse( stat_structs{i},iOutlierRatio,iStride,iSlope );
+                std_error( stat_structs{i},iOutlierRatio,iStride,iSlope );
             end
 
             

@@ -22,6 +22,8 @@ spline = GPSTensionSpline(t_drifter,lat,lon,'shouldUseRobustFit',1);
 tq = linspace(min(spline.t),max(spline.t),10*length(spline.t));
 [xq,yq] = spline.xyAtTime(tq);
 
+fprintf('n_eff (x,y): (%.1f, %.1f)\n',spline.spline_x.effectiveSampleSizeFromVarianceOfTheMean,spline.spline_y.effectiveSampleSizeFromVarianceOfTheMean);
+
 figure
 scatter(spline.x,spline.y,(2.5)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
 plot(xq,yq,'k','LineWidth',1.5),axis equal
@@ -34,6 +36,9 @@ plot(xq,yq,'k','LineWidth',1.5),axis equal
 
 t_drifter = (drifters.date{7}-drifters.lastDeployment)*24*60*60;
 spline7 = GPSTensionSpline(t_drifter,drifters.lat{7},drifters.lon{7},'lon0',spline.lon0);
+
+fprintf('n_eff (x,y): (%.1f, %.1f)\n',spline7.spline_x.effectiveSampleSizeFromVarianceOfTheMean,spline7.spline_y.effectiveSampleSizeFromVarianceOfTheMean);
+
 
 tq = linspace(min(spline7.t),max(spline7.t),10*length(spline7.t));
 [xq,yq] = spline7.xyAtTime(tq);
