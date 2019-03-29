@@ -188,7 +188,8 @@ It appears to be true that this formulation results in a spline with highest der
 The examples shown here are implemented with a series of classes in Matlab. The Matlab class \texttt{BSpline} creates and evaluates a complete B-Spline basis set given a set of knot points. Its subclass \texttt{InterpolatingSpline} creates an interpolating splines of arbitrary order given a set of data points $(t_i, x_i)$, essentially generalizing the cubic spline implementation that ships with Matlab.
 
 %%%%%%%%%%%%%%%%%%%%%%
-\subsection{Synthetic Data} \label{sec:synthetic_data}
+\subsection{Synthetic Data}
+\label{sec:synthetic_data}
 %%%%%%%%%%%%%%%%%%%%%%
 
 Throughout this manuscript we generate synthetic data for both the signal and the noise. The velocity of the signal is generated from a Gaussian process known as the Mat\'ern \cite{lilly2017-npg}. The spectrum of the Mat\'ern is given by
@@ -288,7 +289,7 @@ The interpretation of the smoothing spline is therefore that the two terms are b
 \label{sec:maximum_likelihood}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The penalty function for the smoothing spline (\ref{smoothing-spline}) can be restated in terms of maximum likelihood under some conditions \cite{}. Assume that in addition to knowing about how the measurement errors are distributed like in equation \ref{max-gaussian}, that we also know how the velocity of underlying physical process is distributed. For example, in geophysical turbulence it has been shown that the velocity probability distribution function is like the Laplace distribution \cite{bracco2000-pf}. To recover the smoothing spline, we need to consider the case where the velocity PDF is Gaussian. Stated as maximum likelihood, this means that at \emph{any given instant} (not just the times of observation) we expected the model velocity to look Gaussian. We can discretize the problem by sampling the velocity $Q$ at times $t_q = t_1 + q \Delta t_q$ where $\Delta t_q=\frac{t_N-t_1}{Q-1}$ and $q=0..Q-1$. The maximum likelihood is thus stated as,
+The penalty function for the smoothing spline (\ref{smoothing-spline}) can be restated in terms of maximum likelihood under some conditions (see chapter 3.8 in \cite{green1994-book}). Assume that in addition to knowing about how the measurement errors are distributed like in equation \ref{max-gaussian}, that we also know how the velocity of underlying physical process is distributed. For example, in geophysical turbulence it has been shown that the velocity probability distribution function is like the Laplace distribution \cite{bracco2000-pf}. To recover the smoothing spline, we need to consider the case where the velocity PDF is Gaussian. Stated as maximum likelihood, this means that at \emph{any given instant} (not just the times of observation) we expected the model velocity to look Gaussian. We can discretize the problem by sampling the velocity $Q$ at times $t_q = t_1 + q \Delta t_q$ where $\Delta t_q=\frac{t_N-t_1}{Q-1}$ and $q=0..Q-1$. The maximum likelihood is thus stated as,
 \begin{equation}
 \label{gaussian-max-likelihood}
 \begin{split}
@@ -328,7 +329,7 @@ where $||\cdot||^2$ is the Euclidean norm and $\Tr$ indicates the trace.
 
 It's worth noting that a fair amount of the literature on smoothing splines is devoted to minimizing the mean square error when the variance, $\sigma^2$, is \emph{not} known. For example, \cite{wahba1978-jrss-b} and \cite{craven1979-nm} use cross-validation to estimate $\sigma$ and minimize the mean square error. Recent work comparing different estimators shows that no single technique appears to be optimal \cite{lee2003-csda}. Fortunately for us, the errors in GPS data can be relatively easily established, as shown in section \ref{sec:drifter_data_set}.
 
-The mean square error in equation \ref{MSE} is a combination of the sample variance and the variance of the mean. The first terms in equation \ref{MSE} is the sample variance and can be related the effective sample size using equation \ref{sample_variance_variance}. We use this to define the effective sample size from the sample variance, $n_{\textrm{eff}}^{\textrm{var}}$ with
+The mean square error in equation \ref{MSE} is a combination of the sample variance and the variance of the mean. The first term in equation \ref{MSE} is the sample variance and can be related the effective sample size using equation \ref{sample_variance_variance}. We use this to define the effective sample size from the sample variance, $n_{\textrm{eff}}^{\textrm{var}}$ with
 \begin{equation}
 \label{dof_var}
     \left(1-\frac{1}{n_{\textrm{eff}}^{\textrm{var}}} \right)\sigma^2 = \frac{1}{N} || \left( \mathbf{I} - \mathbf{S_\lambda} \right) \mathbf{x} ||^2.
@@ -340,7 +341,6 @@ The second term is proportional to twice squared standard error. As shown in \ci
 \end{equation}
 Taking the measures of effective sample size as functions of $\lambda$, the mean square error is given by,
 \begin{equation}
-\label{MSE}
     \textrm{MSE}(\lambda) = 2\frac{\sigma^2}{n_{\textrm{eff}}^{\textrm{SE}}} - \frac{\sigma^2}{n_{\textrm{eff}}^{\textrm{var}}}
 \end{equation}
 If one assumes that $n_{\textrm{eff}} = n_{\textrm{eff}}^{\textrm{var}} = n_{\textrm{eff}}^{\textrm{SE}}$, then the expected mean square error from equation \ref{MSE} is equal to $\sigma^2/n_{\textrm{eff}}$.
@@ -357,11 +357,9 @@ These measures of effective sample size can be used to estimate the value of $\l
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
-With a model path (equation \ref{b-spline-model-intro}), a smoothing spline penalty function (equation \ref{smoothing-spline}), and a minimization condition (equation \ref{MSE}), we have all the primary pieces in place to create a smoothing spline interpolant to the data. However, there are a number of choices that still have to be made. In this section we use synthetically generated data to represented our physical process, and then contaminate the process with Gaussian noise. We use this synthetically generated data to test our ability to recover the signal and examine the effects of changing the spline order and tension order on the mean-square error and the resulting spectrum.
+With a model path (equation \ref{b-spline-model-intro}), a smoothing spline penalty function (equation \ref{smoothing-spline}), and a minimization condition (equation \ref{MSE}), we have all the primary pieces in place to create a smoothing spline interpolant to the data. However, there are a number of choices that still have to be made. In this section we use synthetically generated data to represented our physical process, and then contaminate the process with Gaussian noise as described in section \ref{sec:synthetic_data}. We use this synthetically generated data to test our ability to recover the signal and examine the effects of changing the spline order and tension order on the mean-square error and the resulting spectrum.
 
-The results of this section are empirical, and it's important to acknowledge upfront that any conclusions reached \emph{may} depend on our particular choice of physical model that generates the signal. Nevertheless, our hope is that the conclusions here are `O(1)' correct, and applicable, at least, to our GPS tracked drifter dataset.
-
-
+The results of this section are empirical, and it's important to acknowledge upfront that any conclusions reached \emph{may} depend on our particular choice of physical model that generates the signal which has been chosen to resemble the oceanographic data of interest. Nevertheless, our hope is that the conclusions here are `O(1)' correct, and applicable, at least, to our GPS tracked drifter dataset.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Tension degree, $T$} \label{tension_degree}
@@ -389,10 +387,6 @@ T & 1 & 2 & 3 & 4 & 5 \\ \midrule
 \end{table}
 
 The results in table \ref{optimal_T} show that while setting $T=S$ may not always be optimal, it is never significantly worse (in a statistical sense) than the optimal choice for these synthetic datasets. Thus, for the remainder of the manuscript, we will always take $T=S$. This choice is the same as the special case highlighted in section \ref{sec:smoothing_spline}.
-
-The other significant conclusion from table \ref{optimal_T} is that applying tension at $S=1$ is not optimal.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Loss of coherence} \label{loss_of_coherence}
@@ -493,12 +487,14 @@ $\omega^{-4}$ &&&&  \\ \hline
 
 Table \ref{fit_results_gaussian} summarizes the key results of this section by applying a tension spline with with $S=2$ to the processes with three different slope ($\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$), four different strides (2,8,32,128) and 15 ensembles of noise. The first column shows the average mean square error and effective sample size when the tension spline is applied using the true values to minimize the mean square error---this is the lower bound. The second column shows average increase in mean-square error when reducing the number of spline coefficient as document in section \ref{reduced_coefficients}. There is almost no change mean-square error. The third column uses equation \ref{lambda_initial_guess} from section \ref{interpolation_condition} to provide a (blind) initial guess of the tension parameter. Here the results are mixed---a typical increase in mean-square error is about 50\% when the effective sample size is large. While this might seem large, this is a small fraction of the total variance of the noise, e.g., an optimal mean square error of $4$ m$^2$ increase to $6$ m$^2$ when the total variance is $100$ m$^2$. When the data sets are small (and computation time isn't a limiting factor), nearly optimal fits can be found using equation \ref{MSE}, as shown in the last column of the table.
 
+Is it worth comparing to cross-validation and generalized cross-validation and log-likelihood?
+
 %%%%%%%%%%%%%%%%%%%%%%
 \section{Bivariate tension splines and stationarity}
 \label{sec:bivariate}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The term `bivariate` in the context of splines is sometimes used to denote splines defined on two independent variables---however, in this context we define bivariate to mean two dependent variables (e.g., $x$ and $y$) and one independent variable (e.g., $t$).
+The term `bivariate' in the context of splines is often used to denote splines defined on two independent variables---however, in this context we define bivariate to mean two dependent variables (e.g., $x$ and $y$) and one independent variable (e.g., $t$).
 
 The trivial approach to working with such bivariate data is to treat each direction independently---i.e., minimize $\lambda^x_T$ and $\lambda^y_T$ independently of each other. However, the more physically interesting case is when the underlying process is suspected of being isotropic. In the context of the maximum likelihood formulation of tension spline, equation \ref{smoothing-spline-pdf}, this means that we expected $x^{(T)}_{\textrm{rms}}$ (the rms value of the tensioned variable) to be the same in all directions (invariant under rotation). Note, however, that this does \emph{not} mean that $\lambda_x$ should necessarily equal $\lambda_y$. To be explicit, if 
 \begin{align}
@@ -551,7 +547,7 @@ The primary dataset considered here will be nine surface drifters that were depl
 
 The GPS receiver sits on the surface buoy and collects position data, but because of atmospheric conditions or ocean waves, the receivers are sometimes unable to obtain a position, or when they do, it is highly inaccurate. Thus, despite nominal accuracies of a few meters, it is often the case that some positions are off by more than 1000 meters, as can be seen in figure \ref{gpsfit}. Taking $\sigma=10$ meters and applying a tension spline fit using the methodology in section \ref{sec:smoothing_spline} produces an obviously horrible fit, with clear overshoots to bad data points.
 
-In the following two sections we examine the expected errors from GPS position data and devise a technique for removing outlier data.
+In the following two sections we examine the expected errors from GPS position data and test the effectiveness of tension splines with non-Gaussian errors.
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
@@ -583,14 +579,14 @@ The Student t-distribution is a generalization of the Gaussian that produces lon
 \label{student_pdf}
 p_t\left(\epsilon |\nu,\sigma_t^2\right) = \frac{\Gamma\left( \frac{\nu + 1}{2} \right)}{\sigma_t \sqrt{\nu \pi} \Gamma\left(\frac{\nu}{2}\right)} \left( 1 + \frac{\epsilon^2}{\sigma_t^2 \nu} \right)^{-\frac{\nu+1}{2}}
 \end{equation}
-where the $\sigma_t$ parameter scales the distribution width and the $\nu$ parameter sets the number of degrees of freedom. The variance is $\textrm{var}(X)=\sigma_t^2 \frac{\nu}{\nu-2}$ and only exists for $\nu > 2$. The t-distribution is equivalent to the Gaussian distribution when $\nu \rightarrow \infty$. We find the best fit t-distribution to the data by maximizing the Kolmogorov-Smirnoff test. The best fit with parameters $\sigma_t \approx 8.5$ meters and $\nu \approx 4.5$ is shown as the black line in figure \ref{motionless_error}.
+where the $\sigma_t$ parameter scales the distribution width and the $\nu$ parameter sets the number of degrees of freedom. The variance is $\textrm{var}(X)=\sigma_t^2 \frac{\nu}{\nu-2}$ and only exists for $\nu > 2$. The t-distribution is equivalent to the Gaussian distribution when $\nu \rightarrow \infty$. We find the best fit t-distribution to the data by minimizing the Anderson-Darling test. The best fit with parameters $\sigma_t \approx 8.5$ meters and $\nu \approx 4.5$ is shown as the black line in figure \ref{motionless_error}. Different choices in GPS receivers and using the Kolmogorov-Smirnoff test results in very similar parameters, i.e., $\sigma_t\approx8-10$ meters and $\nu\approx4-6$.
 
 The \emph{position} error distributions also imply a combined \emph{distance} error distribution by computing $\epsilon_d = \sqrt{\epsilon_x^2 + \epsilon_y^2}$ and is shown in the lower panel of figure \ref{motionless_error}. For two independent Gaussian distributions this results in a Rayleigh distribution,
 \begin{equation}
 \label{rayleigh_pdf}
 p_r(\epsilon_d|\sigma_g) = \frac{\epsilon_d}{\sigma_g^2 } e^{-\frac{1}{2}\frac{\epsilon_d^2}{\sigma_g^2}}.
 \end{equation}
-The distance distribution for two t-distributions is computed numerically and is shown in the bottom panel of figure \ref{motionless_error}.
+The distance distribution for two t-distributions is computed numerically and is shown in the bottom panel of figure \ref{motionless_error} on top of the actual distance errors. Approximately 95\% of distance errors are within $30$ meters, shown as the vertical gray line in figure \ref{motionless_error}.
 
 \begin{figure}
   \centerline{\includegraphics[width=19pc,angle=0]{figures/gps_autocorrelation}}
@@ -647,27 +643,22 @@ The basic problem formulation is as follows: we define a new `robust distributio
 \label{robust_pdf}
     p_{\textrm{robust}}(\epsilon) = (1-\alpha) \cdot p_{\textrm{noise}}(\epsilon) + \alpha \cdot  p_{\textrm{outlier}}(\epsilon).
 \end{equation}
-Throughout our attempts to smooth the noisy GPS data we tried many different approaches to modifying tension splines for robustness to outliers, but ultimately, found that enormous gains in accuracy are made by simply
-\begin{enumerate}
-    \item assuming a value for $p_{\textrm{outlier}}$ \emph{a priori} and,
-    \item discarding outliers from the expected mean square error calculation, equation \ref{MSE}.
-\end{enumerate}
-The results of this approach are shown in section \ref{sec:robust_minimization}, but we found that in cases of low effective sample size (small $n_\textrm{eff}$), this approach alone did not produce the desired results. A refined technique is shown in section \ref{sec:refinement} which uses a `full tension' solution to create an estimate of the outlier distribution and serve as an initial seed for the IRLS solution.
+For this section we did not consider a normal distribution for $p_{\textrm{noise}}$, but considered only a Student's t-distribution with parameters found from the GPS errors in section \ref{gps_position_errors}. The distribution of $ p_{\textrm{outlier}}$ was also set to be a Student's t-distribution, but with $n=3$ and $\sigma=40\sigma_\textrm{gps}$ which roughly matches the total variance of the observed outliers. In our tests we varied $\alpha$ from 0 up to $0.25$, approximately the range of observed outliers from the drifter data sets.
+
+Throughout our attempts to smooth the noisy GPS data we tried many different approaches to modifying tension splines for robustness to outliers, but ultimately, found that enormous gains in accuracy are made by simply discarding outliers while minimizing the expected mean square error, equation \ref{MSE}. The results of this approach are shown in section \ref{sec:robust_minimization}, but we also document our methodology to reliably estimate the outlier distribution in section XX.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Robust minimization}
 \label{sec:robust_minimization}
 %%%%%%%%%%%%%%%%%%%%%%
 
-A classic approach to robust estimation is to use a weight function, such as Tukey's biweight, to discard points beyond some distance from the model fit \cite{press1992-book}. In the approach taken here, we assume an outlier distribution for equation \ref{robust_pdf} and use the resulting weight function from that. The value of $\alpha$ is somewhat arbitrarily chosen to be $0.01$ and the pdf for the outliers is taken to be a Student's t-distribution with $\nu=3.0$ with $\sigma$ chosen so that the variance is 1000 times the variance of $p_{\textrm{noise}}$. The idea here is that the weight function (appendix \ref{sec:summed_distributions}) can now un-weight points unlikely to occur with the expected noise distribution, but unlike Tukey's biweight, it results from a valid distribution and never fully discards outliers.
-
-The whole problem with outliers is that we don't know their distribution, so minimizing the expected mean square error using equation \ref{MSE} with the expected variance from the robust distribution defined in equation \ref{robust_pdf} cannot possibly work. Outliers add extra variance, and will therefore cause the spline to be under tensioned. The key innovation in our method is to simply exclude the outliers from the calculation of equation \ref{MSE}. The robust expected mean square error thus replaces $\sigma^2$ with,
+The whole problem with outliers is that we don't know their distribution, so minimizing the expected mean square error using equation \ref{MSE} with the expected variance from the robust distribution defined in equation \ref{robust_pdf} cannot possibly work. Outliers add extra variance, and will therefore cause the spline to be under tensioned. The key idea in our method is to simply exclude the outliers from the calculation of equation \ref{MSE}, where outliers are defined as points unlikely to arise with the known noise distribution. The robust expected mean square error thus replaces $\sigma^2$ with,
 \begin{equation}
     \sigma^2 = \int_{\textrm{cdf}^{-1}(\alpha/2)}^{\textrm{cdf}^{-1}(1-\alpha/2)} z^2 p_{\textrm{noise}}(z) \, dz
 \end{equation}
 and discards all rows (and columns) of $\mathbf{S}_\lambda$ where $\left(\mathbf{S}_\lambda - I\right)\mathbf{x}<\textrm{cdf}^{-1}(\alpha/2)$ or $\left(\mathbf{S}_\lambda - I\right)\mathbf{x}>\textrm{cdf}^{-1}(1-\alpha/2)$.
 
-To test this approach we generate data as before, but now also let a certain percentage of outliers ($\alpha$) be generated with an outlier distibution. Results are shown here.
+To test this approach we generate data as before, but now also let a certain percentage of outliers ($\alpha$) be generated with an outlier distribution. Results are shown here.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Full tension solution and outlier distribution}
@@ -682,7 +673,7 @@ The outlier distribution is estimated in the following fashion. We first assume 
 \begin{equation}
     \textrm{var}_\textrm{total} = (1-\alpha) \textrm{var}_\textrm{noise} + \alpha 3 \sigma_o^2
 \end{equation}
-which, given some $\alpha$, can be solved for $\sigma_o$. Our method considers 100 different values of alpha logarthimically spaced from $0.01$ to $0.5$ and chooses the value which minimizes the Anderson-Darling test.
+which, given some $\alpha$, can be solved for $\sigma_o$. Our method considers 100 different values of alpha logarithmicaly spaced from $0.01$ to $0.5$ and chooses the value which minimizes the Anderson-Darling test.
 
 With an estimate for $p_{\textrm{robust}}(\epsilon)$, the the full tension solution can be refined by now minimizing the Anderson-Darling test of $p_{\textrm{robust}}(\epsilon)$ on the interquartile of observed errors. This iterative process converges quite quickly on both a good estimate for the outlier distribution and the full tension solution.
 
@@ -690,6 +681,8 @@ With an estimate for $p_{\textrm{robust}}(\epsilon)$, the the full tension solut
 \subsection{Refined MSE estimate and IRLS seed}
 \label{sec:refinement}
 %%%%%%%%%%%%%%%%%%%%%%
+
+A classic approach to robust estimation is to use a weight function, such as Tukey's biweight, to discard points beyond some distance from the model fit \cite{press1992-book}. In the approach taken here, we assume an outlier distribution for equation \ref{robust_pdf} and use the resulting weight function from that. The value of $\alpha$ is somewhat arbitrarily chosen to be $0.01$ and the pdf for the outliers is taken to be a Student's t-distribution with $\nu=3.0$ with $\sigma$ chosen so that the variance is 1000 times the variance of $p_{\textrm{noise}}$. The idea here is that the weight function (appendix \ref{sec:summed_distributions}) can now un-weight points unlikely to occur with the expected noise distribution, but unlike Tukey's biweight, it results from a valid distribution and never fully discards outliers.
 
 With an estimate for $p_{\textrm{outlier}}(\epsilon)$, a more sensible distance cutoff for ranged expected mean-square error estimate can be made. Rather than simply finding a cutoff based on the expected noise distribution, we now cutoff at the point where the probability of a point being an outlier is greater than it being part of the characterized noise, i.e., $\epsilon$ where
 \begin{equation}
