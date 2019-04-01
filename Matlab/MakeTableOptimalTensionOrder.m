@@ -8,13 +8,14 @@ if exist(filename,'file')
     load(filename);    
 else
     slopes = [-2; -3; -4];
-    slopes = -3;
+%     slopes = -3;
     S_range = 1:5;
     strides = [5;20;80;200];
+%     strides = 20;
     
     totalSlopes = length(slopes);
     totalStrides = length(strides);
-    totalEnsembles = 5;
+    totalEnsembles = 101;
     
     % matern signal parameters
     sigma_u = 0.20;
@@ -121,6 +122,8 @@ for iT = 1:length(S_range)
     fprintf('\\\\ \n');
 end
 fprintf(' \\bottomrule \n\\end{tabular} \n');
+
+return
 
 % now compute the ensemble average increase in error
 % rel_rms_error = mean(rel_rms_error,5);
