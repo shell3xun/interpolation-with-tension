@@ -13,16 +13,21 @@ if exist(filename,'file')
     load(filename);
 else
     slopes = [-2; -3; -4];
+    slopes = -3;
     totalSlopes = length(slopes);
 
-    result_stride = [5;20;200];
-    totalStrides = length(result_stride);
-    totalEnsembles = 50;
-
+    strides = [5;20;80;200];
+%     strides = [80;200];
+%      strides = 200;
+    totalStrides = length(strides);
+    totalEnsembles = 101; % best to choose an odd number for median
+    
     % spline fit parameters
     S = 2;
     T = S;
     K = S+1;
+     
+    varnames = {'S', 'T', 'slopes', 'strides', 'outlierRatios', 'totalEnsembles'};
     
     % matern signal parameters
     sigma_u = 0.20;
@@ -30,20 +35,145 @@ else
     t_damp = 30*60;
     n = 250;
 
+    % outlier parameters
+    outlierFactor = 40;
+    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % preallocate the variables we need to save
-    %
-    % Table: rows are different strides, columns different optimal mse
-    % columns: 1 knot dof,'auto' knot dof, initial guess, blind iteration
-    u_rms_true = zeros(totalSlopes,1);
-    a_rms_true = zeros(totalSlopes,1);
+    %   
+    nothing = nan(totalOutlierRatios, totalStrides, totalSlopes, totalEnsembles);
+    nothing_struct = struct('mse',nothing,'neff_se',nothing,'lambda',nothing,'nonOutlierEffectiveSampleSize',nothing,'nonOutlierSampleVariance',nothing,'false_negatives', nothing, 'false_positives', nothing,'rejects',nothing);
     
-    u_rms_true_strided = zeros(totalStrides,totalSlopes,totalEnsembles);
-    a_rms_true_strided = zeros(totalStrides,totalSlopes,totalEnsembles);
+    u_rms_true_strided = nothing; varnames{end+1} = 'u_rms_true_strided';
+    a_rms_true_strided = nothing; varnames{end+1} = 'a_rms_true_strided';
+    u_estimate_spectral = nothing; varnames{end+1} = 'u_estimate_spectral';
+    a_estimate_spectral = nothing; varnames{end+1} = 'a_estimate_spectral';
+    expected_neff = nothing; varnames{end+1} = 'expected_neff';
+ 
+    stat_structs = cell(1,1);
+    stat_structs{1} = nothing_struct; stat_structs{end}.name = 'minimization_noise_range';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_noise_range_sigma';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'minimization_ratio_1_sigma';
+    varnames{end+1} = 'stat_structs';
+           
+    for iSlope = 1:length(slopes)
+        slope = slopes(iSlope);
+        fprintf('slope %d, ',slope);
+        
+        for iStride=1:length(strides)
+            stride = strides(iStride);
+            dt = stride*base_dt;
+            fprintf('stride %d, ',stride);
+            
+            for iEnsemble = 1:totalEnsembles
+                fprintf('..%d',iEnsemble);
+                
+                % Generate the signal
+                cv=maternoise(dt,n,sigma_u*sqrt(2),abs(slope),1/t_damp);
+                cx = cumtrapz(cv)*dt;
+                data = struct('t',dt*(0:n-1)','x',real(cx));
+                
+                % record the 'true' (but strided) values of the signal
+                rms = @(x) sqrt( mean( x.*x ) );
+                u_rms_true_strided(iStride,iSlope,iEnsemble) = rms( diff(data.x)/dt );
+                a_rms_true_strided(iStride,iSlope,iEnsemble) = rms( diff(diff(data.x))/(dt^2) );
+                
+                compute_ms_error = @(spline) (mean(mean(  (data.x - spline(data.t)).^2,2 ),1));
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % Generate the noise
+                if shouldUseStudentTDistribution == 1
+                    nu = 4.5; sigma =  8.5;
+                    noiseDistribution = StudentTDistribution(sigma,nu);
+                else
+                    sigma = 10;
+                    noiseDistribution = NormalDistribution(sigma);
+                end
+                epsilon = noiseDistribution.rand(sum(~outlierIndices),1);
+                
+                x_obs = data.x + epsilon;
+                t_obs = data.t;
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % Unblinded best fit with standard tension spline
+                
+                linearIndex = sub2ind(size(nothing),iOutlierRatio,iStride,iSlope,iEnsemble);
+                
+                alpha = 0;
+                spline = TensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.optimalExpected);
+
+                
+                
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % Range-restricted expected mean square error.
+                beta = 1/100;
+                [lambda1,mse1] = spline.minimizeExpectedMeanSquareErrorInPercentileRange(beta/2,1-beta/2);
+                %                     mse1_true = compute_ms_error(spline);
+                
+                iStruct = 1;
+                stat_structs{iStruct} = LogStatisticsFromSplineForTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error);
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % Range-restricted expected mean square error, with
+                % different initial sigma.
+                spline.sigma = spline.sigmaAtFullTension;
+                spline.lambda = spline.lambdaAtFullTension;
+                [~,mse2] = spline.minimizeExpectedMeanSquareErrorInPercentileRange(beta/2,1-beta/2);
+                %                     mse2_true = compute_ms_error(spline);
+                if mse1 < mse2
+                    spline.sigma = sqrt(spline.distribution.variance);
+                    spline.lambda = lambda1;
+                    %                         if (mse1_true/mse2_true > 1.1)
+                    %                             fprintf('Oops, bad choice. mse1 was worse by 10 percent.')
+                    %                         end
+                    %                     elseif (mse2_true/mse1_true > 1.1)
+                    %                         fprintf('Oops, bad choice. mse2 was worse by 10 percent.')
+                end
+                
+                iStruct = iStruct+1;
+                stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % Range-restricted expected mean square error using the
+                % pdf crossover point.
+                spline.sigma = sqrt(spline.distribution.variance);
+                spline.lambda = spline.lambdaAtFullTension;
+                
+                minimizationPDFRatio = 1;
+                [lambda1,mse1] = spline.minimizeExpectedMeanSquareErrorInNoiseRange(minimizationPDFRatio);
+                
+                iStruct = iStruct+1;
+                stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+                
+                %                     fprintf('expected (%.1f, %.1f) actual (%.1f, %.1f)\n',mse0,mse1,stat_structs{iStruct-1}.mse(linearIndex),stat_structs{iStruct}.mse(linearIndex));
+                
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % Using the full tension values, search for an
+                % alternative global minimum
+                
+                spline.sigma = spline.sigmaAtFullTension;
+                spline.lambda = spline.lambdaAtFullTension;
+                
+                [~,mse2] = spline.minimizeExpectedMeanSquareErrorInNoiseRange(minimizationPDFRatio);
+                if mse1 < mse2
+                    spline.sigma = sqrt(spline.distribution.variance);
+                    spline.lambda = lambda1;
+                end
+                
+                iStruct = iStruct+1;
+                stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+                
+            end
+            fprintf('\n');
+        end
+    end
     
-    u_estimate_spectral = zeros(totalStrides,totalSlopes, totalEnsembles);
-    a_estimate_spectral = zeros(totalStrides,totalSlopes, totalEnsembles);
-    expectedDOF = zeros(totalStrides,totalSlopes, totalEnsembles);
+    save(filename, varnames{:});
+
+  
     
     reduced_dof_knot_dof = zeros(totalStrides, totalSlopes, totalEnsembles);
     
