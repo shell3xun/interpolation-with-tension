@@ -43,11 +43,13 @@ Figure 7. Plots the autocorrelation function of the motionless GPS datasets.
 
 ### MakeTableOptimalTensionOrder.m
 
-Reports RMS errors from the synthetic data. It finds the optimal tension parameter in an unblind search to minimize the RMS error. This is then compared to the blind estimate of the tension parameter, and the iterated blind estimate.
+Creates an ensemble of signal and noise, and then applies tension splines of varying degrees and tension degrees in order to identify the smallest RMS error.
 
 ### MakeTableOptimalParameterComparison.m
 
-Reports RMS errors from the synthetic data. It finds the optimal tension parameter in an unblind search to minimize the RMS error. This is then compared to the blind estimate of the tension parameter, and the iterated blind estimate.
+Creates an ensemble of signal and noise and then applies different blind minimizers show the mean square error.
+
+
 
 
 # Other figures and tables

@@ -11,92 +11,103 @@ LoadFigureDefaults
 
 shouldLoadExistingResults = 1;
 
+addpath('support')
+
 rms = @(z) sqrt( mean( z.^2 ) );
 
-if shouldLoadExistingResults == 1
-    load('DegreesOfFreedomEstimates.mat');
-    totalSlopes = length(slopes);
+filename = 'DegreesOfFreedomEstimates.mat';
+
+if exist(filename,'file')
+    load(filename);   
 else
     slopes = [-2; -3; -4];
+%     slopes = -3;
+    strides = [5;20;80;200];
+%     strides = 20;
+    
     totalSlopes = length(slopes);
-    
-    strides = [2;4;8;16;32;64;128];
     totalStrides = length(strides);
+    totalEnsembles = 11;
     
-    totalEnsembles = 10; 
-    
-%     dt = zeros(totalStrides,1);
-%     measurement_time = zeros(totalStrides,totalSlopes); 
-%     actual_u_rms = zeros(totalStrides,totalSlopes);
-%     actual_a_rms = zeros(totalStrides,totalSlopes);   
-%     measured_u_rms = zeros(totalStrides,totalSlopes,totalEnsembles);
-%     measured_a_rms = zeros(totalStrides,totalSlopes,totalEnsembles);
-%     measured_lambda = zeros(totalStrides,totalSlopes,totalEnsembles);
-%     measured_dof_mse = zeros(totalStrides,totalSlopes,totalEnsembles);
-%     measured_dof_se = zeros(totalStrides,totalSlopes,totalEnsembles);
-%     measured_dof_var = zeros(totalStrides,totalSlopes,totalEnsembles);
+    % matern signal parameters
+    sigma_u = 0.20;
+    base_dt = 5; % for whatever reason, we chose this as the primary dt
+    t_damp = 30*60;
+    n = 250;
+
+    nothing = nan(totalStrides,totalSlopes,totalEnsembles);
+    actual_u_rms = nothing;
+    actual_a_rms = nothing;
+    measurement_time = nan(totalStrides,totalSlopes);
+    measured_u_rms = nothing;
+    measured_a_rms = nothing;
+    measured_u_rms_filtered = nothing;
+    measured_a_rms_filtered = nothing;
+    measured_lambda = nothing;
+    measured_dof_mse = nothing;
+    measured_dof_se = nothing;
+    measured_dof_var = nothing;
     
     for iSlope = 1:length(slopes)  
         slope = slopes(iSlope);    
-        if slope == -2
-            data = load('sample_data/SyntheticTrajectories.mat');
-            outputFile = 'OptimalParameters.mat';
-        elseif slope == -3
-            data = load('sample_data/SyntheticTrajectoriesSlope3.mat');
-            outputFile = 'OptimalParametersSlope3.mat';
-        elseif slope == -4
-            data = load('sample_data/SyntheticTrajectoriesSlope4.mat');
-            outputFile = 'OptimalParametersSlope4.mat';
-        end
+        fprintf('slope %d, ',slope); 
         
         for iStride=1:length(strides)
             stride = strides(iStride);
+            dt = stride*base_dt;
+            fprintf('stride %d, ',stride);
             
-            % Reduce the total length in some cases
-            if (stride < 10)
-                shortenFactor = stride/10;
-            else
-                shortenFactor = 1;
-            end
-            
-            indices = 1:stride:floor(shortenFactor*length(data.t));
-            fprintf('Using %d points with stride %d. Ensemble', length(indices), stride);
-            
-            u_rms = rms( diff( data.x(1:max(indices)) )/(data.t(2)-data.t(1)) );
-            sigma = data.position_error;
-            t_obs = data.t(indices);
-            
-%             measurement_time(iStride,iSlope) = max(t_obs)-min(t_obs);
-%             dt(iStride) = t_obs(2)-t_obs(1); 
-%             actual_u_rms(iStride,iSlope) = rms( diff(data.x(indices))/dt(iStride) );
-%             actual_a_rms(iStride,iSlope) = rms( diff(diff(data.x(indices)))/dt(iStride)^2 );
+            measurement_time(iStride,iSlope) = dt;
             
             for iEnsemble=1:totalEnsembles
                 fprintf('..%d',iEnsemble);
                    
-                epsilon_x = sigma*randn(length(indices),1);
-                x_obs = data.x(indices) + epsilon_x;
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % Generate the signal
+                sampleFactor = 10; % 2500 points takes about 1/4 second to generate maternoise
+                cv=maternoise(dt/sampleFactor,sampleFactor*n,sigma_u*sqrt(2),abs(slope),1/t_damp);
+                cx = cumtrapz(cv)*dt/sampleFactor;
+                t_all = (dt/sampleFactor)*(0:(sampleFactor*n-1))';
+                x_all = real(cx);
+                data = struct('t',dt*(0:n-1)','x',x_all(1:sampleFactor:end));
+                
+                actual_u_rms(iStride,iSlope,iEnsemble) = rms( diff(data.x)/dt );
+                actual_a_rms(iStride,iSlope,iEnsemble) = rms( diff(diff(data.x))/dt^2 );
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % Generate the noise
+                sigma = 10;
+                distribution = NormalDistribution(sigma);
+                epsilon = distribution.rand(size(data.x));
+                
+                x_obs = data.x + epsilon;
+                t_obs = data.t;
                 
                 S = 2;
-                T = 2;
-                distribution = NormalDistribution(sigma);
-%                 spline_fit = TensionSpline(t_obs,x_obs,distribution, 'S', S, 'T', T);
+                T = S;
+
+                spline = TensionSpline(t_obs,x_obs,distribution, 'S', S, 'T', T);
                 
                 measured_u_rms(iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(distribution.variance),1);
                 measured_a_rms(iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(distribution.variance),T);
-continue
-                % Minimize to the true points---at the observation times only
-                measured_lambda(iStride,iSlope,iEnsemble) = spline_fit.minimizeMeanSquareError(data.t(indices),data.x(indices));
                 
-                measured_dof_mse(iStride,iSlope,iEnsemble) = spline_fit.effectiveSampleSizeFromExpectedMeanSquareError;
-                measured_dof_se(iStride,iSlope,iEnsemble) = spline_fit.effectiveSampleSizeFromVarianceOfTheMean;
-                measured_dof_var(iStride,iSlope,iEnsemble) = spline_fit.effectiveSampleSizeFromSampleVariance;
+                x_filtered = TensionSpline.RunningFilter(x_obs,11,'median');
+                measured_u_rms_filtered(iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_filtered,sqrt(distribution.variance),1);
+                measured_a_rms_filtered(iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_filtered,sqrt(distribution.variance),T);
+                
+                % Minimize to the true points---at the observation times only
+                measured_lambda(iStride,iSlope,iEnsemble) = spline.minimizeMeanSquareError(data.t,data.x);
+                
+                measured_dof_mse(iStride,iSlope,iEnsemble) = spline.effectiveSampleSizeFromExpectedMeanSquareError;
+                measured_dof_se(iStride,iSlope,iEnsemble) = spline.effectiveSampleSizeFromVarianceOfTheMean;
+                measured_dof_var(iStride,iSlope,iEnsemble) = spline.effectiveSampleSizeFromSampleVariance;
             end
             fprintf('..\n');
         end
     end
     
-    save('DegreesOfFreedomEstimates.mat','sigma','strides', 'slopes', 'totalEnsembles','dt','measurement_time','actual_u_rms','actual_a_rms','measured_u_rms','measured_a_rms','measured_lambda','measured_dof_mse','measured_dof_se','measured_dof_var'); 
+    save('DegreesOfFreedomEstimates.mat','sigma','strides', 'slopes', 'totalEnsembles','dt','measurement_time','actual_u_rms','actual_a_rms','measured_u_rms','measured_a_rms','measured_u_rms_filtered','measured_a_rms_filtered','measured_lambda','measured_dof_mse','measured_dof_se','measured_dof_var'); 
 end
 
 measured_u_rms_mean = mean(measured_u_rms,3);
@@ -123,13 +134,14 @@ measured_lambda_std = std(measured_lambda,0,3);
 % measured_dof_var_median = zeros(length(strides),totalSlopes);
 % measured_dof_var_std = zeros(length(strides),totalSlopes);
 
-gamma_mean = mean(sigma./(measured_u_rms.*dt),3);
+gamma = sigma./(measured_u_rms.*measurement_time);
+gamma_mean = mean(gamma,3);
 
 % lambda = (1-1/n)/(xt)
 % xt*lambda = 1-1/n
 % 1/n = 1-xt*lambda
 figure
-for iSlope = 1:totalSlopes
+for iSlope = 1:length(slopes)
 %     x = (gamma_mean(:,iSlope))./(measured_a_rms_mean(:,iSlope).^2 .* measurement_time(:,iSlope) );
 %     y = measured_lambda_mean(:,iSlope);
     
@@ -141,10 +153,10 @@ end
 
 % biggest problem is estimating the rms value from a noisy derivative.
 % using sleptap helps quite a bit, but the smallest strides still fail
-figure
-x = reshape(sigma./(measured_u_rms.*dt),[],1);
-y = reshape((measured_a_rms.^2 ).*measured_lambda,[],1);
-scatter(x,y)
+% figure
+% x = reshape(sigma./(measured_u_rms.*dt),[],1);
+% y = reshape((measured_a_rms.^2 ).*measured_lambda,[],1);
+% scatter(x,y)
 
 % figure
 % 
@@ -183,10 +195,11 @@ fig1.PaperUnits = 'points';
 fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
-m = zeros(length(totalSlopes),1);
-b = zeros(length(totalSlopes),1);
-for iSlope = 1:totalSlopes
-    plotHandles(iSlope) = scatter(reshape(sigma./(measured_u_rms.*dt),[],1),reshape(measured_dof_se,[],1)); hold on
+m = zeros(length(slopes),1);
+b = zeros(length(slopes),1);
+plotHandles = zeros(length(slopes),1);
+for iSlope = 1:length(slopes)
+    plotHandles(iSlope) = scatter(reshape(gamma(:,iSlope,:),[],1),reshape(measured_dof_se(:,iSlope,:),[],1)); hold on
     
     x = gamma_mean(:,iSlope);
     y = measured_dof_se_mean(:,iSlope);

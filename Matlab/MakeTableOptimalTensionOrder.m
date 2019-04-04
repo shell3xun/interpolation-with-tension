@@ -41,9 +41,12 @@ else
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 % Generate the signal
-                cv=maternoise(dt,n,sigma_u*sqrt(2),abs(slope),1/t_damp);
-                cx = cumtrapz(cv)*dt;
-                data = struct('t',dt*(0:n-1)','x',real(cx));
+                sampleFactor = 10; % 2500 points takes about 1/4 second to generate maternoise
+                cv=maternoise(dt/sampleFactor,sampleFactor*n,sigma_u*sqrt(2),abs(slope),1/t_damp);
+                cx = cumtrapz(cv)*dt/sampleFactor;
+                t_all = (dt/sampleFactor)*(0:(sampleFactor*n-1))';
+                x_all = real(cx);
+                data = struct('t',dt*(0:n-1)','x',x_all(1:sampleFactor:end));
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 % Generate the noise
@@ -54,7 +57,7 @@ else
                 x_obs = data.x + epsilon;
                 t_obs = data.t;
                 
-                compute_rms_error = @(spline) sqrt(mean(mean(  (data.x - spline(data.t)).^2,2 ),1));
+                compute_rms_error = @(spline) sqrt(mean(mean(  (x_all - spline(t_all)).^2,2 ),1));
                 
                 % For a given ensemble, we now try fitting to various
                 % spline orders with varying tension order

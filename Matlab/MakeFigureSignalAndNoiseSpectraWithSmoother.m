@@ -18,7 +18,10 @@ scaleFactor = 1;
 LoadFigureDefaults
 
 slope = -2;
-timescale = 60;
+numDerivs = 1;
+S = 3;
+T = 3;
+K = S+1;
 
 if slope == -2
     data = load('sample_data/SyntheticTrajectories.mat');
@@ -31,6 +34,21 @@ end
 t = data.t;
 x = data.x;
 y = data.y;
+epsilon_x = data.epsilon_x;
+epsilon_y = data.epsilon_y;
+position_error = data.position_error;
+
+timescale = 60;
+indices = find( t/timescale >= 0 & t/timescale <= 42);
+
+markersize  = 2*scaleFactor;
+stride = 10; % we start by decimating the signal
+range = indices(1:stride:end);
+
+shouldUseObservedSignalOnly = 0;
+result_stride = [1; 10; 100];
+% result_stride = 100;
+dof = zeros(length(result_stride),1);
 
 FigureSize = [50 50 figure_width_large+7 300*scaleFactor];
 
@@ -44,12 +62,14 @@ fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot the signal and noise separately
 
-D = TensionSpline.FiniteDifferenceMatrixNoBoundary(1,t,1);
+D = TensionSpline.FiniteDifferenceMatrixNoBoundary(numDerivs,t,1);
 
 dt = t(2)-t(1);
 cv = D*(x + sqrt(-1)*y);
+cepsilon = D*(epsilon_x + sqrt(-1)*epsilon_y);
 [psi,lambda]=sleptap(size(cv,1));
 [f,spp,snn,spn]=mspec(dt,cv,psi, 'cyclic');
+[f,spp_e,snn_e,spn_e]=mspec(dt,cepsilon,psi,'cyclic');
 
 ylimit = [1e-4 4e2];
 
@@ -59,44 +79,60 @@ sp2 = subplot(2,1,2);
 set(fig1, 'currentaxes', sp1)
 plot(f*timescale,vmean([snn, spp],2), 'k', 'LineWidth', 2);
 hold on
+plot(f*timescale,vmean([snn_e, spp_e],2), 'r', 'LineWidth', 2);
 xlog, ylog
 xlim([min(f*timescale) max(f*timescale)])
 ylim(ylimit)
 
 subplot(sp2)
 plotHandles(1) = plot(1, nan, 'k', 'LineWidth', 2); hold on;
+plotHandles(2) = plot(1, nan, 'r', 'LineWidth', 2);
 
-rms_error_x = zeros(3,1);
-rms_error_y = zeros(3,1);
-for iSlope=1:3
-    stride = 100;
-
-    indices = 1:stride:floor(length(data.t));
+for i=1:length(result_stride)
+    stride = result_stride(i);
+    % Reduce the total length in some cases
+    if (stride < 10)
+        shortenFactor = stride/10;
+        shortenFactor = 1;
+    else
+        shortenFactor = 1;
+    end
+    
+    indices = 1:stride:floor(shortenFactor*length(data.t));
     fprintf('dT = %d --- Using %d points with stride %d\n', stride*dt, length(indices), stride);
     if (shouldUseObservedSignalOnly == 1)
         indicesAll = indices;
     else
         indicesAll = 1:max(indices);
     end
-    x_obs = data.x(indices);
-    y_obs = data.y(indices);
+    epsilon_x = data.epsilon_x(indices);
+    epsilon_y = data.epsilon_y(indices);
+    x_obs = data.x(indices) + epsilon_x;
+    y_obs = data.y(indices) + epsilon_y;
     t_obs = data.t(indices);
+    sigma = data.position_error;
         
-    spline_x = InterpolatingSpline(t_obs,x_obs,'S', iSlope);
-    spline_y = InterpolatingSpline(t_obs,y_obs,'S', iSlope);
-
+    spline_x = TensionSpline(t_obs,x_obs,NormalDistribution(sigma),'S', S, 'T', T, 'knot_dof', 'auto');
+    spline_y = TensionSpline(t_obs,y_obs,NormalDistribution(sigma),'S', S, 'T', T, 'knot_dof', 'auto');
+%     TensionSpline.MinimizeExpectedMeanSquareError(spline_x);
+%     TensionSpline.MinimizeExpectedMeanSquareError(spline_y);
+    spline_x.minimizeMeanSquareError(data.t,data.x);
+    spline_x.minimizeMeanSquareError(data.t,data.y);
+ 
     x_smooth = spline_x(t(indicesAll));
     y_smooth = spline_y(t(indicesAll));
     
-    rms_error_x(iSlope) =  sqrt(mean(mean(  (data.x(indicesAll) - x_smooth).^2,2 ),1));
-    rms_error_y(iSlope) =  sqrt(mean(mean(  (data.y(indicesAll) - y_smooth).^2,2 ),1));
-    fprintf('rms error (x,y)=(%f,%f)\n',rms_error_x(iSlope), rms_error_y(iSlope));
+    rms_error_x =  sqrt(mean(mean(  (data.x(indicesAll) - x_smooth).^2,2 ),1));
+    rms_error_y =  sqrt(mean(mean(  (data.y(indicesAll) - y_smooth).^2,2 ),1));
+    fprintf('rms error (x,y)=(%f,%f)\n',rms_error_x, rms_error_y);
     
-    D = TensionSpline.FiniteDifferenceMatrixNoBoundary(1,t(indicesAll),1);
+    D = TensionSpline.FiniteDifferenceMatrixNoBoundary(numDerivs,t(indicesAll),1);
     u_smooth = D*x_smooth;
     v_smooth = D*y_smooth;
     
-    f_limit = 1/(2*(t_obs(2)-t_obs(1)));
+    dof(i) = (spline_x.effectiveSampleSizeFromVarianceOfTheMean + spline_y.effectiveSampleSizeFromVarianceOfTheMean)/2;
+    f_limit = 1/(2*dof(i)*(t_obs(2)-t_obs(1)));
+    
     
     subplot(sp1)
     
@@ -119,7 +155,7 @@ for iSlope=1:3
     [f,sxx,syy,sxy]=mspec(dt,u_smooth,D*data.x(indicesAll),psi,'cyclic');
     gamma=frac(abs(sxy).^2,sxx.*syy);
     
-    plotHandles(1+iSlope) = plot(f*timescale,RunningAverage(gamma,20)); hold on
+    plotHandles(2+i) = plot(f*timescale,RunningAverage(gamma,20)); hold on
     xlog
     xlim([min(f*timescale) max(f*timescale)])
     ylim([0 1])
@@ -134,11 +170,11 @@ ylabel('power (m^2/s)', 'FontSize', figure_axis_label_size, 'FontName', figure_f
 subplot(sp2)
 ylabel('coherence', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
-mylegend = legend(plotHandles,'signal', sprintf('S=1 (%.2f m rmse)',rms_error_x(1)), sprintf('S=2 (%.2f m rmse)',rms_error_x(2)), sprintf('S=3 (%.2f m rmse)',rms_error_x(3)),'Location','southwest');
+mylegend = legend(plotHandles,'signal', 'noise', sprintf('stride 1 (n^{SE}_{eff}=%.2f)',dof(1)), sprintf('stride 10 (n^{SE}_{eff}=%.2f)',dof(2)), sprintf('stride 100 (n^{SE}_{eff}=%.2f)',dof(3)),'Location','southwest');
 xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 
 packfig(2,1)
 
-print('-depsc2', sprintf('../figures/interpolation_spectrum_slope%ddegreeVaried.eps',abs(slope)))
+print('-depsc2', sprintf('../figures/synthetic_process_and_spectrum_slope%ddegree%d.eps',abs(slope),S))
 return
 
