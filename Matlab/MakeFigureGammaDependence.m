@@ -22,12 +22,12 @@ if exist(filename,'file')
 else
     slopes = [-2; -3; -4];
 %     slopes = -3;
-    strides = [5;20;80;200];
+    strides = (2.^(0:9)).';
 %     strides = 20;
     
     totalSlopes = length(slopes);
     totalStrides = length(strides);
-    totalEnsembles = 11;
+    totalEnsembles = 50;
     
     % matern signal parameters
     sigma_u = 0.20;
@@ -134,22 +134,22 @@ measured_lambda_std = std(measured_lambda,0,3);
 % measured_dof_var_median = zeros(length(strides),totalSlopes);
 % measured_dof_var_std = zeros(length(strides),totalSlopes);
 
-gamma = sigma./(measured_u_rms.*measurement_time);
+gamma = sigma./(actual_u_rms.*measurement_time);
 gamma_mean = mean(gamma,3);
 
 % lambda = (1-1/n)/(xt)
 % xt*lambda = 1-1/n
 % 1/n = 1-xt*lambda
-figure
-for iSlope = 1:length(slopes)
-%     x = (gamma_mean(:,iSlope))./(measured_a_rms_mean(:,iSlope).^2 .* measurement_time(:,iSlope) );
-%     y = measured_lambda_mean(:,iSlope);
-    
-    x = gamma_mean(:,iSlope);
-    y = (measured_a_rms_mean(:,iSlope).^2 ).*measured_lambda_mean(:,iSlope);
-    
-    scatter(x,y), hold on
-end
+% figure
+% for iSlope = 1:length(slopes)
+% %     x = (gamma_mean(:,iSlope))./(measured_a_rms_mean(:,iSlope).^2 .* measurement_time(:,iSlope) );
+% %     y = measured_lambda_mean(:,iSlope);
+%     
+%     x = gamma_mean(:,iSlope);
+%     y = (measured_a_rms_mean(:,iSlope).^2 ).*measured_lambda_mean(:,iSlope);
+%     
+%     scatter(x,y), hold on
+% end
 
 % biggest problem is estimating the rms value from a noisy derivative.
 % using sleptap helps quite a bit, but the smallest strides still fail
@@ -186,6 +186,31 @@ end
 measured_dof_se_mean = mean(measured_dof_se,3);
 measured_dof_se_std = std(measured_dof_se,1,3);
 
+x = mean(log(gamma),3);
+y = mean(log(measured_dof_se),3);
+sigma2 = std(log(measured_dof_se),1,3).^2/totalEnsembles;
+
+figure
+m = zeros(length(slopes),1);
+b = zeros(length(slopes),1);
+strides_used = 1:9;
+t = linspace(min(x(:)),max(x(:)),10)';
+for iSlope = 1:length(slopes)
+    errorbar(x(:,iSlope),y(:,iSlope),sqrt(sigma2(:,iSlope))), hold on
+    
+    [m(iSlope),b(iSlope)] = LinearBestFitWithVariableError(x(strides_used,iSlope),y(strides_used,iSlope),sigma2(strides_used,iSlope));
+    
+    ax = gca;
+    ax.ColorOrderIndex = ax.ColorOrderIndex-1;
+    plot(t, m(iSlope)*t + b(iSlope))
+end
+
+% The test statistic, z
+z=(1./gamma).*(measured_dof_se.^(3/2))/sqrt(2);
+
+
+
+
 FigureSize = [50 50 figure_width_1col+7 150*scaleFactor];
 
 fig1 = figure('Units', 'points', 'Position', FigureSize,'Name','DOFvsGamma');
@@ -195,36 +220,39 @@ fig1.PaperUnits = 'points';
 fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
-m = zeros(length(slopes),1);
-b = zeros(length(slopes),1);
+
+
+for iSlope = 1:length(slopes)
+    scatter(reshape(gamma(:,iSlope,:),[],1),reshape(measured_dof_se(:,iSlope,:),[],1),2,'filled'); hold on
+end
+
+ax = gca;
+ax.ColorOrderIndex = 1;
 plotHandles = zeros(length(slopes),1);
 for iSlope = 1:length(slopes)
-    plotHandles(iSlope) = scatter(reshape(gamma(:,iSlope,:),[],1),reshape(measured_dof_se(:,iSlope,:),[],1)); hold on
-    
-    x = gamma_mean(:,iSlope);
-    y = measured_dof_se_mean(:,iSlope);
-    
-    sigma2 = (measured_dof_se_std(:,iSlope).*measured_dof_se_std(:,iSlope))./totalEnsembles;
-    
-%     [m(iSlope),b(iSlope)] = LinearBestFitWithVariableError(x,y,sigma2);
-%     plot(x, m(iSlope)*x + b(iSlope))
-    
-ax = gca;
-ax.ColorOrderIndex = ax.ColorOrderIndex-1;
-    [m(iSlope),b(iSlope)] = LinearBestFitWithVariableError(log(x),log(y),ones(size(y)));
-    plot(x, exp(b(iSlope))*(x).^m(iSlope));
+    x = reshape(gamma(strides_used,iSlope,:),[],1);
+    plotHandles(iSlope) = plot(x, exp(b(iSlope))*(x).^m(iSlope), 'LineWidth',1.5);
 end
+
 xlabel('\Gamma', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 ylabel('n^{SE}_{eff}', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
+xlim([1e-2 1e3])
+ylim([0.9 1e2])
 xlog, ylog
-leg = legend(plotHandles,'-2 slope','-3 slope','-4 slope');
+legend_labels = cell(1,length(slopes));
+for iSlope = 1:length(slopes)
+    legend_labels{iSlope} = sprintf('\\omega^{%d}, %.0f \\Gamma^{%.2f}',slopes(iSlope),exp(b(iSlope)),m(iSlope));
+end
+leg = legend(plotHandles,legend_labels);
 leg.FontSize = figure_legend_size;
 leg.FontName = figure_font;
-leg.Location = 'northwest';
+leg.Location = 'southeast';
 set( gca, 'FontSize', figure_axis_tick_size);
 
+z0 = exp(b./m)/sqrt(2);
+
 tightfig
-% print('-depsc2', '../figures/dofVsGamma.eps')
+print('-depsc2', '../figures/dofVsGamma.eps')
 
 return
 % Best fit to a straight line, using the estimate of the standard error for
