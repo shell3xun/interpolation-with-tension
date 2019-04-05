@@ -200,11 +200,11 @@ with $p>1$ which has finite amplitude at low frequencies and power-law fall off 
 
 %The Mat\'ern is a Gaussian process, which is important for the discussion in section \ref{sec:maximum_likelihood}.
 
-For these experiments we choose values of $p=2,3,4$ so that the high frequency spectrum is proportional to $\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$. The Mat\'ern is used to generate the \emph{velocity} of the signal and integrated to get the positions. Parameters are chosen such that $u_{\textrm{rms}}=0.20$ m/s. Figure \ref{varied_slope} shows an example velocity spectrum of the signal with $\omega^{-2}$.
+For these experiments we choose values of $p=2,3,4$ so that the high frequency spectrum is proportional to $\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$. The Mat\'ern is used to generate the \emph{velocity} of the signal and integrated to get the positions. Parameters are chosen such that the square root of velocity variance in each direction is $u_{\textrm{rms}}=0.20$ m/s and the damping scale $\lambda^{-1}=30$ minutes. These choices somewhat resemble the data from the drifters. Figure \ref{varied_slope} shows an example velocity spectrum of the signal with $\omega^{-2}$.
 
-The position data is contaminated with (white) Gaussian noise with $\sigma=10$ meters. In section \ref{gps_position_errors} we consider consider noise generated from a Student's t-distribution.
+The position data is contaminated with (white) Gaussian noise with $\sigma=10$ meters, a value chosen to resemble GPS errors. In section \ref{gps_position_errors} we consider consider noise generated from a Student's t-distribution which more accurately reflects the GPS errors.
 
-For all of these experiments we use a range of \emph{strides}, that is, subsampled versions of the underlying process as input into the spline fits. A stride of 100 indicates that the signal is subsampled to 1 every 100 data points. This lets us evaluate the quality of fit against the interpolated values, and not just the points of observation.
+For all of these experiments we use a range of \emph{strides}, that is, subsampled versions of the underlying process as input into the spline fits. A stride of 100 indicates that the signal is subsampled to 1 every 100 data points. This lets us evaluate the quality of fit against different sampling rates.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Spline degree, $S$} \label{spline_degree}
@@ -308,7 +308,7 @@ Setting $\alpha=\frac{N}{Q}$ and renormalizing the penalty function by $\frac{2}
 \end{equation}
 Apart from the discretization of the integral, equation \ref{smoothing-spline-pdf} is the same as the penalty function for a smoothing spline, equation \ref{smoothing-spline}.
 
-There is an important special case when tension is applied at the same order as the spline, $T=S$. In this case then the spline is piecewise constant for $x^{(T)}$ with exactly $N-T$ unique values. The parameter $\alpha =\frac{N}{N-T}\approx 1$ and equation \ref{gaussian-max-likelihood} is simplified. This case is statistically appealing because only the $N-T$ unique values of derivative $x^{(T)}$ that can be computed from $N$ data points are being used for tension, which is not the case when $T<S$
+There is an important special case when tension is applied at the same order as the spline, $T=S$. In this case then the spline is piecewise constant for $x^{(T)}$ with exactly $N-T$ unique values. The parameter $\alpha =\frac{N}{N-T}\approx 1$ and equation \ref{gaussian-max-likelihood} is simplified. This case is appealing because only the $N-T$ unique values of derivative $x^{(T)}$ that can be computed from $N$ data points are being used for tension, which is not the case when $T<S$
 
 This maximum likelihood perspective shows that adding tension to the penalty function is equivalent to assuming that one of the higher order derivatives in the model (e.g., velocity if $T=1$) is Gaussian. This is therefore making an assumption about the underlying \emph{physical process} of the model. This is in contrast to the first term which is entirely a statement about \emph{measurement noise}.
 
@@ -377,11 +377,11 @@ For $S=1..5$ and all $T\leq S$ we minimize the mean square error against true va
 \toprule & \multicolumn{5}{c}{S} \\ 
 \cmidrule(lr){2-6} 
 T & 1 & 2 & 3 & 4 & 5 \\ \midrule 
-1 & 14.1-51.2\% & 12.9-56.7\% & 13.5-50.0\% & 13.0-48.9\% & 12.9-50.6\% \\ 
-2 & & 1.9-14.8\% & 2.1-15.7\% & 1.6-16.8\% & 0.8-14.0\% \\ 
-3 & & & 1.7-16.4\% & 1.5-13.6\% & 0.1-14.0\% \\ 
-4 & & & & 2.8-14.8\% & 2.2-12.4\% \\ 
-5 & & & & & 3.1-18.7\% \\ 
+1 & 30.2-108.4\% & 27.6-105.8\% & 27.7-105.8\% & 26.9-105.7\% & 26.7-105.7\% \\ 
+2 & & 1.6-15.7\% & 1.9-16.1\% & 1.8-16.1\% & 1.8-16.1\% \\ 
+3 & & & 0.0-4.1\% & 0.0-4.1\% & 0.0-4.1\% \\ 
+4 & & & & 0.0-3.3\% & 0.0-3.5\% \\ 
+5 & & & & & 0.0-13.4\% \\ 
  \bottomrule 
 \end{tabular} 
 \end{table}
@@ -594,7 +594,7 @@ The distance distribution for two t-distributions is computed numerically and is
   \label{gps_autocorrelation}
 \end{figure}
 
-Figure \ref{gps_autocorrelation} shows the autocorrelation function of the GPS position errors. The smallest sampling interval of the GPS drifters in question is 30 minutes and therefore it is safe to assume the errors are uncorrelated for our purposes.
+Figure \ref{gps_autocorrelation} shows the autocorrelation function of the GPS position errors. We find rough empirical fit to be $\rho(\tau)=\exp\left(\max(-\tau/t_0,-\tau/t_1-1.35)\right)$ where $t_0=100$ seconds and $t_1=760$ seconds, which reflects an initially rapid fall off in correlation, followed by a slower decline. The smallest sampling interval of the GPS drifters in question is 30 minutes and therefore it is safe to assume the errors are uncorrelated for our purposes.
 
 The tension spline algorithms described in section \ref{sec:smoothing_spline} are modified to use the Student t-distribution as described in section \ref{sec:irls}. Table \ref{fit_results_tdistribution} shows that the conclusions reached for Gaussian data in section \ref{sec:smoothing_spline} still apply to the t-distribution data used here.
 
@@ -857,6 +857,8 @@ which has solution
 \mathbf{\xi} = \left[ \mathbf{X}^{\textrm{T}} \Sigma^{-1} \mathbf{X} + \lambda_1 \mathbf{V}^{\textrm{T}} \mathbf{V} \right]^{-1}   \left[ \mathbf{X}^{\textrm{T}} \Sigma^{-1} \mathbf{x} +  \mu \lambda_1 \mathbf{V}^{\textrm{T}} \mathbf{\iota} \right]
 \end{equation}
 where $\mathbf{\iota}$ is a vector of $1$s. The operation $\mathbf{V}^{\textrm{T}} \mathbf{\iota}$ essentially integrates the $m$-splines and results in a column vector with the integrated values.
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%
 \section{Iteratively reweighted least squares}
