@@ -21,32 +21,46 @@ if exist(filename,'file')
     load(filename);   
 else
     slopes = [-2; -3; -4];
-%     slopes = -3;
-    strides = (2.^(0:9)).';
-%     strides = 20;
+    strides = (2.^(0:5)).';
+    
+%     slopes = [-4];
+%     strides = [1;128];
     
     totalSlopes = length(slopes);
     totalStrides = length(strides);
     totalEnsembles = 50;
     
+    S = 3;
+    T = S;
+    
+    varnames = {'S', 'T', 'slopes', 'strides', 'totalEnsembles','sigma'};
+    
     % matern signal parameters
     sigma_u = 0.20;
-    base_dt = 5; % for whatever reason, we chose this as the primary dt
+    base_dt = 3*60; % for whatever reason, we chose this as the primary dt
     t_damp = 30*60;
     n = 250;
 
     nothing = nan(totalStrides,totalSlopes,totalEnsembles);
-    actual_u_rms = nothing;
-    actual_a_rms = nothing;
-    measurement_time = nan(totalStrides,totalSlopes);
-    measured_u_rms = nothing;
-    measured_a_rms = nothing;
-    measured_u_rms_filtered = nothing;
-    measured_a_rms_filtered = nothing;
-    measured_lambda = nothing;
-    measured_dof_mse = nothing;
-    measured_dof_se = nothing;
-    measured_dof_var = nothing;
+    actual_u_rms = nothing; varnames{end+1} = 'actual_u_rms';
+    actual_a_rms = nothing; varnames{end+1} = 'actual_a_rms';
+    actual_a_mean = nothing; varnames{end+1} = 'actual_a_mean';
+    actual_a_std = nothing; varnames{end+1} = 'actual_a_std';
+    actual_ad_error = nothing; varnames{end+1} = 'actual_ad_error';
+    measurement_time = nan(totalStrides,totalSlopes); varnames{end+1} = 'measurement_time';
+    measured_u_rms = nothing; varnames{end+1} = 'measured_u_rms';
+    measured_a_rms = nothing; varnames{end+1} = 'measured_a_rms';
+    measured_a_mean = nothing; varnames{end+1} = 'measured_a_mean';
+    measured_a_std = nothing; varnames{end+1} = 'measured_a_std';
+    measured_ad_error = nothing; varnames{end+1} = 'measured_ad_error';
+    measured_u_rms_filtered = nothing; varnames{end+1} = 'measured_u_rms_filtered';
+    measured_a_rms_filtered = nothing; varnames{end+1} = 'measured_a_rms_filtered';
+    measured_a_mean_filtered = nothing; varnames{end+1} = 'measured_a_mean_filtered';
+    measured_a_std_filtered = nothing; varnames{end+1} = 'measured_a_std_filtered';
+    measured_lambda = nothing; varnames{end+1} = 'measured_lambda';
+    measured_dof_mse = nothing; varnames{end+1} = 'measured_dof_mse';
+    measured_dof_se = nothing; varnames{end+1} = 'measured_dof_se';
+    measured_dof_var = nothing; varnames{end+1} = 'measured_dof_var';
     
     for iSlope = 1:length(slopes)  
         slope = slopes(iSlope);    
@@ -61,7 +75,8 @@ else
             
             for iEnsemble=1:totalEnsembles
                 fprintf('..%d',iEnsemble);
-                   
+                
+                linearIndex = sub2ind(size(nothing),iStride,iSlope,iEnsemble);
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 % Generate the signal
@@ -72,42 +87,61 @@ else
                 x_all = real(cx);
                 data = struct('t',dt*(0:n-1)','x',x_all(1:sampleFactor:end));
                 
-                actual_u_rms(iStride,iSlope,iEnsemble) = rms( diff(data.x)/dt );
-                actual_a_rms(iStride,iSlope,iEnsemble) = rms( diff(diff(data.x))/dt^2 );
-                
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 % Generate the noise
                 sigma = 10;
                 distribution = NormalDistribution(sigma);
                 epsilon = distribution.rand(size(data.x));
                 
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % t_obs and x_obs contain the times observed signal 
                 x_obs = data.x + epsilon;
                 t_obs = data.t;
                 
-                S = 2;
-                T = S;
-
-                spline = TensionSpline(t_obs,x_obs,distribution, 'S', S, 'T', T);
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % Fit a constrained tension spline (a polynomial fit)
+                K = S+1;
+                t_knot = cat(1,min(t_obs)*ones(K+1,1),max(t_obs)*ones(K+1,1));
+                mean_spline = ConstrainedSpline(t_obs,x_obs,K+1,t_knot,distribution,[]);
                 
-                measured_u_rms(iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(distribution.variance),1);
-                measured_a_rms(iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(distribution.variance),T);
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % Remove the fit from the *true* signal, and compute stats.
+                x = data.x - mean_spline(t_obs);
+                actual_u_rms(linearIndex) = rms( diff(x)/dt );
+                actual_a_rms(linearIndex) = rms( diff(x,T)/dt^T );
+                actual_a_mean(linearIndex) = mean( diff(x,T)/dt^T );
+                actual_a_std(linearIndex) = std( diff(x,T)/dt^T );
+                
+                actual_ad_error(linearIndex) = NormalDistribution(std(diff(x)/dt)).andersonDarlingError(diff(x)/dt);
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % Remove the fit from the observed signal and record stats
+                x_obs = x_obs - mean_spline(t_obs);
+                
+                measured_u_rms(linearIndex) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(distribution.variance),1);
+                [measured_a_rms(linearIndex),measured_a_std(linearIndex),measured_a_mean(linearIndex)] = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(distribution.variance),T);
                 
                 x_filtered = TensionSpline.RunningFilter(x_obs,11,'median');
-                measured_u_rms_filtered(iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_filtered,sqrt(distribution.variance),1);
-                measured_a_rms_filtered(iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_filtered,sqrt(distribution.variance),T);
+                measured_u_rms_filtered(linearIndex) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_filtered,sqrt(distribution.variance),1);
+                [measured_a_rms_filtered(linearIndex),measured_a_std_filtered(linearIndex),measured_a_mean_filtered(linearIndex)] = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_filtered,sqrt(distribution.variance),T);
                 
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % Do a spline fit
+                spline = TensionSpline(t_obs,x_obs,distribution, 'S', S, 'T', T);
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 % Minimize to the true points---at the observation times only
-                measured_lambda(iStride,iSlope,iEnsemble) = spline.minimizeMeanSquareError(data.t,data.x);
+                measured_lambda(linearIndex) = spline.minimizeMeanSquareError(data.t,x);
                 
-                measured_dof_mse(iStride,iSlope,iEnsemble) = spline.effectiveSampleSizeFromExpectedMeanSquareError;
-                measured_dof_se(iStride,iSlope,iEnsemble) = spline.effectiveSampleSizeFromVarianceOfTheMean;
-                measured_dof_var(iStride,iSlope,iEnsemble) = spline.effectiveSampleSizeFromSampleVariance;
+                measured_dof_mse(linearIndex) = spline.effectiveSampleSizeFromExpectedMeanSquareError;
+                measured_dof_se(linearIndex) = spline.effectiveSampleSizeFromVarianceOfTheMean;
+                measured_dof_var(linearIndex) = spline.effectiveSampleSizeFromSampleVariance;
             end
             fprintf('..\n');
         end
     end
     
-    save('DegreesOfFreedomEstimates.mat','sigma','strides', 'slopes', 'totalEnsembles','dt','measurement_time','actual_u_rms','actual_a_rms','measured_u_rms','measured_a_rms','measured_u_rms_filtered','measured_a_rms_filtered','measured_lambda','measured_dof_mse','measured_dof_se','measured_dof_var'); 
+    save('DegreesOfFreedomEstimates.mat',varnames{:}); 
 end
 
 measured_u_rms_mean = mean(measured_u_rms,3);
@@ -190,19 +224,25 @@ x = mean(log(gamma),3);
 y = mean(log(measured_dof_se),3);
 sigma2 = std(log(measured_dof_se),1,3).^2/totalEnsembles;
 
-figure
+% figure
 m = zeros(length(slopes),1);
 b = zeros(length(slopes),1);
-strides_used = 1:9;
+
 t = linspace(min(x(:)),max(x(:)),10)';
 for iSlope = 1:length(slopes)
-    errorbar(x(:,iSlope),y(:,iSlope),sqrt(sigma2(:,iSlope))), hold on
+%     errorbar(x(:,iSlope),y(:,iSlope),sqrt(sigma2(:,iSlope))), hold on
+    
+    if slopes(iSlope) == -2
+        strides_used = 1:(length(strides)-3);
+    else
+        strides_used = 1:(length(strides)-2);
+    end
     
     [m(iSlope),b(iSlope)] = LinearBestFitWithVariableError(x(strides_used,iSlope),y(strides_used,iSlope),sigma2(strides_used,iSlope));
     
-    ax = gca;
-    ax.ColorOrderIndex = ax.ColorOrderIndex-1;
-    plot(t, m(iSlope)*t + b(iSlope))
+%     ax = gca;
+%     ax.ColorOrderIndex = ax.ColorOrderIndex-1;
+%     plot(t, max(0,m(iSlope)*t + b(iSlope)))
 end
 
 % The test statistic, z
@@ -229,15 +269,13 @@ end
 ax = gca;
 ax.ColorOrderIndex = 1;
 plotHandles = zeros(length(slopes),1);
-for iSlope = 1:length(slopes)
-    x = reshape(gamma(strides_used,iSlope,:),[],1);
-    plotHandles(iSlope) = plot(x, exp(b(iSlope))*(x).^m(iSlope), 'LineWidth',1.5);
+x = 10.^linspace(log10(min(gamma(:))),log10(max(gamma(:))),50);
+for iSlope = 1:length(slopes) 
+    plotHandles(iSlope) = plot(x, max(1,exp(b(iSlope))*(x).^m(iSlope)), 'LineWidth',1.5);
 end
 
 xlabel('\Gamma', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 ylabel('n^{SE}_{eff}', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
-xlim([1e-2 1e3])
-ylim([0.9 1e2])
 xlog, ylog
 legend_labels = cell(1,length(slopes));
 for iSlope = 1:length(slopes)
@@ -248,6 +286,9 @@ leg.FontSize = figure_legend_size;
 leg.FontName = figure_font;
 leg.Location = 'southeast';
 set( gca, 'FontSize', figure_axis_tick_size);
+xlim([1e-2 1e1])
+ylim([0.9 1e1])
+
 
 z0 = exp(b./m)/sqrt(2);
 

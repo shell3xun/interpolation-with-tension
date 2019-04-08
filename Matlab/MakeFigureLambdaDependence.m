@@ -25,9 +25,12 @@ end
 
 
 gamma = sigma./(measured_u_rms.*measurement_time);
-n_eff = 15*gamma.^0.70;
+n_eff = 9*gamma.^0.69;
+n_eff = 14*gamma.^0.73;
+% n_eff = 18*gamma.^0.74;
 n_eff(n_eff<1)=1;
 lambda_est = (n_eff-1)./(n_eff.*measured_a_rms.^2);
+% lambda_est = (n_eff-1)./(n_eff.*measured_a_rms_filtered.^2);
 
 % figure
 % subplot(2,1,1)
@@ -44,8 +47,25 @@ lambda_est = (n_eff-1)./(n_eff.*measured_a_rms.^2);
 
 lambda_est_true = (measured_dof_se-1)./(measured_dof_se.*actual_a_rms.^2);
 figure,
-scatter(reshape(measured_lambda(8,3,:),[],1),reshape(lambda_est_true(8,3,:),[],1))
-hold on, plot(reshape(measured_lambda(:),[],1),reshape(measured_lambda(:),[],1))
+for iSlope=1:length(slopes)
+%     scatter(reshape(measured_lambda(:,iSlope,:),[],1),reshape(lambda_est_true(:,iSlope,:),[],1)), hold on
+measure = actual_ad_error(:,iSlope,:);
+sz = max(1,round(abs(measure(:)))).^2;
+max(sz)
+scatter(reshape(measured_lambda(:,iSlope,:),[],1),reshape(lambda_est(:,iSlope,:),[],1),sz), hold on
+end
+hold on, plot(10.^linspace(12,15,100),10.^linspace(12,15,100),'k')
+xlim([1e12 1e16])
+
+% delta = log10(abs(lambda_est - measured_lambda));
+delta = log10(lambda_est./measured_lambda);
+
+sqrt(mean(delta(delta>-12).^2))
+median(delta(delta>-12))
+
+xlabel('true lambda')
+ylabel('estimated lambda')
+% hold on, plot(reshape(measured_lambda(:),[],1),reshape(measured_lambda(:),[],1))
 xlog, ylog
 
 return
