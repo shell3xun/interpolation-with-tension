@@ -13,17 +13,14 @@ if exist(filename,'file')
     load(filename);
 else
     slopes = [-2; -3; -4];
-%     slopes = -3;
-    totalSlopes = length(slopes);
+    strides = (2.^(0:3)).';
     
-    strides = [5;20;80;200];
-    %     strides = [80;200];
-%          strides = 5;
+    totalSlopes = length(slopes);
     totalStrides = length(strides);
     totalEnsembles = 200; % best to choose an odd number for median
     
     % spline fit parameters
-    S = 2;
+    S = 3;
     T = S;
     K = S+1;
     
@@ -31,7 +28,7 @@ else
     
     % matern signal parameters
     sigma_u = 0.20;
-    base_dt = 5; % for whatever reason, we chose this as the primary dt
+    base_dt = 3*60; % chosen as the smallest interval considered, because anything shorter than this looks non-stationary... like a local polynomial fit is needed.
     t_damp = 30*60;
     n = 250;
         

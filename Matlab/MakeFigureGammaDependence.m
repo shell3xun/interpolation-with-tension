@@ -37,7 +37,7 @@ else
     
     % matern signal parameters
     sigma_u = 0.20;
-    base_dt = 3*60; % for whatever reason, we chose this as the primary dt
+    base_dt = 3*60; % chosen as the smallest interval considered, because anything shorter than this looks non-stationary... like a local polynomial fit is needed.
     t_damp = 30*60;
     n = 250;
 

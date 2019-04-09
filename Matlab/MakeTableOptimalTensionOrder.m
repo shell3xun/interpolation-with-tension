@@ -8,10 +8,8 @@ if exist(filename,'file')
     load(filename);    
 else
     slopes = [-2; -3; -4];
-%     slopes = -3;
     S_range = 1:5;
-    strides = [5;20;80;200];
-%     strides = 20;
+    strides = (2.^(0:3)).';
     
     totalSlopes = length(slopes);
     totalStrides = length(strides);
@@ -19,7 +17,7 @@ else
     
     % matern signal parameters
     sigma_u = 0.20;
-    base_dt = 5; % for whatever reason, we chose this as the primary dt
+    base_dt = 3*60; % chosen as the smallest interval considered, because anything shorter than this looks non-stationary... like a local polynomial fit is needed.
     t_damp = 30*60;
     n = 250;
     
@@ -29,12 +27,12 @@ else
         
     for iSlope = 1:length(slopes)
         slope = slopes(iSlope);
-        fprintf('slope %d, ',slope);        
+        fprintf('--slope %d--\n',slope);        
         
         for iStride=1:length(strides)
             stride = strides(iStride);
             dt = stride*base_dt;
-            fprintf('stride %d, ',stride);
+            fprintf('-stride %d-\n',stride);
             
             for iEnsemble = 1:totalEnsembles
                 fprintf('..%d',iEnsemble);
