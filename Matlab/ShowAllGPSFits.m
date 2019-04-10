@@ -20,6 +20,8 @@ for iDrifter = 1:length(drifters.lon)
     
     fprintf('n_eff (x,y): (%.1f, %.1f)\n',spline.spline_x.effectiveSampleSizeFromVarianceOfTheMean,spline.spline_y.effectiveSampleSizeFromVarianceOfTheMean);
     fprintf('lambda: %.3g\n',spline.lambda);
+
+    
     
     splines{iDrifter} = spline;
     tq = linspace(min(spline.t),max(spline.t),10*length(spline.t));
@@ -31,4 +33,29 @@ for iDrifter = 1:length(drifters.lon)
     else
         plot(xq,yq,'LineWidth',1.5)
     end
+    
+    spline.estimateOutlierDistribution();
+    fprintf('alpha: %.2f',spline.alpha);
+    if spline.alpha > 0
+        fprintf('(nu,sigma): (%.2f,%.2f)\n',spline.outlierDistribution.nu,spline.outlierDistribution.sigma);
+    else
+        fprintf('\n');
+    end
+    
 end
+
+figure
+subplot(3,1,1)
+plot(tq,spline.spline_mean_x(tq)), hold on
+scatter(spline.spline_mean_x.t,spline.spline_mean_x.x)
+scatter(spline.spline_mean_x.t,spline.spline_mean_x.smoothingMatrix*spline.spline_mean_x.x)
+
+subplot(3,1,2)
+plot(tq,spline.spline_x(tq)), hold on
+scatter(spline.spline_x.t,spline.spline_x.x)
+scatter(spline.spline_x.t,spline.spline_x.smoothingMatrix*spline.spline_x.x)
+
+subplot(3,1,3)
+plot(tq,xq), hold on
+scatter(spline.t,spline.x)
+scatter(spline.t,spline.smoothingMatrixX*spline.x)

@@ -1,7 +1,7 @@
 scaleFactor = 1;
 LoadFigureDefaults
 
-shouldUseStudentTDistribution = 0;
+shouldUseStudentTDistribution = 1;
 
 if shouldUseStudentTDistribution == 1
     filename = 'MSEComparisonTableStudentT.mat';
@@ -216,21 +216,20 @@ print_mse = @(stats,iStride,iSlope) sprintf('%#.3g m$^2$',mean(reshape(stats.mse
 print_dmse = @(stats,iStride,iSlope) sprintf('%.1f\\%%',100*(10^mean(reshape(stats.dmse(iStride,iSlope,:),[],1))-1));
 
 fprintf('\n\n');
-fprintf('\\begin{tabular}{r | lllll} $n_\\textrm{eff}$ (stride) & full dof & reduced dof & blind initial & blind optimal \\\\ \\hline \\hline \n');
+fprintf('\\begin{tabular}{r r p{1cm} | p{1cm}p{1cm}p{1cm}p{1cm}} stride & $n_\\textrm{eff}$ & optimal mse & reduced dof & blind initial & expected mse \\\\ \\hline \\hline \n');
 for iSlope = 1:length(slopes)
     
     fprintf('$\\omega^{%d}$ &&&&&  \\\\ \\hline \n',slopes(iSlope));
     for iStride=1:length(strides)
-        fprintf('%#.1f (%d) & %s &  %s (%#.1f) &  %s (%#.1f) &  %s (%#.1f) \\\\ \n',mean(reshape(stat_structs{1}.neff_se(iStride,iSlope,:),[],1)), strides(iStride), print_mse(stat_structs{1},iStride,iSlope), print_dmse(stat_structs{3},iStride,iSlope),mean(reshape(stat_structs{3}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{2},iStride,iSlope),mean(reshape(stat_structs{2}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{4},iStride,iSlope),mean(reshape(stat_structs{4}.neff_se(iStride,iSlope,:),[],1)) )  ;
+                fprintf('%d & %#.1f & %s &  %s  &  %s  &  %s  \\\\ \n', strides(iStride),mean(reshape(stat_structs{1}.neff_se(iStride,iSlope,:),[],1)), print_mse(stat_structs{1},iStride,iSlope), print_dmse(stat_structs{3},iStride,iSlope), print_dmse(stat_structs{2},iStride,iSlope), print_dmse(stat_structs{4},iStride,iSlope) )  ;
+
+%         fprintf('%#.1f (%d) & %s &  %s (%#.1f) &  %s (%#.1f) &  %s (%#.1f) \\\\ \n',mean(reshape(stat_structs{1}.neff_se(iStride,iSlope,:),[],1)), strides(iStride), print_mse(stat_structs{1},iStride,iSlope), print_dmse(stat_structs{3},iStride,iSlope),mean(reshape(stat_structs{3}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{2},iStride,iSlope),mean(reshape(stat_structs{2}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{4},iStride,iSlope),mean(reshape(stat_structs{4}.neff_se(iStride,iSlope,:),[],1)) )  ;
 %         fprintf('%#.1f (%d) & %s &  %s (%#.1f) &  %s (%#.1f) &  %s (%#.1f) &  %s (%#.1f) \\\\ \n',mean(reshape(stat_structs{1}.neff_se(iStride,iSlope,:),[],1)), strides(iStride), print_mse(stat_structs{1},iStride,iSlope), print_dmse(stat_structs{3},iStride,iSlope),mean(reshape(stat_structs{3}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{2},iStride,iSlope),mean(reshape(stat_structs{2}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{4},iStride,iSlope),mean(reshape(stat_structs{4}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{9},iStride,iSlope),mean(reshape(stat_structs{9}.neff_se(iStride,iSlope,:),[],1)) )  ;
 
     end
     
 end
 fprintf('\\end{tabular} \n');
-
-return
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % MSE Comparison table of alternative methods
@@ -242,7 +241,7 @@ for i=1:length(stat_structs)
 end
 
 fprintf('\n\n');
-fprintf('\\begin{tabular}{r | lllll} $n_\\textrm{eff}$ (stride) & blind optimal & ranged & cv & gcv & log-likelihood \\\\ \\hline \\hline \n');
+fprintf('\\begin{tabular}{r p{1cm} | p{1cm}p{1cm}p{1cm}p{1cm}} $n_\\textrm{eff}$ (stride) & expected mse & ranged & cv & gcv & log-likelihood \\\\ \\hline \\hline \n');
 for iSlope = 1:length(slopes)
     
     fprintf('$\\omega^{%d}$ &&&&&  \\\\ \\hline \n',slopes(iSlope));

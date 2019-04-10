@@ -10,18 +10,23 @@ choiceDrifter = 6;
 
 drifters = open('sample_data/raw_rho1_drifters.mat');
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% We need a consistent lon0 for all drifters
+lon = drifters.lon{1};
+lon0 = min(lon)+(max(lon)-min(lon))/2;
+
+t_drifter = (drifters.date{choiceDrifter}-drifters.lastDeployment)*24*60*60;
+lat = drifters.lat{choiceDrifter};
+lon = drifters.lon{choiceDrifter};
+spline = GPSTensionSpline(t_drifter,lat,lon,'shouldUseRobustFit',1,'lon0',lon0);
+
 % Pull out the data of interest
-x_data = drifters.x{choiceDrifter};
-y_data = drifters.y{choiceDrifter};
-t_data = drifters.t{choiceDrifter};
-
-% These are our working definitions for the noise
-noiseDistribution = StudentTDistribution(8.5,4.5);
-
-splinefit = TensionSpline(t_data,x_data,noiseDistribution);
-robustfit = RobustTensionSpline(t_data,x_data,noiseDistribution);
+x_data = spline.x;
+y_data = spline.y;
+t_data = spline.t;
 
 t=linspace(min(t_data),max(t_data),length(t_data)*10).';
+[xq,yq] = spline.xyAtTime(t);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -39,12 +44,13 @@ fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
 s = 1/1000;
-plot(t/3600,s*robustfit(t), 'LineWidth', 1.0*scaleFactor, 'Color',0.0*[1.0 1.0 1.0]), hold on
-plot(t/3600,s*splinefit(t), 'LineWidth', 1.0*scaleFactor, 'Color',0.4*[1.0 1.0 1.0])
-scatter(drifters.t{choiceDrifter}(robustfit.outlierIndices)/3600,s*drifters.x{choiceDrifter}(robustfit.outlierIndices),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
-scatter(drifters.t{choiceDrifter}/3600,s*drifters.x{choiceDrifter},(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
+plot(t/3600,s*xq, 'LineWidth', 1.0*scaleFactor, 'Color',0.0*[1.0 1.0 1.0]), hold on
+scatter(spline.t(spline.outlierIndices)/3600,s*spline.x(spline.outlierIndices),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
+scatter(spline.t/3600,s*spline.x,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 xlabel('t (hours)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 ylabel('x (km)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
+
+return
 
 xlim([124 149])
 ylim([5.58 9.18])

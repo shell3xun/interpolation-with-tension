@@ -88,6 +88,9 @@ min_rms_error = min(min(optimal_rmse,[],3),[],4);
 rel_rms_error = optimal_rmse./min_rms_error;
 
 pct_range = 0.6827; % Chosen to match 1-sigma for a Gaussian (these are not Gaussian).
+min_pct = @(values) values(ceil( ((1-pct_range)/2)*length(values)));
+max_pct = @(values) values(floor( ((1+pct_range)/2)*length(values)));
+
 rel_rms_error_SvsT = zeros(length(S_range),length(S_range));
 rel_rms_error_std_SvsT = zeros(length(S_range),length(S_range));
 rel_rms_error_SvsT_pct_low = zeros(length(S_range),length(S_range));
@@ -104,16 +107,16 @@ end
 
 fprintf('\n\n');
 fprintf('\\begin{tabular}{l *{%d}{l}}\n',length(S_range));
-fprintf('\\toprule & \\multicolumn{%d}{c}{S} \\\\ \n',length(S_range));
+fprintf('\\toprule & \\multicolumn{%d}{c}{T} \\\\ \n',length(S_range));
 fprintf('\\cmidrule(lr){2-%d} \n',length(S_range)+1);
-fprintf('T ');
+fprintf('S ');
 for iS = 1:length(S_range)
     fprintf('& %d ',iS);
 end
 fprintf('\\\\ \\midrule \n');
-for iT = 1:length(S_range)
-    fprintf('%d ',iT);
-    for iS = 1:length(S_range)
+for iS = 1:length(S_range)
+    fprintf('%d ',iS);
+    for iT = 1:length(S_range)
         if isnan(rel_rms_error_SvsT_pct_low(iS,iT))
             fprintf('& ');
         else
@@ -124,6 +127,34 @@ for iT = 1:length(S_range)
 end
 fprintf(' \\bottomrule \n\\end{tabular} \n');
 
+return
+
+for iSlope=1:length(slopes)
+    fprintf('\n\n');
+    fprintf('\\begin{tabular}{l *{%d}{l}}\n',length(S_range));
+    fprintf('\\toprule & \\multicolumn{%d}{c}{T} \\\\ \n',length(S_range));
+    fprintf('\\cmidrule(lr){2-%d} \n',length(S_range)+1);
+    fprintf('S ');
+    for iS = 1:length(S_range)
+        fprintf('& %d ',iS);
+    end
+    fprintf('\\\\ \\midrule \n');
+    for iS = 1:length(S_range)
+        fprintf('%d ',iS);
+        for iT = 1:length(S_range)
+            
+            vals = sort(reshape(rel_rms_error(iSlope,:,iS,iT,:),1,[]));
+            
+            if any(isnan(vals))
+                fprintf('& ');
+            else
+                fprintf('& %.1f-%.1f\\%% ', 100*(min_pct(vals)-1),100*(max_pct(vals)-1) );
+            end
+        end
+        fprintf('\\\\ \n');
+    end
+    fprintf(' \\bottomrule \n\\end{tabular} \n');
+end
 return
 
 % now compute the ensemble average increase in error
