@@ -114,10 +114,9 @@ for i=1:length(result_stride)
         
     spline_x = TensionSpline(t_obs,x_obs,NormalDistribution(sigma),'S', S, 'T', T, 'knot_dof', 'auto');
     spline_y = TensionSpline(t_obs,y_obs,NormalDistribution(sigma),'S', S, 'T', T, 'knot_dof', 'auto');
-%     TensionSpline.MinimizeExpectedMeanSquareError(spline_x);
-%     TensionSpline.MinimizeExpectedMeanSquareError(spline_y);
+
     spline_x.minimizeMeanSquareError(data.t,data.x);
-    spline_x.minimizeMeanSquareError(data.t,data.y);
+    spline_y.minimizeMeanSquareError(data.t,data.y);
  
     x_smooth = spline_x(t(indicesAll));
     y_smooth = spline_y(t(indicesAll));

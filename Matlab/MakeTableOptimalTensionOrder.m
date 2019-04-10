@@ -9,15 +9,15 @@ if exist(filename,'file')
 else
     slopes = [-2; -3; -4];
     S_range = 1:5;
-    strides = (2.^(0:3)).';
+    strides = (2.^(0:4)).';
     
     totalSlopes = length(slopes);
     totalStrides = length(strides);
-    totalEnsembles = 101;
+    totalEnsembles = 200;
     
     % matern signal parameters
     sigma_u = 0.20;
-    base_dt = 3*60; % chosen as the smallest interval considered, because anything shorter than this looks non-stationary... like a local polynomial fit is needed.
+    base_dt = 1.5*60; % chosen as the smallest interval considered, because anything shorter than this looks non-stationary... like a local polynomial fit is needed.
     t_damp = 30*60;
     n = 250;
     

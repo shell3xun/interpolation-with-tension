@@ -13,7 +13,7 @@ if exist(filename,'file')
     load(filename);
 else
     slopes = [-2; -3; -4];
-    strides = (2.^(0:3)).';
+    strides = (2.^(0:4)).';
     
     totalSlopes = length(slopes);
     totalStrides = length(strides);
@@ -28,7 +28,7 @@ else
     
     % matern signal parameters
     sigma_u = 0.20;
-    base_dt = 3*60; % chosen as the smallest interval considered, because anything shorter than this looks non-stationary... like a local polynomial fit is needed.
+    base_dt = 1.5*60; % chosen as the smallest interval considered, because anything shorter than this looks non-stationary... like a local polynomial fit is needed.
     t_damp = 30*60;
     n = 250;
         
@@ -52,6 +52,7 @@ else
     stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'optimal_cv';
     stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'optimal_gcv';
     stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'optimal_log_likelihood';
+    stat_structs{end+1} = nothing_struct; stat_structs{end}.name = 'optimal_iterated_mean_removed';
     varnames{end+1} = 'stat_structs';
     
     for iSlope = 1:length(slopes)
@@ -91,7 +92,7 @@ else
                 
                 x_obs = data.x + epsilon;
                 t_obs = data.t;
-                
+                                
                 % record the estimated values of the signal
                 u_estimate_spectral(iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(noiseDistribution.variance),1);
                 a_estimate_spectral(iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(noiseDistribution.variance),T);
@@ -166,6 +167,20 @@ else
                 
                 iStruct = iStruct+1; % 8
                 stat_structs{iStruct} = LogStatisticsFromSplineForTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error);
+                                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % Fit a constrained tension spline (a polynomial fit), then
+                % an optimal iterated spline. For stationary data, this
+                % should make no appreciable difference.
+                K = S+1;
+                t_knot = cat(1,min(t_obs)*ones(K+1,1),max(t_obs)*ones(K+1,1));
+                mean_spline = ConstrainedSpline(t_obs,x_obs,K+1,t_knot,noiseDistribution,[]);
+                
+                spline = TensionSpline(t_obs,x_obs-mean_spline(t_obs),noiseDistribution, 'S', S, 'lambda',Lambda.optimalIterated, 'knot_dof', 'auto');
+                compute_ms_error = @(spline) (mean(mean(  (data.x - spline(data.t) - mean_spline(data.t)).^2,2 ),1));
+                
+                iStruct = iStruct+1; % 9
+                stat_structs{iStruct} = LogStatisticsFromSplineForTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error);
                 
             end
             fprintf('\n');
@@ -193,6 +208,7 @@ for i=1:length(stat_structs)
     print_dmse_all( stat_structs{i} );
 end
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % MSE Comparison table for manuscript
 %
@@ -206,10 +222,15 @@ for iSlope = 1:length(slopes)
     fprintf('$\\omega^{%d}$ &&&&&  \\\\ \\hline \n',slopes(iSlope));
     for iStride=1:length(strides)
         fprintf('%#.1f (%d) & %s &  %s (%#.1f) &  %s (%#.1f) &  %s (%#.1f) \\\\ \n',mean(reshape(stat_structs{1}.neff_se(iStride,iSlope,:),[],1)), strides(iStride), print_mse(stat_structs{1},iStride,iSlope), print_dmse(stat_structs{3},iStride,iSlope),mean(reshape(stat_structs{3}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{2},iStride,iSlope),mean(reshape(stat_structs{2}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{4},iStride,iSlope),mean(reshape(stat_structs{4}.neff_se(iStride,iSlope,:),[],1)) )  ;
+%         fprintf('%#.1f (%d) & %s &  %s (%#.1f) &  %s (%#.1f) &  %s (%#.1f) &  %s (%#.1f) \\\\ \n',mean(reshape(stat_structs{1}.neff_se(iStride,iSlope,:),[],1)), strides(iStride), print_mse(stat_structs{1},iStride,iSlope), print_dmse(stat_structs{3},iStride,iSlope),mean(reshape(stat_structs{3}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{2},iStride,iSlope),mean(reshape(stat_structs{2}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{4},iStride,iSlope),mean(reshape(stat_structs{4}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{9},iStride,iSlope),mean(reshape(stat_structs{9}.neff_se(iStride,iSlope,:),[],1)) )  ;
+
     end
     
 end
 fprintf('\\end{tabular} \n');
+
+return
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % MSE Comparison table of alternative methods
