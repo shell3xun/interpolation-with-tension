@@ -24,11 +24,12 @@ else
     slopes = -3;
     strides = (2.^(0:4)).';
     outlierRatios = [0.0 0.05 0.15 0.25];
-     
+    outlierRatios = 0.25; 
+    
     totalSlopes = length(slopes);
     totalStrides = length(strides);
     totalOutlierRatios = length(outlierRatios);
-    totalEnsembles = 200;
+    totalEnsembles = 20;
 
     % spline fit parameters
     S = 3;
@@ -133,7 +134,7 @@ else
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                     % Blinded best fit with robust tension splines
                     
-                    spline = TensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected);
+                    spline = TensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionIterated);
                     spline.minimizeMeanSquareError(data.t,data.x);
                     iStruct = iStruct+1;
                     stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
@@ -142,6 +143,7 @@ else
                         zmin = noiseDistribution.locationOfCDFPercentile(beta/2);
                         zmax = noiseDistribution.locationOfCDFPercentile(1-beta/2);
                         expectedVariance = noiseDistribution.varianceInRange(zmin,zmax);
+                        spline.lambda = spline.lambdaAtFullTension;
                         spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax,expectedVariance) );
                         
                         iStruct = iStruct+1;
