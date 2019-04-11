@@ -24,12 +24,12 @@ else
     slopes = -3;
     strides = (2.^(0:4)).';
     outlierRatios = [0.0 0.05 0.15 0.25];
-    outlierRatios = 0.25; 
+%     outlierRatios = 0.25; 
     
     totalSlopes = length(slopes);
     totalStrides = length(strides);
     totalOutlierRatios = length(outlierRatios);
-    totalEnsembles = 20;
+    totalEnsembles = 200;
 
     % spline fit parameters
     S = 3;
