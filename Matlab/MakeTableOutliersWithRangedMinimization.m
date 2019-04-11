@@ -178,7 +178,24 @@ for iOutlierRatio=1:length(outlierRatios)
     fprintf('\n\n');
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% MSE Comparison table for manuscript
+%
+fprintf('\n\n');
+fprintf('\\begin{tabular}{r r p{1cm} | p{1cm}p{1cm}p{1cm}p{1cm}} stride & $n_\\textrm{eff}$ & optimal mse & reduced dof & blind initial & expected mse \\\\ \\hline \\hline \n');
+for iOutlierRatio = 1:length(outlierRatios)
+    
+    fprintf('$\\alpha=%.02$ &&&&&  \\\\ \\hline \n',outlierRatios(iOutlierRatio));
+    for iStride=1:length(strides)
+                fprintf('%d & %#.1f & %s &  %s  &  %s  &  %s  \\\\ \n', strides(iStride),mean(reshape(stat_structs{1}.neff_se(iStride,iSlope,:),[],1)), print_mse(stat_structs{1},iStride,iSlope), print_dmse(stat_structs{3},iStride,iSlope), print_dmse(stat_structs{2},iStride,iSlope), print_dmse(stat_structs{4},iStride,iSlope) )  ;
 
+%         fprintf('%#.1f (%d) & %s &  %s (%#.1f) &  %s (%#.1f) &  %s (%#.1f) \\\\ \n',mean(reshape(stat_structs{1}.neff_se(iStride,iSlope,:),[],1)), strides(iStride), print_mse(stat_structs{1},iStride,iSlope), print_dmse(stat_structs{3},iStride,iSlope),mean(reshape(stat_structs{3}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{2},iStride,iSlope),mean(reshape(stat_structs{2}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{4},iStride,iSlope),mean(reshape(stat_structs{4}.neff_se(iStride,iSlope,:),[],1)) )  ;
+%         fprintf('%#.1f (%d) & %s &  %s (%#.1f) &  %s (%#.1f) &  %s (%#.1f) &  %s (%#.1f) \\\\ \n',mean(reshape(stat_structs{1}.neff_se(iStride,iSlope,:),[],1)), strides(iStride), print_mse(stat_structs{1},iStride,iSlope), print_dmse(stat_structs{3},iStride,iSlope),mean(reshape(stat_structs{3}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{2},iStride,iSlope),mean(reshape(stat_structs{2}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{4},iStride,iSlope),mean(reshape(stat_structs{4}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{9},iStride,iSlope),mean(reshape(stat_structs{9}.neff_se(iStride,iSlope,:),[],1)) )  ;
+
+    end
+    
+end
+fprintf('\\end{tabular} \n');
 
 return
 
