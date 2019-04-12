@@ -66,6 +66,13 @@ else
         stat_structs{end+1} = nothing_struct;
         stat_structs{end}.name = sprintf('robust_beta%d',beta);
     end
+    
+%     pdfRatio = [3, 2, 1, 1/2, 1/3];
+%     for ratio=pdfRatio
+%         stat_structs{end+1} = nothing_struct;
+%         stat_structs{end}.name = sprintf('robust_pdfRatio%.1f',ratio);
+%     end
+    
     varnames{end+1} = 'stat_structs';
         
     for iOutlierRatio = 1:totalOutlierRatios
@@ -149,6 +156,19 @@ else
                         iStruct = iStruct+1;
                         stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     end
+                    
+%                     for ratio=pdfRatio
+%                         spline.lambda = spline.lambdaAtFullTension;
+%                         if spline.alpha > 0
+%                             [zmax,expectedVariance] = TensionSpline.locationOfNoiseToOutlierPDFRatio(spline.alpha,spline.outlierDistribution,spline.distribution,ratio);
+%                             spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zmax,zmax,expectedVariance) );
+%                         else
+%                             spline.minimizeExpectedMeanSquareError;
+%                         end
+%                       
+%                         iStruct = iStruct+1;
+%                         stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
+%                     end
 
                 end
                 fprintf('\n');
@@ -162,7 +182,8 @@ end
 % We find the lowest mean square error (mse) that was achieved with a blind
 % minimization technique, and then use that as the basis for comparison.
 optimal_blind_mse = min(cat(5,stat_structs{1}.mse,stat_structs{3}.mse,stat_structs{4}.mse,stat_structs{5}.mse,stat_structs{6}.mse,stat_structs{7}.mse),[],5);
-dmse = @(stats) log10(stats.mse./optimal_blind_mse);
+% dmse = @(stats) log10(stats.mse./optimal_blind_mse);
+dmse = @(stats) log10(stats.mse./stat_structs{2}.mse);
 for i=1:length(stat_structs)
     stat_structs{i}.dmse = dmse(stat_structs{i});
 end
@@ -178,16 +199,24 @@ for iOutlierRatio=1:length(outlierRatios)
     fprintf('\n\n');
 end
 
+for i=1:length(stat_structs)
+    fprintf('%s: %.1f (%.1f-%.1f)\n',stat_structs{i}.name ,100*(10^mean(reshape(stat_structs{i}.dmse(:),[],1))-1),minpct(sort(reshape(stat_structs{i}.dmse(:),[],1))), maxpct(sort(reshape(stat_structs{i}.dmse(:),[],1))) )
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % MSE Comparison table for manuscript
 %
+
+print_mse = @(stats,iStride,iOutlierRatio) sprintf('%#.3g m$^2$',mean(reshape(stats.mse(iOutlierRatio,iStride,:,:),[],1)));
+print_dmse = @(stats,iStride,iOutlierRatio) sprintf('%.1f\\%%',100*(10^mean(reshape(stats.dmse(iOutlierRatio,iStride,:,:),[],1))-1));
+
 fprintf('\n\n');
-fprintf('\\begin{tabular}{r r p{1cm} | p{1cm}p{1cm}p{1cm}p{1cm}} stride & $n_\\textrm{eff}$ & optimal mse & reduced dof & blind initial & expected mse \\\\ \\hline \\hline \n');
+fprintf('\\begin{tabular}{r r p{1cm} | p{1.1cm}p{1.1cm}p{1.1cm}p{1.1cm}p{1.1cm}p{1.1cm}} stride & $n_\\textrm{eff}$ & optimal mse & $\\beta=\\infty $ & $\\beta=\\frac{1}{50}$ & $\\beta=\\frac{1}{100}$ & $\\beta=\\frac{1}{200}$ & $\\beta=\\frac{1}{400}$ & $\\beta=\\frac{1}{800}$ \\\\ \\hline \\hline \n');
 for iOutlierRatio = 1:length(outlierRatios)
     
-    fprintf('$\\alpha=%.02$ &&&&&  \\\\ \\hline \n',outlierRatios(iOutlierRatio));
+    fprintf('$\\alpha=%.02f$ &&&&&&&&  \\\\ \\hline \n',outlierRatios(iOutlierRatio));
     for iStride=1:length(strides)
-                fprintf('%d & %#.1f & %s &  %s  &  %s  &  %s  \\\\ \n', strides(iStride),mean(reshape(stat_structs{1}.neff_se(iStride,iSlope,:),[],1)), print_mse(stat_structs{1},iStride,iSlope), print_dmse(stat_structs{3},iStride,iSlope), print_dmse(stat_structs{2},iStride,iSlope), print_dmse(stat_structs{4},iStride,iSlope) )  ;
+                fprintf('%d & %#.1f & %s &  %s  &  %s  &  %s &  %s &  %s &  %s  \\\\ \n', strides(iStride),mean(reshape(stat_structs{2}.neff_se(iOutlierRatio,iStride,:,:),[],1)), print_mse(stat_structs{2},iStride,iOutlierRatio), print_dmse(stat_structs{1},iStride,iOutlierRatio), print_dmse(stat_structs{3},iStride,iOutlierRatio), print_dmse(stat_structs{4},iStride,iOutlierRatio), print_dmse(stat_structs{5},iStride,iOutlierRatio), print_dmse(stat_structs{6},iStride,iOutlierRatio), print_dmse(stat_structs{7},iStride,iOutlierRatio) )  ;
 
 %         fprintf('%#.1f (%d) & %s &  %s (%#.1f) &  %s (%#.1f) &  %s (%#.1f) \\\\ \n',mean(reshape(stat_structs{1}.neff_se(iStride,iSlope,:),[],1)), strides(iStride), print_mse(stat_structs{1},iStride,iSlope), print_dmse(stat_structs{3},iStride,iSlope),mean(reshape(stat_structs{3}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{2},iStride,iSlope),mean(reshape(stat_structs{2}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{4},iStride,iSlope),mean(reshape(stat_structs{4}.neff_se(iStride,iSlope,:),[],1)) )  ;
 %         fprintf('%#.1f (%d) & %s &  %s (%#.1f) &  %s (%#.1f) &  %s (%#.1f) &  %s (%#.1f) \\\\ \n',mean(reshape(stat_structs{1}.neff_se(iStride,iSlope,:),[],1)), strides(iStride), print_mse(stat_structs{1},iStride,iSlope), print_dmse(stat_structs{3},iStride,iSlope),mean(reshape(stat_structs{3}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{2},iStride,iSlope),mean(reshape(stat_structs{2}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{4},iStride,iSlope),mean(reshape(stat_structs{4}.neff_se(iStride,iSlope,:),[],1)), print_dmse(stat_structs{9},iStride,iSlope),mean(reshape(stat_structs{9}.neff_se(iStride,iSlope,:),[],1)) )  ;
