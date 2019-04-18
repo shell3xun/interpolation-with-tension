@@ -16,7 +16,7 @@ for iDrifter = 1:length(drifters.lon)
     t_drifter = (drifters.date{iDrifter}-drifters.lastDeployment)*24*60*60;
     lat = drifters.lat{iDrifter};
     lon = drifters.lon{iDrifter};
-    spline = GPSTensionSpline(t_drifter,lat,lon,'shouldUseRobustFit',1,'lon0',lon0);
+    spline = GPSSmoothingSpline(t_drifter,lat,lon,'shouldUseRobustFit',1,'lon0',lon0);
     
     fprintf('n_eff (x,y): (%.1f, %.1f)\n',spline.spline_x.effectiveSampleSizeFromVarianceOfTheMean,spline.spline_y.effectiveSampleSizeFromVarianceOfTheMean);
     fprintf('lambda: %.3g\n',spline.lambda);

@@ -141,7 +141,7 @@ else
                             distribution = noiseDistribution;
                         end
                         
-                        spline = TensionSpline(t_obs,x_obs,distribution, 'S', S, 'lambda',Lambda.fullTensionExpected);
+                        spline = SmoothingSpline(t_obs,x_obs,distribution, 'S', S, 'lambda',Lambda.fullTensionExpected);
                         spline.outlierThreshold = noiseDistribution.locationOfCDFPercentile(1-1/10000/2);
                         [spline.outlierDistribution, spline.alpha] = spline.setToFullTensionWithIteratedIQAD(noiseDistribution);
                         

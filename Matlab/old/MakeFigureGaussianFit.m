@@ -22,8 +22,8 @@ N = length(t);
 % spline_fit_big_error by a factor of 1e4 manually. This gives quite a
 % different answer than this approach, because here we (probably) aren't
 % estimating u_rms correctly, because the error is incorrect.
-spline_fit_small_error = TensionSpline(t,[x y],10);
-spline_fit_big_error = TensionSpline(t,[x y],50);
+spline_fit_small_error = SmoothingSpline(t,[x y],10);
+spline_fit_big_error = SmoothingSpline(t,[x y],50);
 
 tq = linspace(t(1),t(end),10*length(t))';
 

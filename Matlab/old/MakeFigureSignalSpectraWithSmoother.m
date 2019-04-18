@@ -58,7 +58,7 @@ fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot the signal and noise separately
 
-D = TensionSpline.FiniteDifferenceMatrixNoBoundary(numDerivs,t,1);
+D = SmoothingSpline.FiniteDifferenceMatrixNoBoundary(numDerivs,t,1);
 
 dt = t(2)-t(1);
 cv = D*(x + sqrt(-1)*y);
@@ -103,7 +103,7 @@ for iStride=1:length(strides)
     rms_error_y =  sqrt(mean(mean(  (data.y(indicesAll) - y_smooth).^2,2 ),1));
     fprintf('rms error (x,y)=(%f,%f)\n',rms_error_x, rms_error_y);
     
-    D = TensionSpline.FiniteDifferenceMatrixNoBoundary(numDerivs,t(indicesAll),1);
+    D = SmoothingSpline.FiniteDifferenceMatrixNoBoundary(numDerivs,t(indicesAll),1);
     u_smooth = D*x_smooth;
     v_smooth = D*y_smooth;
     

@@ -25,7 +25,7 @@ if 1 == 0
     ubar = fft(x);
     s_signal = (ubar.*conj(ubar)) .* (2*pi*f).^(2*D) * (dt/N);
 else
-    [DiffMatrix,t_u] = TensionSpline.FiniteDifferenceMatrixNoBoundary(D,t,1);
+    [DiffMatrix,t_u] = SmoothingSpline.FiniteDifferenceMatrixNoBoundary(D,t,1);
     
     dt = t_u(2)-t_u(1);
     T = t_u(end)-t_u(1);
@@ -45,7 +45,7 @@ s_noise = variance_of_the_noise*SpectralD;
 
 alpha = 0.99;
 dof = 2;
-cutoff = TensionSpline.chi2inv(alpha,dof)/dof;
+cutoff = SmoothingSpline.chi2inv(alpha,dof)/dof;
 
 f = fftshift(f);
 s_signal = fftshift(s_signal);

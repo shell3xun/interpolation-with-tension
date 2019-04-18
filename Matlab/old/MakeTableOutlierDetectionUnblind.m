@@ -129,14 +129,14 @@ else
                     %%%%%%%%%%%%%%%%%%
                     % Default distribution
                     %%%%%%%%%%%%%%%%%%
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     default_dist = LogStatisticsFromSplineForOutlierDetectionTable(default_dist,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
 
                     %%%%%%%%%%%%%%%%%%
                     % Known distribution
                     %%%%%%%%%%%%%%%%%%
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected);
+                    spline_robust = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected);
                     spline_robust.outlierDistribution = outlierDistribution;
                     spline_robust.distribution = AddedDistribution(percentOutliers,outlierDistribution,noiseDistribution);
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
@@ -170,21 +170,21 @@ else
                     %%%%%%%%%%%%%%%%%%
                     % Known distribution, discarded outliers
                     %%%%%%%%%%%%%%%%%%
-                    spline_robust = RobustTensionSpline(t_obs(~outlierIndices),x_obs(~outlierIndices),noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustSmoothingSpline(t_obs(~outlierIndices),x_obs(~outlierIndices),noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     optimal_dist_no_outliers = LogStatisticsFromSplineForOutlierDetectionTable(optimal_dist_no_outliers,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     %%%%%%%%%%%%%%%%%%
                     % Known distribution, discarded crossover points
                     %%%%%%%%%%%%%%%%%%
-                    spline_robust = RobustTensionSpline(t_obs(truenonOutlierIndices),x_obs(truenonOutlierIndices),noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustSmoothingSpline(t_obs(truenonOutlierIndices),x_obs(truenonOutlierIndices),noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     optimal_dist_no_true_outliers = LogStatisticsFromSplineForOutlierDetectionTable(optimal_dist_no_true_outliers,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
 
                     %%%%%%%%%%%%%%%%%%
                     % Known distribution, with estimated optimal cutoff and weightings
                     %%%%%%%%%%%%%%%%%%
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     addedDistribution = AddedDistribution(percentOutliers,outlierDistribution,noiseDistribution);
                     m=2/3;
                     f = @(alpha) ((addedDistribution.variance-2*addedDistribution.varianceInRange(-Inf,addedDistribution.locationOfCDFPercentile(alpha/2)))^(1-m/2))/(1-alpha)^(m-1) + ((2*addedDistribution.varianceInRange(-Inf,addedDistribution.locationOfCDFPercentile(alpha/2)))^(1-m/2))/(alpha)^(m-1);

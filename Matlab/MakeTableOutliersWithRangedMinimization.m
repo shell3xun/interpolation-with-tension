@@ -134,14 +134,14 @@ else
                     linearIndex = sub2ind(size(nothing),iOutlierRatio,iStride,iSlope,iEnsemble);
                     iStruct = 0;
                     
-                    spline = TensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.optimalIterated);
+                    spline = SmoothingSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.optimalIterated);
                     iStruct = iStruct+1;
                     stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                     % Blinded best fit with robust tension splines
                     
-                    spline = TensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionIterated);
+                    spline = SmoothingSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionIterated);
                     spline.minimizeMeanSquareError(data.t,data.x);
                     iStruct = iStruct+1;
                     stat_structs{iStruct} = LogStatisticsFromSplineForOutlierTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error,trueOutlierIndices,outlierIndices);
@@ -160,7 +160,7 @@ else
 %                     for ratio=pdfRatio
 %                         spline.lambda = spline.lambdaAtFullTension;
 %                         if spline.alpha > 0
-%                             [zmax,expectedVariance] = TensionSpline.locationOfNoiseToOutlierPDFRatio(spline.alpha,spline.outlierDistribution,spline.distribution,ratio);
+%                             [zmax,expectedVariance] = SmoothingSpline.locationOfNoiseToOutlierPDFRatio(spline.alpha,spline.outlierDistribution,spline.distribution,ratio);
 %                             spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zmax,zmax,expectedVariance) );
 %                         else
 %                             spline.minimizeExpectedMeanSquareError;

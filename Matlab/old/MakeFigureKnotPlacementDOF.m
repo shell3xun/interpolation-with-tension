@@ -55,8 +55,8 @@ for iSlope = 1:length(slopes)
         T = 2;
         K = S+1;
         
-        spline_x = TensionSpline(t_obs,x_obs,sigma, 'S', S, 'T', T, 'knot_dof', 1);
-        optimal_lambda = TensionSpline.MinimizeMeanSquareError(spline_x,data.t(indicesAll),data.x(indicesAll));
+        spline_x = SmoothingSpline(t_obs,x_obs,sigma, 'S', S, 'T', T, 'knot_dof', 1);
+        optimal_lambda = SmoothingSpline.MinimizeMeanSquareError(spline_x,data.t(indicesAll),data.x(indicesAll));
         compute_rms_error = @() sqrt(mean(mean(  (data.x(indicesAll) - spline_x(data.t(indicesAll))).^2,2 ),1));
         
         optimal_rms_error = compute_rms_error();
@@ -68,8 +68,8 @@ for iSlope = 1:length(slopes)
         fprintf('(knot dof, delta error): ');
         while delta_relative_rms_error < 0.01
             knot_dof = knot_dof+1;
-            spline_x = TensionSpline(t_obs,x_obs,sigma, 'lambda', optimal_lambda, 'S', S, 'T', T, 'knot_dof', knot_dof);
-            TensionSpline.MinimizeMeanSquareError(spline_x,data.t(indicesAll),data.x(indicesAll));
+            spline_x = SmoothingSpline(t_obs,x_obs,sigma, 'lambda', optimal_lambda, 'S', S, 'T', T, 'knot_dof', knot_dof);
+            SmoothingSpline.MinimizeMeanSquareError(spline_x,data.t(indicesAll),data.x(indicesAll));
             compute_rms_error = @() sqrt(mean(mean(  (data.x(indicesAll) - spline_x(data.t(indicesAll))).^2,2 ),1));
             
             delta_relative_rms_error = (compute_rms_error()/optimal_rms_error) - 1;

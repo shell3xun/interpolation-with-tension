@@ -38,8 +38,8 @@ x = drifters.x{choiceDrifter};
 y = drifters.y{choiceDrifter};
 t = drifters.t{choiceDrifter};
 
-spline_x = TensionSpline(t,x,sqrt(variance_of_the_noise), 'S', S, 'T', T,'weightFunction',w,'lambda',Lambda.fullTensionExpected);
-spline_y = TensionSpline(t,y,sqrt(variance_of_the_noise), 'S', S, 'T', T,'weightFunction',w,'lambda',Lambda.fullTensionExpected);
+spline_x = SmoothingSpline(t,x,sqrt(variance_of_the_noise), 'S', S, 'T', T,'weightFunction',w,'lambda',Lambda.fullTensionExpected);
+spline_y = SmoothingSpline(t,y,sqrt(variance_of_the_noise), 'S', S, 'T', T,'weightFunction',w,'lambda',Lambda.fullTensionExpected);
 
 % Now we set a threshold for what constitutes an outlier. In this case we
 % choose points that have 1 in 10000 odds of occurring.
@@ -108,8 +108,8 @@ x_reduced = x; x_reduced(rejectedPointIndices_x{iDrifter}) = [];
 t_y = t; t_y(rejectedPointIndices_y{iDrifter}) = [];
 y_reduced = y; y_reduced(rejectedPointIndices_y{iDrifter}) = [];
 
-spline_x = TensionSpline(t_x,x_reduced,sqrt(variance_of_the_noise), 'S', S, 'T', T,'weightFunction',w);
-spline_y = TensionSpline(t_y,y_reduced,sqrt(variance_of_the_noise), 'S', S, 'T', T,'weightFunction',w);
+spline_x = SmoothingSpline(t_x,x_reduced,sqrt(variance_of_the_noise), 'S', S, 'T', T,'weightFunction',w);
+spline_y = SmoothingSpline(t_y,y_reduced,sqrt(variance_of_the_noise), 'S', S, 'T', T,'weightFunction',w);
 
 spline_x.Minimize( @(spline) spline.ExpectedMeanSquareError );
 spline_y.Minimize( @(spline) spline.ExpectedMeanSquareError );
@@ -125,15 +125,15 @@ if max(t) > max(tq)
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-spline_x_gaussian = TensionSpline(t,x,10,'S',S,'lambda',spline_x.lambda);
-TensionSpline.MinimizeExpectedMeanSquareError(spline_x_gaussian);
-spline_x_studentt = TensionSpline(t,x,sqrt(variance_of_the_noise),'S',S,'weightFunction',w,'lambda',spline_x.lambda);
-TensionSpline.MinimizeExpectedMeanSquareError(spline_x_studentt);
+spline_x_gaussian = SmoothingSpline(t,x,10,'S',S,'lambda',spline_x.lambda);
+SmoothingSpline.MinimizeExpectedMeanSquareError(spline_x_gaussian);
+spline_x_studentt = SmoothingSpline(t,x,sqrt(variance_of_the_noise),'S',S,'weightFunction',w,'lambda',spline_x.lambda);
+SmoothingSpline.MinimizeExpectedMeanSquareError(spline_x_studentt);
 
-spline_y_gaussian = TensionSpline(t,y,10,'S',S,'lambda',spline_x.lambda);
-TensionSpline.MinimizeExpectedMeanSquareError(spline_y_gaussian);
-spline_y_studentt = TensionSpline(t,y,sqrt(variance_of_the_noise),'S',S,'weightFunction',w,'lambda',spline_x.lambda);
-TensionSpline.MinimizeExpectedMeanSquareError(spline_y_studentt);
+spline_y_gaussian = SmoothingSpline(t,y,10,'S',S,'lambda',spline_x.lambda);
+SmoothingSpline.MinimizeExpectedMeanSquareError(spline_y_gaussian);
+spline_y_studentt = SmoothingSpline(t,y,sqrt(variance_of_the_noise),'S',S,'weightFunction',w,'lambda',spline_x.lambda);
+SmoothingSpline.MinimizeExpectedMeanSquareError(spline_y_studentt);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %

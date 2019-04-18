@@ -139,7 +139,7 @@ else
                     linearIndex = sub2ind(size(nothing),iOutlierRatio,iStride,iSlope,iEnsemble);
 
                     % Optimal MSE solution, given the default settings
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.minimizeExpectedMeanSquareError();
 %                     spline_robust.minimize(@(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax,expectedVariance));
                     optimal = LogStatisticsFromSplineForOutlierDetectionTable(optimal,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
@@ -148,7 +148,7 @@ else
                     odds = 1e2;
                     %%%%%%%%%%%%%%%%%%
 
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.setToFullTensionWithIteratedIQAD();
                     lambda_full = spline_robust.lambda;
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
@@ -159,7 +159,7 @@ else
                     odds = 3e2;
                     %%%%%%%%%%%%%%%%%%
 
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.lambda = lambda_full;
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
                     spline_robust.minimizeExpectedMeanSquareError();
@@ -169,7 +169,7 @@ else
                     odds = 1e3;
                     %%%%%%%%%%%%%%%%%%
 
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.lambda = lambda_full;
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
                     spline_robust.minimizeExpectedMeanSquareError();
@@ -179,7 +179,7 @@ else
                     odds = 3e3;
                     %%%%%%%%%%%%%%%%%%
 
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.lambda = lambda_full;
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
                     spline_robust.minimizeExpectedMeanSquareError();
@@ -189,7 +189,7 @@ else
                     odds = 1e4;
                     %%%%%%%%%%%%%%%%%%
 
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.lambda = lambda_full;
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
                     spline_robust.minimizeExpectedMeanSquareError();
@@ -199,7 +199,7 @@ else
                     odds = 3e4;
                     %%%%%%%%%%%%%%%%%%
 
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.lambda = lambda_full;
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
                     spline_robust.minimizeExpectedMeanSquareError();
@@ -209,7 +209,7 @@ else
                     odds = 1e5;
                     %%%%%%%%%%%%%%%%%%
 
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.lambda = lambda_full;
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
                     spline_robust.minimizeExpectedMeanSquareError();
@@ -219,7 +219,7 @@ else
                     odds = 3e5;
                     %%%%%%%%%%%%%%%%%%
                     
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.lambda = lambda_full;
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
                     spline_robust.minimizeExpectedMeanSquareError();
@@ -229,7 +229,7 @@ else
                     odds = 1e6;
                     %%%%%%%%%%%%%%%%%%
                     
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.lambda = lambda_full;
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
                     spline_robust.minimizeExpectedMeanSquareError();
@@ -239,7 +239,7 @@ else
                     odds = 3e6;
                     %%%%%%%%%%%%%%%%%%
                     
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                    spline_robust = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution,'S',S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                     spline_robust.lambda = lambda_full;
                     spline_robust.rebuildOutlierDistributionAndAdjustWeightings(odds);
                     spline_robust.minimizeExpectedMeanSquareError();

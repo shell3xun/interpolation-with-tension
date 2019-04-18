@@ -18,9 +18,9 @@ lon0 = min(lon)+(max(lon)-min(lon))/2;
 t_drifter = (drifters.date{choiceDrifter}-drifters.lastDeployment)*24*60*60;
 lat = drifters.lat{choiceDrifter};
 lon = drifters.lon{choiceDrifter};
-spline = GPSTensionSpline(t_drifter,lat,lon,'shouldUseRobustFit',1,'lon0',lon0);
+spline = GPSSmoothingSpline(t_drifter,lat,lon,'shouldUseRobustFit',1,'lon0',lon0);
 
-spline7 = GPSTensionSpline((drifters.date{7}-drifters.lastDeployment)*24*60*60,drifters.lat{7},drifters.lon{7},'shouldUseRobustFit',1,'lon0',lon0);
+spline7 = GPSSmoothingSpline((drifters.date{7}-drifters.lastDeployment)*24*60*60,drifters.lat{7},drifters.lon{7},'shouldUseRobustFit',1,'lon0',lon0);
 
 % Pull out the data of interest
 x_data = spline.x;

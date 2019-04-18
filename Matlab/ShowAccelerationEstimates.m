@@ -115,8 +115,8 @@ else
                 t_obs = data.t(indices);
                 
                 % Compute the expected tension before any fitting
-                u_rms = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(noiseDistribution.variance),1);
-                n_eff = TensionSpline.EffectiveSampleSizeFromUrms(u_rms, t_obs, sqrt(noiseDistribution.variance));
+                u_rms = SmoothingSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(noiseDistribution.variance),1);
+                n_eff = SmoothingSpline.EffectiveSampleSizeFromUrms(u_rms, t_obs, sqrt(noiseDistribution.variance));
                 
                 % The idea here was to skip a bunch of unnecessary points
                 % to trying to assess the noisy tension derivative... this
@@ -128,7 +128,7 @@ else
                 idx2 = 1:max(floor(n_eff/2),1):length(t_obs);
                 idx2 = 1:length(t_obs);
                 
-                a_rms = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs(idx2),x_obs(idx2),sqrt(noiseDistribution.variance),T,1);
+                a_rms = SmoothingSpline.EstimateRMSDerivativeFromSpectrum(t_obs(idx2),x_obs(idx2),sqrt(noiseDistribution.variance),T,1);
 
                 
                 u_estimate_spectral(iStride,iSlope,iEnsemble) = u_rms;

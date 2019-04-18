@@ -139,24 +139,24 @@ else
                     linearIndex = sub2ind(size(nothing),iOutlierRatio,iStride,iSlope,iEnsemble);
                     
                     alpha = 1/10000;
-                    spline = RobustTensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected,'alpha',alpha);
+                    spline = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected,'alpha',alpha);
                     spline.setToFullTensionWithIteratedIQAD();
                     lambda_full = spline.lambda;
                     epsilon_full = spline.epsilon;
-                    [empiricalOutlierDistribution,empiricalAlpha] = RobustTensionSpline.estimateOutlierDistributionFromKnownNoise(epsilon_full,noiseDistribution);
+                    [empiricalOutlierDistribution,empiricalAlpha] = RobustSmoothingSpline.estimateOutlierDistributionFromKnownNoise(epsilon_full,noiseDistribution);
                     
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                     % Blind fits without rejection
                     
                     minimizationPDFRatio = 1;
-                    [zoutlier,expectedVariance] = RobustTensionSpline.locationOfNoiseToOutlierPDFRatio(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,minimizationPDFRatio);
+                    [zoutlier,expectedVariance] = RobustSmoothingSpline.locationOfNoiseToOutlierPDFRatio(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,minimizationPDFRatio);
                     minimizeWithRatio1 = @(spline) spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
                     
                     minimizationPDFRatio = 3;
-                    [zoutlier,expectedVariance] = RobustTensionSpline.locationOfNoiseToOutlierPDFRatio(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,minimizationPDFRatio);
+                    [zoutlier,expectedVariance] = RobustSmoothingSpline.locationOfNoiseToOutlierPDFRatio(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,minimizationPDFRatio);
                     minimizeWithRatio3 = @(spline) spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
                     
-                    [zoutlier,expectedVariance] = RobustTensionSpline.varianceCrossOverFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution);
+                    [zoutlier,expectedVariance] = RobustSmoothingSpline.varianceCrossOverFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution);
                     minimizeWithVarianceCrossover = @(spline) spline.minimize( @(spline) spline.expectedMeanSquareErrorInRange(-zoutlier,zoutlier,expectedVariance) );
                     
                     spline.lambda = lambda_full;
@@ -177,7 +177,7 @@ else
                     % Un-blind best fit with rejection ratio 1e4
                     
                     rejectionPDFRatio = 1e4;
-                    spline.sigma = RobustTensionSpline.sigmaFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,epsilon_full,rejectionPDFRatio);
+                    spline.sigma = RobustSmoothingSpline.sigmaFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,epsilon_full,rejectionPDFRatio);
                     
                     spline.lambda = lambda_full;
                     minimizeWithRatio1(spline);
@@ -198,7 +198,7 @@ else
                     % Un-blind best fit with rejection ratio 1e5
                     
                     rejectionPDFRatio = 1e5;
-                    spline.sigma = RobustTensionSpline.sigmaFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,epsilon_full,rejectionPDFRatio);
+                    spline.sigma = RobustSmoothingSpline.sigmaFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,epsilon_full,rejectionPDFRatio);
                     
                     spline.lambda = lambda_full;
                     minimizeWithRatio1(spline);
@@ -219,7 +219,7 @@ else
                     % Un-blind best fit with rejection ratio 1e6
                     
                     rejectionPDFRatio = 1e6;
-                    spline.sigma = RobustTensionSpline.sigmaFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,epsilon_full,rejectionPDFRatio);
+                    spline.sigma = RobustSmoothingSpline.sigmaFromOutlierDistribution(empiricalAlpha,empiricalOutlierDistribution,noiseDistribution,epsilon_full,rejectionPDFRatio);
                     
                     spline.lambda = lambda_full;
                     minimizeWithRatio1(spline);

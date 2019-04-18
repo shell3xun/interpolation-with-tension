@@ -23,19 +23,19 @@ K = 4;
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-D = TensionSpline.FiniteDifferenceMatrixNoBoundary(K-1,drifters.t{choiceDrifter},1);
+D = SmoothingSpline.FiniteDifferenceMatrixNoBoundary(K-1,drifters.t{choiceDrifter},1);
 DxDT = cat(1,D*drifters.x{choiceDrifter},D*drifters.y{choiceDrifter});
 
 pct = 0.100;
 noiseDistribution = AddedDistribution(pct,StudentTDistribution(300,3.0),StudentTDistribution(8.5,4.5));
 noiseDistribution = StudentTDistribution(300,3.0);
 
-spline_x = TensionSpline(t_data, x_data, noiseDistribution, 'K', K);
-% spline_y = TensionSpline(t_data, y_data, distribution, 'K', K);
+spline_x = SmoothingSpline(t_data, x_data, noiseDistribution, 'K', K);
+% spline_y = SmoothingSpline(t_data, y_data, distribution, 'K', K);
 
 x_T = spline_x.uniqueValuesAtHighestDerivative();
 std(x_T)
-sigma_Tx = TensionSpline.StandardDeviationOfInterquartileRange(x_T)
+sigma_Tx = SmoothingSpline.StandardDeviationOfInterquartileRange(x_T)
 spline_x.lambda
 
 tensionDistribution = NormalDistribution(sigma_Tx);
@@ -48,9 +48,9 @@ return
 x_T = spline_x.UniqueValuesAtHighestDerivative();
 y_T = spline_y.UniqueValuesAtHighestDerivative();
 
-sigma_Tx = TensionSpline.StandardDeviationOfInterquartileRange(x_T);
-sigma_Ty = TensionSpline.StandardDeviationOfInterquartileRange(y_T);
-sigma_T = TensionSpline.StandardDeviationOfInterquartileRange(cat(1,x_T,y_T));
+sigma_Tx = SmoothingSpline.StandardDeviationOfInterquartileRange(x_T);
+sigma_Ty = SmoothingSpline.StandardDeviationOfInterquartileRange(y_T);
+sigma_T = SmoothingSpline.StandardDeviationOfInterquartileRange(cat(1,x_T,y_T));
 
 
 figure

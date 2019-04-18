@@ -140,7 +140,7 @@ else
                     linearIndex = sub2ind(size(nothing),iOutlierRatio,iStride,iSlope,iEnsemble);
                     
                     alpha = 1/10000;
-                    spline_robust = RobustTensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected,'alpha',alpha);
+                    spline_robust = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected,'alpha',alpha);
                     spline_robust.minimizeMeanSquareError(data.t,data.x);
                     optimal = LogStatisticsFromSplineForOutlierTable(optimal,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                     
@@ -262,7 +262,7 @@ else
                     % Blind best fit by minimizing the expected mean square
                     % error weighted by probability.
                     
-                    spline_robust.w_epsilon = RobustTensionSpline.generateEpsilonWeightingFromOutlierDistribution(epsilon_full,empiricalAlpha,empiricalOutlierDistribution,noiseDistribution);
+                    spline_robust.w_epsilon = RobustSmoothingSpline.generateEpsilonWeightingFromOutlierDistribution(epsilon_full,empiricalAlpha,empiricalOutlierDistribution,noiseDistribution);
                     spline_robust.minimize( @(spline) spline.expectedMeanSquareErrorWithWeighting(noiseDistribution.variance) );
                     robust_weighted = LogStatisticsFromSplineForOutlierTable(robust_weighted,linearIndex,spline_robust,compute_ms_error,trueOutlierIndices,outlierIndices);
                 end

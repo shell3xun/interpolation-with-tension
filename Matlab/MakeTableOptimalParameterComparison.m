@@ -94,14 +94,14 @@ else
                 t_obs = data.t;
                                 
                 % record the estimated values of the signal
-                u_estimate_spectral(iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(noiseDistribution.variance),1);
-                a_estimate_spectral(iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(noiseDistribution.variance),T);
+                u_estimate_spectral(iStride,iSlope,iEnsemble) = SmoothingSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(noiseDistribution.variance),1);
+                a_estimate_spectral(iStride,iSlope,iEnsemble) = SmoothingSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(noiseDistribution.variance),T);
                 
                 linearIndex = sub2ind(size(nothing),iStride,iSlope,iEnsemble);
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 % Unblinded best fit with knot_dof==1
-                spline = TensionSpline(t_obs,x_obs,noiseDistribution, 'lambda', Lambda.fullTensionExpected, 'S', S, 'knot_dof', 1);
+                spline = SmoothingSpline(t_obs,x_obs,noiseDistribution, 'lambda', Lambda.fullTensionExpected, 'S', S, 'knot_dof', 1);
                 spline.minimizeMeanSquareError(data.t,data.x);
                 
                 iStruct = 1;
@@ -109,14 +109,14 @@ else
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 % Automatic knot selection, optimal expected
-                spline = TensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.optimalExpected, 'knot_dof', 'auto');
+                spline = SmoothingSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.optimalExpected, 'knot_dof', 'auto');
                 
                 iStruct = iStruct+1; % 2
                 stat_structs{iStruct} = LogStatisticsFromSplineForTable(stat_structs{iStruct},linearIndex,spline,compute_ms_error);
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 % Automatic knot selection, optimal actual
-                spline = TensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected, 'knot_dof', 'auto');
+                spline = SmoothingSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected, 'knot_dof', 'auto');
                 lambda_full = spline.lambda;
                 spline.minimizeMeanSquareError(data.t,data.x);
                 
@@ -158,8 +158,8 @@ else
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 % blind log-likelihood
-                x_filtered = TensionSpline.RunningFilter(x_obs,11,'median');
-                a_rms = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_filtered,sqrt(noiseDistribution.variance),T);
+                x_filtered = SmoothingSpline.RunningFilter(x_obs,11,'median');
+                a_rms = SmoothingSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_filtered,sqrt(noiseDistribution.variance),T);
                 tensionDistributionEstimate = NormalDistribution(a_rms);
                 logLikelihood = @(spline) -sum(noiseDistribution.logPDF( spline.epsilon ) ) - sum(tensionDistributionEstimate.logPDF(spline.uniqueValuesAtHighestDerivative));
                 spline.lambda = lambda_full;
@@ -176,7 +176,7 @@ else
                 t_knot = cat(1,min(t_obs)*ones(K+1,1),max(t_obs)*ones(K+1,1));
                 mean_spline = ConstrainedSpline(t_obs,x_obs,K+1,t_knot,noiseDistribution,[]);
                 
-                spline = TensionSpline(t_obs,x_obs-mean_spline(t_obs),noiseDistribution, 'S', S, 'lambda',Lambda.optimalIterated, 'knot_dof', 'auto');
+                spline = SmoothingSpline(t_obs,x_obs-mean_spline(t_obs),noiseDistribution, 'S', S, 'lambda',Lambda.optimalIterated, 'knot_dof', 'auto');
                 compute_ms_error = @(spline) (mean(mean(  (data.x - spline(data.t) - mean_spline(data.t)).^2,2 ),1));
                 
                 iStruct = iStruct+1; % 9

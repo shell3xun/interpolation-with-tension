@@ -111,11 +111,11 @@ else
                 
                 linearIndex = sub2ind(size(nothing),iStride,iSlope,iEnsemble);
                 
-%                 spline_optimal = TensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected);
+%                 spline_optimal = SmoothingSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected);
 %                 spline_optimal.minimizeMeanSquareError(data.t,data.x);
 %                 optimal = LogStatisticsFromSplineForOutlierTable(optimal,linearIndex,spline_optimal,compute_ms_error,trueOutlierIndices);
 % 
-%                 spline_robust_optimal = RobustTensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected,'alpha',1/100);
+%                 spline_robust_optimal = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected,'alpha',1/100);
 %                 spline_robust_optimal.minimizeMeanSquareError(data.t,data.x);
 %                 robust_alpha100_optimal = LogStatisticsFromSplineForOutlierTable(robust_alpha100_optimal,linearIndex,spline_robust_optimal,compute_ms_error,trueOutlierIndices);
 %                 
@@ -123,7 +123,7 @@ else
 %                 spline_robust_optimal.minimizeMeanSquareError(data.t,data.x);
 %                 robust_alpha100_knots_removed_optimal = LogStatisticsFromSplineForOutlierTable(robust_alpha100_knots_removed_optimal,linearIndex,spline_robust_optimal,compute_ms_error,trueOutlierIndices);
 %                                
-                spline_robust_optimal = RobustTensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
+                spline_robust_optimal = RobustSmoothingSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'lambda',Lambda.fullTensionExpected,'alpha',1/10000);
                 spline_robust_optimal.minimizeMeanSquareError(data.t,data.x);
                 spline_robust_optimal.removeOutlierKnotsAndRetension(1/10000);
                 spline_robust_optimal.minimizeMeanSquareError(data.t,data.x);

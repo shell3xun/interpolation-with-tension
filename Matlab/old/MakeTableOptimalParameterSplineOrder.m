@@ -85,33 +85,33 @@ for i=1:length(result_stride)
             
             
             % Compute the expected tension before any fitting
-            [lambda_blind_initial(i,iS,T), expectedDOF(i,iS,T)] = TensionSpline.ExpectedInitialTension(t_obs,x_obs,sigma,T,isIsotropic);
+            [lambda_blind_initial(i,iS,T), expectedDOF(i,iS,T)] = SmoothingSpline.ExpectedInitialTension(t_obs,x_obs,sigma,T,isIsotropic);
             
             % Fit
-            spline_fit = TensionSpline(t_obs,x_obs,sigma, 'lambda', lambda_blind_initial(i,iS,T), 'S', S, 'T', T);
+            spline_fit = SmoothingSpline(t_obs,x_obs,sigma, 'lambda', lambda_blind_initial(i,iS,T), 'S', S, 'T', T);
             compute_rms_error = @() sqrt(mean(mean(  (data.x(indicesAll) - spline_fit(data.t(indicesAll))).^2,2 ),1));
             
             % record how well the initial fit did
             rms_error_blind_initial(i,iS,T) = compute_rms_error();
             dof_out_blind_initial(i,iS,T) = spline_fit.DOFFromVarianceOfTheMean;
-            [rmse,norm] = TensionSpline.MeanSquareErrorAtAllOrders(spline_fit, data.t(indicesAll),data.x(indicesAll));
+            [rmse,norm] = SmoothingSpline.MeanSquareErrorAtAllOrders(spline_fit, data.t(indicesAll),data.x(indicesAll));
             Q_blind_initial(i,iS,T) = find(rmse./norm < 0.9,1,'last');
             
             fprintf('\t\tinitial (rms,lambda,dof,Q)=(%#.3g m, %#.3g, %#.3g (%#.3g), %#.3g)\n',rms_error_blind_initial(i,iS,T),lambda_blind_initial(i,iS,T),dof_out_blind_initial(i,iS,T), expectedDOF(i,iS,T),Q_blind_initial(i,iS,T));
             
             % now optimize the tension using the true value
-            lambda_true_optimal(i,iS,T) = TensionSpline.MinimizeMeanSquareError(spline_fit,data.t(indicesAll),data.x(indicesAll));
+            lambda_true_optimal(i,iS,T) = SmoothingSpline.MinimizeMeanSquareError(spline_fit,data.t(indicesAll),data.x(indicesAll));
             rms_error_true_optimal(i,iS,T) = compute_rms_error();
             dof_out_true_optimal(i,iS,T) = spline_fit.DOFFromVarianceOfTheMean;
-            [rmse,norm] = TensionSpline.MeanSquareErrorAtAllOrders(spline_fit, data.t(indicesAll),data.x(indicesAll));
+            [rmse,norm] = SmoothingSpline.MeanSquareErrorAtAllOrders(spline_fit, data.t(indicesAll),data.x(indicesAll));
             Q_blind_true_optimal(i,iS,T) = find(rmse./norm < 0.9,1,'last');
             
             fprintf('\t\toptimal (rms,lambda,dof,Q)=(%#.3g m, %#.3g, %#.3g (%#.3g), %#.3g)\n',rms_error_true_optimal(i,iS,T),lambda_true_optimal(i,iS,T),dof_out_true_optimal(i,iS,T), expectedDOF(i,iS,T), Q_blind_true_optimal(i,iS,T));
             
-%             lambda_blind_expectedMSE(i,iS,T) = TensionSpline.MinimizeExpectedMeanSquareError(spline_fit);
+%             lambda_blind_expectedMSE(i,iS,T) = SmoothingSpline.MinimizeExpectedMeanSquareError(spline_fit);
 %             rms_error_blind_expectedMSE(i,iS,T) = compute_rms_error();
 %             dof_out_blind_expectedMSE(i,iS,T) = spline_fit.DOFFromVarianceOfTheMean;
-%             [rmse,norm] = TensionSpline.MeanSquareErrorAtAllOrders(spline_fit, data.t(indicesAll),data.x(indicesAll));
+%             [rmse,norm] = SmoothingSpline.MeanSquareErrorAtAllOrders(spline_fit, data.t(indicesAll),data.x(indicesAll));
 %             Q_blind_blind_expectedMSE(i,iS,T) = find(rmse./norm < 0.9,1,'last');
 %             
 %             fprintf('\t\texpected mse (rms,lambda,dof,Q)=(%#.3g m, %#.3g, %#.3g, %#.3g)\n',rms_error_blind_expectedMSE(i,iS,T),lambda_blind_expectedMSE(i,iS,T),dof_out_blind_expectedMSE(i,iS,T), Q_blind_blind_expectedMSE(i,iS,T));
@@ -135,7 +135,7 @@ return
 
 S = spline_fit.SmoothingMatrix;
 sigma2 = sigma*sigma;
-Diff = TensionSpline.FiniteDifferenceMatrixNoBoundary(K-1,t_obs,1);
+Diff = SmoothingSpline.FiniteDifferenceMatrixNoBoundary(K-1,t_obs,1);
 DS = Diff*S;
 A = (DS-Diff);
 N = length(Diff);

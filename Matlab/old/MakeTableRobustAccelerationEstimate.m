@@ -128,8 +128,8 @@ else
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                     % Unblinded best fit with standard tension spline
                     
-                    D1 = TensionSpline.FiniteDifferenceMatrixNoBoundary(1,data.t,1);
-                    DT = TensionSpline.FiniteDifferenceMatrixNoBoundary(T,data.t,1);
+                    D1 = SmoothingSpline.FiniteDifferenceMatrixNoBoundary(1,data.t,1);
+                    DT = SmoothingSpline.FiniteDifferenceMatrixNoBoundary(T,data.t,1);
                     
                     rms = @(x) sqrt( mean( x.^2 ));
                     
@@ -140,16 +140,16 @@ else
                     a_rms_nofilter(iOutlierRatio,iStride,iSlope,iEnsemble) = rms( DT*x_obs );
                     
                     x_filtered = RunningFilter(x_obs,5,'median');
-                    u_rms_median5(iOutlierRatio,iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(data.t,x_filtered,sqrt(noiseDistribution.variance),1);
-                    a_rms_median5(iOutlierRatio,iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(data.t,x_filtered,sqrt(noiseDistribution.variance),T);
+                    u_rms_median5(iOutlierRatio,iStride,iSlope,iEnsemble) = SmoothingSpline.EstimateRMSDerivativeFromSpectrum(data.t,x_filtered,sqrt(noiseDistribution.variance),1);
+                    a_rms_median5(iOutlierRatio,iStride,iSlope,iEnsemble) = SmoothingSpline.EstimateRMSDerivativeFromSpectrum(data.t,x_filtered,sqrt(noiseDistribution.variance),T);
                     
                     x_filtered = RunningFilter(x_obs,11,'median');                    
-                    u_rms_median11(iOutlierRatio,iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(data.t,x_filtered,sqrt(noiseDistribution.variance),1);
-                    a_rms_median11(iOutlierRatio,iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(data.t,x_filtered,sqrt(noiseDistribution.variance),T);
+                    u_rms_median11(iOutlierRatio,iStride,iSlope,iEnsemble) = SmoothingSpline.EstimateRMSDerivativeFromSpectrum(data.t,x_filtered,sqrt(noiseDistribution.variance),1);
+                    a_rms_median11(iOutlierRatio,iStride,iSlope,iEnsemble) = SmoothingSpline.EstimateRMSDerivativeFromSpectrum(data.t,x_filtered,sqrt(noiseDistribution.variance),T);
                     
                     x_filtered = RunningFilter(x_obs,15,'median');
-                    u_rms_median15(iOutlierRatio,iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(data.t,x_filtered,sqrt(noiseDistribution.variance),1);
-                    a_rms_median15(iOutlierRatio,iStride,iSlope,iEnsemble) = TensionSpline.EstimateRMSDerivativeFromSpectrum(data.t,x_filtered,sqrt(noiseDistribution.variance),T);
+                    u_rms_median15(iOutlierRatio,iStride,iSlope,iEnsemble) = SmoothingSpline.EstimateRMSDerivativeFromSpectrum(data.t,x_filtered,sqrt(noiseDistribution.variance),1);
+                    a_rms_median15(iOutlierRatio,iStride,iSlope,iEnsemble) = SmoothingSpline.EstimateRMSDerivativeFromSpectrum(data.t,x_filtered,sqrt(noiseDistribution.variance),T);
                 end
                 fprintf('\n');
             end

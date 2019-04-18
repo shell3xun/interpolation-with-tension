@@ -29,20 +29,20 @@ nDrifters = length(drifters.x);
 splines_x = cell(nDrifters,1);
 splines_y = cell(nDrifters,1);
 for iDrifter = 1:nDrifters
-    splines_x{iDrifter} = TensionSpline(drifters.t{iDrifter},drifters.x{iDrifter},distribution,'lambda',Lambda.fullTensionExpected);
-    splines_y{iDrifter} = TensionSpline(drifters.t{iDrifter},drifters.y{iDrifter},distribution,'lambda',Lambda.fullTensionExpected);
+    splines_x{iDrifter} = SmoothingSpline(drifters.t{iDrifter},drifters.x{iDrifter},distribution,'lambda',Lambda.fullTensionExpected);
+    splines_y{iDrifter} = SmoothingSpline(drifters.t{iDrifter},drifters.y{iDrifter},distribution,'lambda',Lambda.fullTensionExpected);
 end
 
 zmin = distribution.locationOfCDFPercentile(pct/2);
 zmax = distribution.locationOfCDFPercentile(1-pct/2);
 
-% TensionSpline.minimizeFunctionOfSplines( splines_x, @(splines) TensionSpline.expectedMeanSquareErrorOfSplines(splines,zmin,zmax) );
-% TensionSpline.minimizeFunctionOfSplines( splines_y, @(splines) TensionSpline.expectedMeanSquareErrorOfSplines(splines,zmin,zmax) );
+% SmoothingSpline.minimizeFunctionOfSplines( splines_x, @(splines) SmoothingSpline.expectedMeanSquareErrorOfSplines(splines,zmin,zmax) );
+% SmoothingSpline.minimizeFunctionOfSplines( splines_y, @(splines) SmoothingSpline.expectedMeanSquareErrorOfSplines(splines,zmin,zmax) );
 
 splines = cell(2*nDrifters,1);
 splines(1:nDrifters) = splines_x;
 splines((nDrifters+1):(2*nDrifters)) = splines_y;
-TensionSpline.minimizeFunctionOfSplines( splines, @(splines) TensionSpline.expectedMeanSquareErrorOfSplines(splines,zmin,zmax) );
+SmoothingSpline.minimizeFunctionOfSplines( splines, @(splines) SmoothingSpline.expectedMeanSquareErrorOfSplines(splines,zmin,zmax) );
 
 epsilon_d = [];
 epsilon = [];
@@ -75,16 +75,16 @@ for iDrifter = 1:nDrifters
     end
     
     t_knot = InterpolatingSpline.KnotPointsForPoints(splines_x{iDrifter}.t(nonOutlierIndices),splines_x{iDrifter}.K,1);
-    splines_x2{iDrifter} = TensionSpline(drifters.t{iDrifter},drifters.x{iDrifter},distribution,'lambda',Lambda.fullTensionExpected,'t_knot',t_knot);
-    splines_y2{iDrifter} = TensionSpline(drifters.t{iDrifter},drifters.y{iDrifter},distribution,'lambda',Lambda.fullTensionExpected,'t_knot',t_knot);
+    splines_x2{iDrifter} = SmoothingSpline(drifters.t{iDrifter},drifters.x{iDrifter},distribution,'lambda',Lambda.fullTensionExpected,'t_knot',t_knot);
+    splines_y2{iDrifter} = SmoothingSpline(drifters.t{iDrifter},drifters.y{iDrifter},distribution,'lambda',Lambda.fullTensionExpected,'t_knot',t_knot);
 end
 
 splines = cell(2*nDrifters,1);
 splines(1:nDrifters) = splines_x2;
 splines((nDrifters+1):(2*nDrifters)) = splines_y2;
-TensionSpline.minimizeFunctionOfSplines( splines, @(splines) TensionSpline.expectedMeanSquareErrorOfSplines(splines,zmin,zmax) );
+SmoothingSpline.minimizeFunctionOfSplines( splines, @(splines) SmoothingSpline.expectedMeanSquareErrorOfSplines(splines,zmin,zmax) );
 
-% splines_no = TensionSpline(drifters.t{7},drifters.x{7},StudentTDistribution(8.5,4.5),'lambda',Lambda.optimalIterated);
+% splines_no = SmoothingSpline(drifters.t{7},drifters.x{7},StudentTDistribution(8.5,4.5),'lambda',Lambda.optimalIterated);
 
 
 spline = splines_x2{choiceDrifter};
@@ -127,7 +127,7 @@ pct = 0.05;
 distribution = AddedDistribution(pct,NormalDistribution(800),StudentTDistribution(8.5,4.5));
 distribution = AddedDistribution(pct,StudentTDistribution(300,3.0),StudentTDistribution(8.5,4.5));
 
-spline = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated);
+spline = SmoothingSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated);
 spline.minimizeExpectedMeanSquareErrorInPercentileRange(pct/2,1-pct/2);
 
 tq = linspace(min(t_data),max(t_data),10*length(t_data));
@@ -149,7 +149,7 @@ plot(tq,spline(tq),'r')
 
 
 t_knot = InterpolatingSpline.KnotPointsForPoints(t_data(spline.nonOutlierIndices),spline.K,1);
-spline2 = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated,'t_knot',t_knot);
+spline2 = SmoothingSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated,'t_knot',t_knot);
 spline2.minimizeExpectedMeanSquareErrorInPercentileRange(pct/2,1-pct/2);
 plot(tq,spline2(tq),'b')
 
@@ -157,9 +157,9 @@ return
 
 
 
-% splinefit = TensionSpline(t_data,x_data,10);
+% splinefit = SmoothingSpline(t_data,x_data,10);
 % 
-% gpsfit = GPSTensionSpline(t_data,x_data,y_data, 'shouldIdentifyOutliers', 0);
+% gpsfit = GPSSmoothingSpline(t_data,x_data,y_data, 'shouldIdentifyOutliers', 0);
 % 
 % t_tension = gpsfit.spline_x.t_knot(gpsfit.spline_x.K:1:end-gpsfit.spline_x.K+1);
 % t_tension = t_tension(1:end-1) + diff(t_tension)/2;
@@ -221,7 +221,7 @@ hold on, plot(z,w_tukey(z))
 return
 w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
 
-% splinefit_t = TensionSpline(t_data, y_data, sqrt(variance_of_the_noise), 'K', 4, 'weightFunction', w, 'lambda', Lambda.fullTensionExpected);
+% splinefit_t = SmoothingSpline(t_data, y_data, sqrt(variance_of_the_noise), 'K', 4, 'weightFunction', w, 'lambda', Lambda.fullTensionExpected);
 % [x_T, t_T] = splinefit_t.UniqueValuesAtHighestDerivative();
 % 
 % [x_T,I] = sort(x_T);
@@ -247,15 +247,15 @@ w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
 
 rho = @(dt) exp(-abs(dt)/550.);
 
-spline_x = TensionSpline(t_data, x_data, sqrt(variance_of_the_noise), 'K', 4, 'weightFunction', w, 'lambda', Lambda.fullTensionExpected,'autocorrelationFunction',rho);
-spline_y = TensionSpline(t_data, y_data, sqrt(variance_of_the_noise), 'K', 4, 'weightFunction', w, 'lambda', Lambda.fullTensionExpected,'autocorrelationFunction',rho);
+spline_x = SmoothingSpline(t_data, x_data, sqrt(variance_of_the_noise), 'K', 4, 'weightFunction', w, 'lambda', Lambda.fullTensionExpected,'autocorrelationFunction',rho);
+spline_y = SmoothingSpline(t_data, y_data, sqrt(variance_of_the_noise), 'K', 4, 'weightFunction', w, 'lambda', Lambda.fullTensionExpected,'autocorrelationFunction',rho);
 
 x_T = spline_x.UniqueValuesAtHighestDerivative();
 y_T = spline_y.UniqueValuesAtHighestDerivative();
 
-sigma_Tx = TensionSpline.StandardDeviationOfInterquartileRange(x_T);
-sigma_Ty = TensionSpline.StandardDeviationOfInterquartileRange(y_T);
-sigma_T = TensionSpline.StandardDeviationOfInterquartileRange(cat(1,x_T,y_T));
+sigma_Tx = SmoothingSpline.StandardDeviationOfInterquartileRange(x_T);
+sigma_Ty = SmoothingSpline.StandardDeviationOfInterquartileRange(y_T);
+sigma_T = SmoothingSpline.StandardDeviationOfInterquartileRange(cat(1,x_T,y_T));
 
 sigma_T = 8e-9;
 
@@ -279,8 +279,8 @@ hold on, plot(r,pdf(r))
 % splinefit_tac_x.Minimize(penaltyFunction);
 % splinefit_tac_y.Minimize(penaltyFunction);
 
-penaltyFunction = @(spline1,spline2) GPSTensionSpline.LogLikelihood2D(spline1,spline2,sigma,nu,sigma_T);
-GPSTensionSpline.MinimizeFunctionOfTwoSplines(spline_x,spline_y,penaltyFunction);
+penaltyFunction = @(spline1,spline2) GPSSmoothingSpline.LogLikelihood2D(spline1,spline2,sigma,nu,sigma_T);
+GPSSmoothingSpline.MinimizeFunctionOfTwoSplines(spline_x,spline_y,penaltyFunction);
 
 figure
 s = 1/1000; % scale
@@ -332,7 +332,7 @@ figure, histogram(r_T,100,'Normalization','pdf')
 r = linspace(0,max(r_T))';
 hold on, plot(r,pdf(r))
 
-[r, ~, cdf] = GPSTensionSpline.TwoDimStudentTProbabilityDistributionFunction(sigma, nu);
+[r, ~, cdf] = GPSSmoothingSpline.TwoDimStudentTProbabilityDistributionFunction(sigma, nu);
 
 distanceError = sqrt(splinefit_tac_x.epsilon.^2 + splinefit_tac_y.epsilon.^2);
 outlierCut = interp1(cdf,r,1-0.01,'spline');

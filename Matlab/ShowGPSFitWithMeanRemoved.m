@@ -14,7 +14,7 @@ t_drifter = (drifters.date{choiceDrifter}-drifters.lastDeployment)*24*60*60;
 lat = drifters.lat{choiceDrifter};
 lon = drifters.lon{choiceDrifter};
 lon0 = min(lon)+(max(lon)-min(lon))/2;
-spline = GPSTensionSpline(t_drifter,lat,lon,'shouldUseRobustFit',1);
+spline = GPSSmoothingSpline(t_drifter,lat,lon,'shouldUseRobustFit',1);
 
 % spline.estimateOutlierDistribution();
 % mse1 = spline.minimizeExpectedMeanSquareErrorInNoiseRange();
@@ -35,7 +35,7 @@ plot(xq,yq,'k','LineWidth',1.5),axis equal
 % plot(xq,yq)
 
 t_drifter = (drifters.date{7}-drifters.lastDeployment)*24*60*60;
-spline7 = GPSTensionSpline(t_drifter,drifters.lat{7},drifters.lon{7},'lon0',spline.lon0);
+spline7 = GPSSmoothingSpline(t_drifter,drifters.lat{7},drifters.lon{7},'lon0',spline.lon0);
 
 fprintf('n_eff (x,y): (%.1f, %.1f)\n',spline7.spline_x.effectiveSampleSizeFromVarianceOfTheMean,spline7.spline_y.effectiveSampleSizeFromVarianceOfTheMean);
 

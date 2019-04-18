@@ -62,7 +62,7 @@ fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot the signal and noise separately
 
-D = TensionSpline.FiniteDifferenceMatrixNoBoundary(numDerivs,t,1);
+D = SmoothingSpline.FiniteDifferenceMatrixNoBoundary(numDerivs,t,1);
 
 dt = t(2)-t(1);
 cv = D*(x + sqrt(-1)*y);
@@ -112,13 +112,13 @@ for i=1:3
     t_obs = data.t(indices);
     sigma = data.position_error;
         
-    spline_x = TensionSpline(t_obs,x_obs,sigma,'S', i, 'T', i, 'knot_dof', 'auto');
-    spline_y = TensionSpline(t_obs,y_obs,sigma,'S', i, 'T', i, 'knot_dof', 'auto');
-%     TensionSpline.MinimizeExpectedMeanSquareError(spline_x);
-%     TensionSpline.MinimizeExpectedMeanSquareError(spline_y);
+    spline_x = SmoothingSpline(t_obs,x_obs,sigma,'S', i, 'T', i, 'knot_dof', 'auto');
+    spline_y = SmoothingSpline(t_obs,y_obs,sigma,'S', i, 'T', i, 'knot_dof', 'auto');
+%     SmoothingSpline.MinimizeExpectedMeanSquareError(spline_x);
+%     SmoothingSpline.MinimizeExpectedMeanSquareError(spline_y);
     
-    TensionSpline.MinimizeMeanSquareError(spline_x,data.t(indicesAll),data.x(indicesAll));
-    TensionSpline.MinimizeMeanSquareError(spline_y,data.t(indicesAll),data.y(indicesAll));
+    SmoothingSpline.MinimizeMeanSquareError(spline_x,data.t(indicesAll),data.x(indicesAll));
+    SmoothingSpline.MinimizeMeanSquareError(spline_y,data.t(indicesAll),data.y(indicesAll));
     
     
     x_smooth = spline_x(t(indicesAll));
@@ -128,7 +128,7 @@ for i=1:3
     rms_error_y(i) =  sqrt(mean(mean(  (data.y(indicesAll) - y_smooth).^2,2 ),1));
     fprintf('rms error (x,y)=(%f,%f)\n',rms_error_x, rms_error_y);
     
-    D = TensionSpline.FiniteDifferenceMatrixNoBoundary(numDerivs,t(indicesAll),1);
+    D = SmoothingSpline.FiniteDifferenceMatrixNoBoundary(numDerivs,t(indicesAll),1);
     u_smooth = D*x_smooth;
     v_smooth = D*y_smooth;
     

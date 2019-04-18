@@ -64,7 +64,7 @@ else
                     for T = 1:S
                         K = S+1;
                         
-                        spline = TensionSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'T', T, 'knot_dof', 1,'lambda',Lambda.fullTensionExpected);
+                        spline = SmoothingSpline(t_obs,x_obs,noiseDistribution, 'S', S, 'T', T, 'knot_dof', 1,'lambda',Lambda.fullTensionExpected);
                         spline.minimizeMeanSquareError(data.t,data.x);
                         
                         optimal_lambda(iSlope,iStride,iS,T,iEnsemble) = spline.lambda;

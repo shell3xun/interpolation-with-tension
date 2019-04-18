@@ -39,15 +39,15 @@ sp2=subplot(2,1,2);
 scatter(t_data,y_data,(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k'), hold on
 % errorbar(t_data,y_data,zmax*ones(size(t_data))), hold on
 
-spline_x = RobustTensionSpline(t_data,x_data,noiseDistribution,'lambda',Lambda.fullTensionIterated,'outlierMethod',OutlierMethod.sigmaMethod);
-spline_y = RobustTensionSpline(t_data,y_data,noiseDistribution,'lambda',Lambda.fullTensionIterated,'outlierMethod',OutlierMethod.sigmaMethod);
+spline_x = RobustSmoothingSpline(t_data,x_data,noiseDistribution,'lambda',Lambda.fullTensionIterated,'outlierMethod',OutlierMethod.sigmaMethod);
+spline_y = RobustSmoothingSpline(t_data,y_data,noiseDistribution,'lambda',Lambda.fullTensionIterated,'outlierMethod',OutlierMethod.sigmaMethod);
 
 return
 
 %%%%%%%%%%%%%%%%%%%%%
 % Grab drifter 7 and plot that
-spline_7x = TensionSpline(drifters.t{7},drifters.x{7},noiseDistribution);
-spline_7y = TensionSpline(drifters.t{7},drifters.y{7},noiseDistribution);
+spline_7x = SmoothingSpline(drifters.t{7},drifters.x{7},noiseDistribution);
+spline_7y = SmoothingSpline(drifters.t{7},drifters.y{7},noiseDistribution);
 
 subplot(sp1)
 scatter(t_data(spline_x.outlierIndices),x_data(spline_x.outlierIndices),(6.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w'), hold on
@@ -57,7 +57,7 @@ plot(tq,spline_7x(tq))
 
 
 fprintf('robust a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
-% fprintf('robust a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
+% fprintf('robust a_rms: (%.3g, %.3g)\n', SmoothingSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), SmoothingSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
 fprintf('robust a_rms: (%.3g, %.3g)\n', std(spline_7x.uniqueValuesAtHighestDerivative), std(spline_7y.uniqueValuesAtHighestDerivative) );
 
 subplot(sp2)

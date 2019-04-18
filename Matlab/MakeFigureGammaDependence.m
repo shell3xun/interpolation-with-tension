@@ -118,16 +118,16 @@ else
                 % Remove the fit from the observed signal and record stats
                 x_obs = x_obs - mean_spline(t_obs);
                 
-                measured_u_rms(linearIndex) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(distribution.variance),1);
-                [measured_a_rms(linearIndex),measured_a_std(linearIndex),measured_a_mean(linearIndex)] = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(distribution.variance),T);
+                measured_u_rms(linearIndex) = SmoothingSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(distribution.variance),1);
+                [measured_a_rms(linearIndex),measured_a_std(linearIndex),measured_a_mean(linearIndex)] = SmoothingSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_obs,sqrt(distribution.variance),T);
                 
-                x_filtered = TensionSpline.RunningFilter(x_obs,11,'median');
-                measured_u_rms_filtered(linearIndex) = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_filtered,sqrt(distribution.variance),1);
-                [measured_a_rms_filtered(linearIndex),measured_a_std_filtered(linearIndex),measured_a_mean_filtered(linearIndex)] = TensionSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_filtered,sqrt(distribution.variance),T);
+                x_filtered = SmoothingSpline.RunningFilter(x_obs,11,'median');
+                measured_u_rms_filtered(linearIndex) = SmoothingSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_filtered,sqrt(distribution.variance),1);
+                [measured_a_rms_filtered(linearIndex),measured_a_std_filtered(linearIndex),measured_a_mean_filtered(linearIndex)] = SmoothingSpline.EstimateRMSDerivativeFromSpectrum(t_obs,x_filtered,sqrt(distribution.variance),T);
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 % Do a spline fit
-                spline = TensionSpline(t_obs,x_obs,distribution, 'S', S, 'T', T);
+                spline = SmoothingSpline(t_obs,x_obs,distribution, 'S', S, 'T', T);
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 % Minimize to the true points---at the observation times only

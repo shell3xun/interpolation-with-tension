@@ -49,12 +49,12 @@ errorbar(t_data,y_data,zmax*ones(size(t_data))), hold on
 %
 % Start with the usual optimal iterated---no outliers
 
-spline_x = TensionSpline(t_data,x_data,noiseDistribution,'lambda',Lambda.optimalIterated);
-spline_y = TensionSpline(t_data,y_data,noiseDistribution,'lambda',Lambda.optimalIterated);
+spline_x = SmoothingSpline(t_data,x_data,noiseDistribution,'lambda',Lambda.optimalIterated);
+spline_y = SmoothingSpline(t_data,y_data,noiseDistribution,'lambda',Lambda.optimalIterated);
 
 fprintf('optimal iterated no-outliers lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
 fprintf('optimal iterated no-outliers a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
-fprintf('optimal iterated no-outliers a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
+fprintf('optimal iterated no-outliers a_rms: (%.3g, %.3g)\n', SmoothingSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), SmoothingSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
 
 subplot(sp1)
 plot(tq,spline_x(tq))
@@ -66,17 +66,17 @@ plot(tq,spline_y(tq))
 %
 % Start with the usual optimal iterated---with outliers (this does badly)
 
-tensionDistribution = NormalDistribution(TensionSpline.StandardDeviationOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative));
+tensionDistribution = NormalDistribution(SmoothingSpline.StandardDeviationOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative));
 logLikelihood = @(spline) -sum(noiseDistribution.logPDF( spline.epsilon ) ) - sum(tensionDistribution.logPDF(spline.uniqueValuesAtHighestDerivative));
 spline_x.minimize( logLikelihood );
 
-tensionDistribution = NormalDistribution(TensionSpline.StandardDeviationOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative));
+tensionDistribution = NormalDistribution(SmoothingSpline.StandardDeviationOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative));
 logLikelihood = @(spline) -sum(noiseDistribution.logPDF( spline.epsilon ) ) - sum(tensionDistribution.logPDF(spline.uniqueValuesAtHighestDerivative));
 spline_y.minimize( logLikelihood );
 
 fprintf('log-likelihood no-outliers lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
 fprintf('log-likelihood no-outliers a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
-fprintf('log-likelihood no-outliers a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
+fprintf('log-likelihood no-outliers a_rms: (%.3g, %.3g)\n', SmoothingSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), SmoothingSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
 
 subplot(sp1)
 plot(tq,spline_x(tq))
@@ -87,15 +87,15 @@ plot(tq,spline_y(tq))
 %
 % Then iterate used the expected MSE within some range (this does well)
 
-spline_x = TensionSpline(t_data,x_data,distribution,'lambda',Lambda.optimalIterated);
-spline_y = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated);
+spline_x = SmoothingSpline(t_data,x_data,distribution,'lambda',Lambda.optimalIterated);
+spline_y = SmoothingSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated);
 
 spline_x.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
 spline_y.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
 
 fprintf('ranged iterated lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
 fprintf('ranged iterated a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
-fprintf('ranged iterated a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
+fprintf('ranged iterated a_rms: (%.3g, %.3g)\n', SmoothingSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), SmoothingSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
 
 subplot(sp1)
 plot(tq,spline_x(tq))
@@ -120,10 +120,10 @@ fprintf('identified outliers: (%d, %d)\n',length(spline_x.outlierIndices), lengt
 % Remove spline support from outlier knots, then minimize in range again
 
 distribution = AddedDistribution(length(spline_x.outlierIndices)/length(spline_x.t),outlierDistribution,noiseDistribution);
-spline_x = TensionSpline(t_data,x_data,distribution,'lambda',Lambda.fullTensionExpected,'t_knot',t_knot_x);
+spline_x = SmoothingSpline(t_data,x_data,distribution,'lambda',Lambda.fullTensionExpected,'t_knot',t_knot_x);
 
 distribution = AddedDistribution(length(spline_y.outlierIndices)/length(spline_y.t),outlierDistribution,noiseDistribution);
-spline_y = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.fullTensionExpected,'t_knot',t_knot_y);
+spline_y = SmoothingSpline(t_data,y_data,distribution,'lambda',Lambda.fullTensionExpected,'t_knot',t_knot_y);
 
 spline_x.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
 spline_y.minimize( @(spline) spline.expectedMeanSquareErrorInRange(zmin,zmax) );
@@ -133,7 +133,7 @@ spline_y.outlierIndices = find(abs(spline_y.epsilon) > outlierThreshold);
 
 fprintf('ranged reduced iterated lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
 fprintf('ranged reduced iterated a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
-fprintf('ranged reduced iterated a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
+fprintf('ranged reduced iterated a_rms: (%.3g, %.3g)\n', SmoothingSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), SmoothingSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
 
 subplot(sp1)
 plot(tq,spline_x(tq))
@@ -145,21 +145,21 @@ plot(tq,spline_y(tq))
 % Now use maximum likelihood from the IQR of acceleration
 
 % a = cat(1,spline_x.uniqueValuesAtHighestDerivative,spline_y.uniqueValuesAtHighestDerivative);
-% tensionDistribution = NormalDistribution(TensionSpline.StandardDeviationOfInterquartileRange(a));
+% tensionDistribution = NormalDistribution(SmoothingSpline.StandardDeviationOfInterquartileRange(a));
 
 distribution = AddedDistribution(length(spline_x.outlierIndices)/length(spline_x.t),outlierDistribution,noiseDistribution);
-tensionDistribution = NormalDistribution(TensionSpline.StandardDeviationOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative));
+tensionDistribution = NormalDistribution(SmoothingSpline.StandardDeviationOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative));
 logLikelihood = @(spline) -sum(distribution.logPDF( spline.epsilon ) ) - sum(tensionDistribution.logPDF(spline.uniqueValuesAtHighestDerivative));
 spline_x.minimize( logLikelihood );
 
 distribution = AddedDistribution(length(spline_y.outlierIndices)/length(spline_y.t),outlierDistribution,noiseDistribution);
-tensionDistribution = NormalDistribution(TensionSpline.StandardDeviationOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative));
+tensionDistribution = NormalDistribution(SmoothingSpline.StandardDeviationOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative));
 logLikelihood = @(spline) -sum(distribution.logPDF( spline.epsilon ) ) - sum(tensionDistribution.logPDF(spline.uniqueValuesAtHighestDerivative));
 spline_y.minimize( logLikelihood );
 
 fprintf('log-likelihood lambda: (%.3g, %.3g)\n', spline_x.lambda,spline_y.lambda );
 fprintf('log-likelihood a_rms: (%.3g, %.3g)\n', std(spline_x.uniqueValuesAtHighestDerivative), std(spline_y.uniqueValuesAtHighestDerivative) );
-fprintf('log-likelihood a_rms: (%.3g, %.3g)\n', TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), TensionSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
+fprintf('log-likelihood a_rms: (%.3g, %.3g)\n', SmoothingSpline.StandardDeviationAndMeanOfInterquartileRange(spline_x.uniqueValuesAtHighestDerivative), SmoothingSpline.StandardDeviationAndMeanOfInterquartileRange(spline_y.uniqueValuesAtHighestDerivative) );
 
 spline_x.outlierIndices = find(abs(spline_x.epsilon) > zmax);
 spline_y.outlierIndices = find(abs(spline_y.epsilon) > zmax);
@@ -224,7 +224,7 @@ plot(tq,spline_x(tq),'r')
 return
 
 t_knot = InterpolatingSpline.KnotPointsForPoints(t_data(spline.nonOutlierIndices),spline.K,1);
-spline2 = TensionSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated,'t_knot',t_knot);
+spline2 = SmoothingSpline(t_data,y_data,distribution,'lambda',Lambda.optimalIterated,'t_knot',t_knot);
 spline2.minimizeExpectedMeanSquareErrorInPercentileRange(pct/2,1-pct/2);
 plot(tq,spline2(tq),'b')
 
@@ -232,9 +232,9 @@ return
 
 
 
-% splinefit = TensionSpline(t_data,x_data,10);
+% splinefit = SmoothingSpline(t_data,x_data,10);
 % 
-% gpsfit = GPSTensionSpline(t_data,x_data,y_data, 'shouldIdentifyOutliers', 0);
+% gpsfit = GPSSmoothingSpline(t_data,x_data,y_data, 'shouldIdentifyOutliers', 0);
 % 
 % t_tension = gpsfit.spline_x.t_knot(gpsfit.spline_x.K:1:end-gpsfit.spline_x.K+1);
 % t_tension = t_tension(1:end-1) + diff(t_tension)/2;
@@ -296,7 +296,7 @@ hold on, plot(z,w_tukey(z))
 return
 w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
 
-% splinefit_t = TensionSpline(t_data, y_data, sqrt(variance_of_the_noise), 'K', 4, 'weightFunction', w, 'lambda', Lambda.fullTensionExpected);
+% splinefit_t = SmoothingSpline(t_data, y_data, sqrt(variance_of_the_noise), 'K', 4, 'weightFunction', w, 'lambda', Lambda.fullTensionExpected);
 % [x_T, t_T] = splinefit_t.UniqueValuesAtHighestDerivative();
 % 
 % [x_T,I] = sort(x_T);
@@ -322,15 +322,15 @@ w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
 
 rho = @(dt) exp(-abs(dt)/550.);
 
-spline_x = TensionSpline(t_data, x_data, sqrt(variance_of_the_noise), 'K', 4, 'weightFunction', w, 'lambda', Lambda.fullTensionExpected,'autocorrelationFunction',rho);
-spline_y = TensionSpline(t_data, y_data, sqrt(variance_of_the_noise), 'K', 4, 'weightFunction', w, 'lambda', Lambda.fullTensionExpected,'autocorrelationFunction',rho);
+spline_x = SmoothingSpline(t_data, x_data, sqrt(variance_of_the_noise), 'K', 4, 'weightFunction', w, 'lambda', Lambda.fullTensionExpected,'autocorrelationFunction',rho);
+spline_y = SmoothingSpline(t_data, y_data, sqrt(variance_of_the_noise), 'K', 4, 'weightFunction', w, 'lambda', Lambda.fullTensionExpected,'autocorrelationFunction',rho);
 
 x_T = spline_x.UniqueValuesAtHighestDerivative();
 y_T = spline_y.UniqueValuesAtHighestDerivative();
 
-sigma_Tx = TensionSpline.StandardDeviationOfInterquartileRange(x_T);
-sigma_Ty = TensionSpline.StandardDeviationOfInterquartileRange(y_T);
-sigma_T = TensionSpline.StandardDeviationOfInterquartileRange(cat(1,x_T,y_T));
+sigma_Tx = SmoothingSpline.StandardDeviationOfInterquartileRange(x_T);
+sigma_Ty = SmoothingSpline.StandardDeviationOfInterquartileRange(y_T);
+sigma_T = SmoothingSpline.StandardDeviationOfInterquartileRange(cat(1,x_T,y_T));
 
 sigma_T = 8e-9;
 
@@ -354,8 +354,8 @@ hold on, plot(r,pdf(r))
 % splinefit_tac_x.Minimize(penaltyFunction);
 % splinefit_tac_y.Minimize(penaltyFunction);
 
-penaltyFunction = @(spline1,spline2) GPSTensionSpline.LogLikelihood2D(spline1,spline2,sigma,nu,sigma_T);
-GPSTensionSpline.MinimizeFunctionOfTwoSplines(spline_x,spline_y,penaltyFunction);
+penaltyFunction = @(spline1,spline2) GPSSmoothingSpline.LogLikelihood2D(spline1,spline2,sigma,nu,sigma_T);
+GPSSmoothingSpline.MinimizeFunctionOfTwoSplines(spline_x,spline_y,penaltyFunction);
 
 figure
 s = 1/1000; % scale
@@ -407,7 +407,7 @@ figure, histogram(r_T,100,'Normalization','pdf')
 r = linspace(0,max(r_T))';
 hold on, plot(r,pdf(r))
 
-[r, ~, cdf] = GPSTensionSpline.TwoDimStudentTProbabilityDistributionFunction(sigma, nu);
+[r, ~, cdf] = GPSSmoothingSpline.TwoDimStudentTProbabilityDistributionFunction(sigma, nu);
 
 distanceError = sqrt(splinefit_tac_x.epsilon.^2 + splinefit_tac_y.epsilon.^2);
 outlierCut = interp1(cdf,r,1-0.01,'spline');
