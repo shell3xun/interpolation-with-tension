@@ -67,8 +67,8 @@ y0 = yq7(1);
 
 scatter(s*(spline.x(spline.outlierIndices)-x0),s*(spline.y(spline.outlierIndices)-y0),(outlierSize)^2, 'MarkerEdgeColor', outlierEdgeColor, 'MarkerFaceColor', outlierFaceColor); hold on
 scatter(s*(spline.x(nonOutlierIndices)-x0),s*(spline.y(nonOutlierIndices)-y0),(datapointSize)^2,'filled', 'MarkerEdgeColor', datapointColor, 'MarkerFaceColor', datapointColor)
-plot(s*(xq_nr-x0),s*(yq_nr-y0), 'LineWidth', 1.0*scaleFactor, 'Color',nrColor), hold on
-plot(s*(xq7-x0),s*(yq7-y0), 'LineWidth', 1.0*scaleFactor, 'Color',0.4*[1.0 1.0 1.0]), hold on
+ax1 = plot(s*(xq_nr-x0),s*(yq_nr-y0), 'LineWidth', 1.0*scaleFactor, 'Color',nrColor);
+plot(s*(xq7-x0),s*(yq7-y0), 'LineWidth', 1.0*scaleFactor, 'Color',0.4*[1.0 1.0 1.0])
 plot(s*(xq-x0),s*(yq-y0), 'LineWidth', 1.0*scaleFactor, 'Color',0.0*[1.0 1.0 1.0])
 
 xlabel('x (km)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
@@ -85,6 +85,7 @@ fig1.Position = FigureSize;
 fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 fig1.PaperPositionMode = 'auto';
+set(gca,'Box','on')
 
 if shouldSaveFigures == 1
     print('-depsc2', '../figures/gpsfit_xy.eps')
@@ -132,6 +133,9 @@ fig2.Position = FigureSize;
 fig2.PaperPosition = FigureSize;
 fig2.PaperSize = [FigureSize(3) FigureSize(4)];
 fig2.PaperPositionMode = 'auto';
+
+sp1.Box = 'on';
+sp2.Box = 'on';
 
 if shouldSaveFigures == 1
     print('-depsc2', '../figures/gpsfit_xtyt.eps')
