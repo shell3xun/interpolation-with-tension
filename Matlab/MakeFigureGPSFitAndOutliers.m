@@ -124,7 +124,7 @@ ylabel('y (km)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 sp2.YAxisLocation = 'right';
 xlim([0 45])
 
-legend([p1 p2 p4 p3],{'drifter 7 fit', 'drifter 6 fit', 'drifter 6 data','outlier'},'Location','southeast')
+legend([p1 p0 p2 p4 p3],{'drifter 7 fit', 'drifter 6 cv fit', 'drifter 6 ranged fit', 'drifter 6 data','outlier'},'Location','southeast')
 
 packfig(2,1)
 
