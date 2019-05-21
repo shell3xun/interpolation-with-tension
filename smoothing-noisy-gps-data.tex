@@ -112,7 +112,7 @@ One of the major outcomes of this work is the implementation of Matlab classes f
 %%%%%%%%%%%%%%%%%%%%%%
 
 \begin{figure*}[h]
-  \centerline{\includegraphics[width=35.5pc,angle=0]{figures/interpolation}}
+  \centerline{\includegraphics[width=39pc,angle=0]{interpolation.eps}}
   \caption{An example of interpolating between 7 data points. The data points are shown as circles, and the interpolated function is shown as solid black lines. We show four different orders of interpolation $K=1..4$ (rows) and their nonzero derivatives (columns). The thin vertical grey lines are the knot points.}
   \label{interpolation}
 \end{figure*}
@@ -181,7 +181,7 @@ t_N 		& \text{$m > N$}.
 The knot points are chosen specifically to create $N$ splines for the $N$ data points such that the interpolated function $x(t)$ crosses all $N$ observations $(t_i,x_i)$. The path $x(t)$ is the \emph{canonical interpolating spline of order K}. Examples are shown in Fig. \ref{interpolation}.
 
 \begin{figure}
-  \centerline{\includegraphics[width=19pc,angle=0]{figures/bsplines}}
+  \centerline{\includegraphics[width=19pc,angle=0]{bsplines.eps}}
   \caption{B-splines and derivatives (columns) for orders $K=1..4$ (rows).}
   \label{bsplines}
 \end{figure}
@@ -222,7 +222,7 @@ For all of these experiments we use a range of \emph{strides}, that is, subsampl
 %%%%%%%%%%%%%%%%%%%%%%
 
 \begin{figure}
-  \centerline{\includegraphics[width=19pc,angle=0]{figures/interpolation_spectrum_slope2degreeVaried}}
+  \centerline{\includegraphics[width=19pc,angle=0]{interpolation_spectrum_slope2degreeVaried.eps}}
   \caption{The upper panel shows the velocity spectrum of the signal (black). The blue, red, and orange lines show the spectrum of the interpolating spline fit to the data with a stride of 100 for $S=1..4$, respectively. The dashed vertical line denotes the Nyquist frequency of the strided data. The bottom panel shows the coherence between the smoothed signals and the true signal.}
   \label{varied_slope}
 \end{figure}
@@ -417,7 +417,7 @@ In practice, we use $n^\textrm{SE}_\textrm{eff}$ because it is less variable tha
 Fig. \ref{synthetic_process_and_spectrum} shows the power spectrum and coherence of optimal tension fits for three different strides of the data. In all three cases \eqref{effective-nyquist} indicates almost exactly where the coherence drops below 0.5.
 
 \begin{figure}
-  \centerline{\includegraphics[width=19pc,angle=0]{figures/synthetic_process_and_spectrum_slope2degree3}}
+  \centerline{\includegraphics[width=19pc,angle=0]{synthetic_process_and_spectrum_slope2degree3.eps}}
   \caption{The upper panel shows the uncontaminated velocity spectrum of the signal (black) and velocity spectrum of the noise (red). The observed signal is the sum of the two. The blue, red, and orange lines show the spectrum of the smoothing spline best fit to the observations with all, 1/10th and 1/100th the data, respectively. The bottom panel shows the coherence between the smoothed signals and the true signal.}
   \label{synthetic_process_and_spectrum}
 \end{figure}
@@ -456,7 +456,7 @@ where $C$ and $m$ are unknown constants, and we prevent the effective sample siz
 To test the relationship between $\Gamma$ and the effective sample size, we compute the optimal smoothing spline for a range of values of $\Gamma$ (created by sub-sampling the signal) for the three different slopes ($\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$). The value $n_{\textrm{eff}}^\textrm{SE}$ is computed from the optimal solution for 50 ensembles and shown in Fig. \ref{dofVsGamma}. The fits are remarkably good, but depend on the slope of process. Processes with shallower slopes (rougher trajectories) provide a smaller effective sample size for a given value of $\Gamma$. 
 
 \begin{figure}
-  \centerline{\includegraphics[width=19pc,angle=0]{figures/dofVsGamma}}
+  \centerline{\includegraphics[width=19pc,angle=0]{dofVsGamma.eps}}
   \caption{Effective sample size from the standard error vs $\Gamma$}
   \label{dofVsGamma}
 \end{figure}
@@ -628,8 +628,8 @@ The GPS receiver sits on the surface drifter and collects position data, but bec
 %%%%%%%%%%%%%%%%%%%%%%
 
 \begin{figure}
-  \centerline{\includegraphics[width=15pc,angle=0]{figures/gps_error_distribution}}
-  \centerline{\includegraphics[width=15pc,angle=0]{figures/gps_distance_error_distribution}} 
+  \centerline{\includegraphics[width=15pc,angle=0]{gps_error_distribution.eps}}
+  \centerline{\includegraphics[width=15pc,angle=0]{gps_distance_error_distribution.eps}} 
   \caption{The top panel shows the position error distribution of the motionless GPS. The gray/black lines are the best fit Gaussian/$t$-distributions respectively. The bottom panel shows the distance error distribution with the corresponding expected distributions from the Gaussian and $t$-distribution. The vertical line in the bottom panel shows the 95\% error of the $t$-distribution.}
   \label{motionless_error}
 \end{figure}
@@ -660,7 +660,7 @@ p_r(\epsilon_d|\sigma_g) = \frac{\epsilon_d}{\sigma_g^2 } e^{-\frac{1}{2}\frac{\
 The distance distribution for two $t$-distributions is computed numerically and is shown in the bottom panel of Fig. \ref{motionless_error} on top of the actual distance errors. Approximately 95\% of distance errors are within $30$ meters.
 
 \begin{figure}
-  \centerline{\includegraphics[width=15pc,angle=0]{figures/gps_autocorrelation}}
+  \centerline{\includegraphics[width=15pc,angle=0]{gps_autocorrelation.eps}}
   \caption{The autocorrelation function of the GPS positioning error with 99\% confidence intervals shown in gray. The correlation at drifter sampling period of 30 minutes is indistinguishable from zero.} 
   \label{gps_autocorrelation}
 \end{figure}
@@ -706,12 +706,12 @@ $\omega^{-4}$ &&&&&  \\ \hline
   \centering
     \begin{minipage}{0.30\textwidth}
         \centering
-        \includegraphics[width=1.0\textwidth]{figures/gpsfit_xy} % first figure itself
+        \includegraphics[width=1.0\textwidth]{gpsfit_xy.eps} % first figure itself
         % \caption{first figure}
     \end{minipage}\hfill
     \begin{minipage}{0.7\textwidth}
         \centering
-        \includegraphics[width=1.0\textwidth]{figures/gpsfit_xtyt} % second figure itself
+        \includegraphics[width=1.0\textwidth]{gpsfit_xtyt.eps} % second figure itself
         % \caption{second figure}
     \end{minipage}
    \caption{GPS position data for a 40 hour window from drifter 6. The points are the recorded positions and the black line is the optimal fit using the ranged expected mean square error. Data points with less than 0.01\% chance of occurring are highlighted and deemed outliers. The light grey line is the is optimal smoothing spline fit for drifter 7, which has no apparent outliers and was released a few hundred meters from drifter 6. The orange line is the smoothing spline fit assuming t-distributed errors, but using cross-validation to minimize $\lambda_T$}
