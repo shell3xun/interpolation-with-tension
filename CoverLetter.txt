@@ -1,9 +1,9 @@
-IEEE Transactions on Signal Processing Editorial Board,
-April 26th, 2019
+Journal of Atmospheric and Oceanic Technology Board,
+May 21st, 2019
 
-I am writing to submit our manuscript “Smoothing and Interpolating Noisy GPS Data with Smoothing Splines” for consideration as a publication in IEEE TSP. This manuscripts presents statistical methods for smoothing noisy, irregularly sampled GPS signals and includes a complete implementation of well tested classes in Matlab. We believe these results and the numerical implementation will be useful to the readers of IEEE TSP.
+I am writing to submit our manuscript “Smoothing and Interpolating Noisy GPS Data with Smoothing Splines” for consideration as a publication as part of the Latmix Special Collection. This manuscript presents statistical methods for smoothing noisy, irregularly sampled GPS signals and includes a complete implementation of well tested classes in Matlab. We believe these results and the numerical implementation will be immediately useful to other oceanographers with GPS tracked drifters, but also to the broader community doing signal processing more generally.
 
-This manuscript has not been presented or submitted for publication anywhere else. All authors have contributed to this manuscript and have no conflicts of interest.
+This manuscript is not under consideration for publication anywhere else. All authors have contributed to this manuscript and have no conflicts of interest.
 
 Thank you for your consideration,
 
