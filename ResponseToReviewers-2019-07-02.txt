@@ -1,0 +1,9 @@
+Response To Reviewers
+July 2nd, 2019
+
+Editor Dr. Denis Volkov ask us to clarify the IEEE copyright statement on the arxiv preprint version of the manuscript. The copyright statement was include in error on the preprint version. We updated the arxiv version here,
+	https://arxiv.org/pdf/1904.12064.pdf
+which now follows the AMS guidelines from Section 7a of the AMS Copyright Policy.
+
+Apologies for the mistake. Thanks,
+Jeffrey J. Early, Ph.D.
