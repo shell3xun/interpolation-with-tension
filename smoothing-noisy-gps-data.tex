@@ -84,7 +84,7 @@ Addressing the primary goal of understanding the physical processes controlling 
 
 The basic problem is ubiquitous: observations from GPS receivers return observed positions $x_i$ at times $t_i$ that differ from the true positions $x_{\textrm{true}}(t_i)$ by some noise $\epsilon_i \equiv x_i - x_{\textrm{true}}(t_i)$ with variance $\sigma^2$. The primary goal of \emph{smoothing} is to find the true position $x_{\textrm{true}}(t_i)$ not contaminated by the noise, while the primary goal of \emph{interpolating} is to find the true position $x_{\textrm{true}}(t)$ between observation times.
 
-The approach taken here is to use smoothing splines. This approach is more broad than it may first appear, and includes both the methodologies used by X and Y as special cases,  Our model for the `true' path $x(t)$ is specified using interpolating b-splines $X^K(t)$ such that
+The approach taken here is to use smoothing splines. This approach is relatively broad, and includes both the methodologies used by \citet{yaremchuk2015-joe} and \citet{elipot2016-jgr} for smoothing drifter trajectories as special cases, as discussed later.  Our model for the `true' path $x(t)$ is specified using interpolating b-splines $X^K(t)$ such that
 \begin{equation}
 \label{b-spline-model-intro}
     x(t) = \sum_{i=1}^N \xi_i X^K_i(t),
@@ -822,6 +822,18 @@ Application of this methodology to one of the GPS drifters (drifter 6) is shown 
 The \texttt{GPSSmoothingSpline} inherits from the \texttt{BivariateSmoothingSpline} class and assumes the errors follow the $t$-distribution found in section \ref{gps_position_errors}. The class also projects latitude and longitude using a transverse Mercator projection with the central meridian set to the center of the dataset.
 
 %%%%%%%%%%%%%%%%%%%%%%
+\section{Discussion}
+%%%%%%%%%%%%%%%%%%%%%%
+
+The methods discussed in this manuscript are related to other methodologies used to smooth and interpolate drifter trajectories.
+
+\citet{yaremchuk2015-joe} formulate a cost function, their equation 9, based on PDFs of the drifter accelerations and the GPS errors. Setting their $\mu=1$ (they choose $\mu=0.9$) this is equivalent to the special case of equation \ref{smoothing-spline-pdf} when $S=T=2$, where they have implicitly chosen $\lambda_T$ by assuming an infinite effective sample size, $n^\textrm{eff}$. Their methodology for isolating outliers is nearly equivalent the iteratively reweighted least squares method detailed in appendix \ref{sec:irls} using a weight function similar to Tukey's biweight, equation \ref{tukey-biweight}.
+
+\citet{elipot2016-jgr} apply their methodology to the ARGOS tracked surface drifter, which are significantly noisier positions than GPS errors, but also follow a t-distribution. They assume a linear model for positions, equivalent to assuming $S=T=2$ with $\lambda_T \rightarrow \infty$. In the numerical implementation of this manuscript, this special case is implemented in the \texttt{ConstrainedSpline} class. The time dependent weight function used in \citet{elipot2016-jgr} requires manually specifying a weight for each point used, and this method is therefore somewhat different than the approach taken here.
+
+Another technique used for smoothing and interpolating drifter positions is kriging \citep{hansen1996-jtech}, however, its relationship to smoothing splines is less clear. In response to a study empirically comparing kriging to smoothing splines \citep{laslett1994-jasa},  \citet{handcock1994-jasa} point out that kriging and smoothing splines are just two specific parameter choices of a more general class of splines defined by their covariance functions. In the context of the maximum likelihood equation for smoothing splines, equation \ref{smoothing-spline-pdf}, this generalization could be modeled by including a covariance structure on the physical process. 
+
+%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusions}
 %%%%%%%%%%%%%%%%%%%%%%
 
@@ -974,6 +986,7 @@ Note that the same strategy could be used to reshape the pdf of a Gaussian to ma
 
 As a point of reference, Tukey's biweight is given by,
 \begin{equation}
+\label{tukey-biweight}
 \psi(z) = 
 \begin{cases}
 \frac{z}{\sigma_{tb}^2} \left(1-\frac{z^2}{c^2 \sigma_{tb}^2} \right)^2 & |z| < c \cdot \sigma_{tb} \\
