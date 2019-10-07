@@ -1,0 +1,20 @@
+Dr Denis Volkov
+Editor
+Journal of Atmospheric and Oceanic Technology
+
+October 7th, 2019
+
+Thank you for inviting us to submit a revised manuscript and response to reviewers. The revision and detailed reviewer responses are attached.
+
+The primary addition to the manuscript is the addition of a new section comparing to other methods for smoothing and interpolating drifter positions. This section adds both a broader context and specific comparisons of methodology. The second major change to the manuscript is a reduction in word count to accommodate the new section. 
+
+
+Thank you for your consideration,
+
+Jeffrey J. Early, Ph.D
+NorthWest Research Associates
+jearly@nwra.com
+
+Adam Sykulski, Ph.D.
+Lancaster University
+a.sykulski@lancaster.ac.uk
