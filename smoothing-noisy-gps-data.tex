@@ -74,11 +74,9 @@ Data Science Institute and the Department of Mathematics and Statistics, Lancast
 \section{Introduction}
 %
 %%%%%%%%%%%%%%%%%%%%%%
-In 2011 an array of floating ocean surface buoys (drifters) were deployed in the Sargasso Sea to assess the lateral diffusivity of oceanic processes \citep{shcherbina2015-bams}. Each drifter was equipped with a global positioning system (GPS) receiver recording locations every 30 minutes.
-%In the summer of 2011 a series of dye-release experiments were conducted in the Sargasso Sea to assess the lateral diffusivity of oceanic processes \cite{shcherbina2015-bams}. Each of these experiments included an array of floating ocean surface buoys (drifters) drogued to the same depth as the dye and equipped with global positioning system (GPS) receivers recording locations every 30 minutes.
-Addressing the primary goal of understanding the processes controlling lateral diffusivity requires significant processing of the drifter positions, including removing mean flow, accounting for the large scale strain field, and analyzing the residual spectra for hints of a dynamical process. However, it quickly became clear that the GPS position data, which can have accuracies as low as a few meters \citep{faa2016-report}, was contaminated by outliers with position jumps of hundreds of meters or more. Prior to analysis, the position data requires removing outliers, and interpolating gaps to keep the position data synchronized in time across the drifter array.
+In 2011 an array of floating ocean surface buoys (drifters) were deployed in the Sargasso Sea to assess the lateral diffusivity of oceanic processes \citep{shcherbina2015-bams}. Each drifter was equipped with a global positioning system (GPS) receiver recording locations every 30 minutes. Addressing the primary goal of understanding the processes controlling lateral diffusivity requires significant processing of the drifter positions, including removing mean flow, accounting for the large scale strain field, and analyzing the residual spectra for hints of a dynamical process. However, it quickly became clear that the GPS position data, which can have accuracies as low as a few meters \citep{faa2016-report}, was contaminated by outliers with position jumps of hundreds of meters or more. Prior to analysis, the position data requires removing outliers, and interpolating gaps to keep the position data synchronized in time across the drifter array.
 
-The basic problem is ubiquitous: observations from GPS receivers return observed positions $x_i$ at times $t_i$ that differ from the true positions $x_{\textrm{true}}(t_i)$ by some noise $\epsilon_i \equiv x_i - x_{\textrm{true}}(t_i)$ with variance $\sigma^2$. The goal of \emph{smoothing} is to find the true position $x_{\textrm{true}}(t_i)$ not contaminated by the noise, while the goal of \emph{interpolating} is to find the true position $x_{\textrm{true}}(t)$ between observation times. The approach taken here is to use smoothing splines. This approach is relatively broad, and includes both the methodologies used by \citet{yaremchuk2015-joe} and \citet{elipot2016-jgr} for smoothing drifter trajectories as special cases, as discussed later. 
+The basic problem is ubiquitous: observations from GPS receivers return observed positions $x_i$ at times $t_i$ that differ from the true positions $x_{\textrm{true}}(t_i)$ by some noise $\epsilon_i \equiv x_i - x_{\textrm{true}}(t_i)$ with variance $\sigma^2$. The goal of \emph{smoothing} is to find the true position $x_{\textrm{true}}(t_i)$ not contaminated by the noise, while the goal of \emph{interpolating} is to find the true position $x_{\textrm{true}}(t)$ between observation times. The approach taken here is to use smoothing splines. This approach is relatively broad \citep{handcock1994-jasa,nychka2000-book}, and is related to the methodologies in \citet{yaremchuk2015-joe} and \citet{elipot2016-jgr} for smoothing drifter trajectories, as discussed later. 
 
 Our model for the `true' path $x(t)$ is specified using interpolating b-splines $X^K(t)$ such that
 \begin{equation}
@@ -267,7 +265,7 @@ Stated in this way this is the same as asking for the `least-squares' fit of the
 
 The model used here is the canonical interpolating spline of order $K$ described in section \ref{sec:interpolation}. We have chosen our knot points such that the model intersects the observations and this certainly maximizes \eqref{max-gaussian} (and minimizes \eqref{least-squares}) because all the errors are zero, but the resulting distribution of errors (a delta function at zero) does not resemble the assumed Gaussian distribution. Thus, additional constraints are required if the assumed error distribution is to be recovered.
 
-The smoothing spline augments the penalty function of \eqref{least-squares} by adding a global constraint on the $m$-th derivative of the resulting function as in \eqref{smoothing-spline}.
+The smoothing spline augments the penalty function of \eqref{least-squares} by adding a global constraint on the $T$-th derivative of the resulting function as in \eqref{smoothing-spline}.
 %\begin{equation*}
 %\tag{\ref{smoothing-spline} revisited}
 %\phi =  \frac{1}{N}\sum_{i=1}^{N} \left( \frac{x_i - x(t_i)}{\sigma} \right) ^2 + \frac{\lambda_T}{t_N-t_1} \int_{t_1}^{t_N} \left(\frac{d^T x}{dt^T}\right)^2 \, dt.
@@ -359,7 +357,7 @@ Taking the measures of effective sample size as functions of $\lambda$, the mean
 \end{equation}
 If one assumes $ n_{\textrm{eff}}^{\textrm{var}} = n_{\textrm{eff}}^{\textrm{SE}}$, then the expected mean square error from \eqref{MSE} is equal to $\sigma^2/n_{\textrm{eff}}$. Although not shown here, in an empirical analysis we find that $n_{\textrm{eff}}^{\textrm{var}}$ and $n_{\textrm{eff}}^{\textrm{SE}}$ are approximately equal, although $n_{\textrm{eff}}^{\textrm{var}}$ becomes highly variable when $n_{\textrm{eff}}^{\textrm{SE}}$ approaches 1. These measures of effective sample size can be used to estimate the value of $\lambda_T$ necessary for optimal tension without minimizing the expected mean square error.
 
-%Note that the definition of effective sample size used here is related to, but not the same as, the notion of degrees-of-freedom used in \citet{cantoni2002-biom} and references therein.
+The definition of effective sample size used here is related to, but not the same as, the notion of degrees-of-freedom used in \citet{cantoni2002-biom} and references therein.
 
 % In the 50 years since \cite{reinsch1967-nm} was published, a number of different methods have been proposed for choosing the optimal value of $\lambda_m$ in \eqref{smoothing-spline}. One approach is cross-validation \cite{wahba1978-jrss-b,craven1979-nm} which is essentially a form of bootstrapping, where the optimal parameter is determined by minimizing the error with data points not included in the fit. Another approach is to determine the number of degrees of freedom expected in the sample variance of \eqref{sample_variance}. Both \cite{reinsch1967-nm} and \cite{teanby2007-mg} argue that the tension should be adjusted so that the sample variance is roughly the expected variance, $\hat{\sigma}^2 \sim \sigma^2$, but according to \cite{wahba1990-siam} this appears to overestimate the number of degrees of freedom, consistent with the argument in section \ref{sec:sample_variance}. Other techniques for determining the degrees of freedom have been proposed, see for example \cite{cantoni2002-biom}. Recent work comparing different estimators shows that no single technique appears to be an optimal estimator \cite{lee2003-csda}.
 
@@ -649,7 +647,7 @@ The Student $t$-distribution is a generalization of the Gaussian that produces l
 \label{student_pdf}
 p_s\left(\epsilon |\nu,\sigma_s^2\right) = \frac{\Gamma\left( \frac{\nu + 1}{2} \right)}{\sigma_s \sqrt{\nu \pi} \Gamma\left(\frac{\nu}{2}\right)} \left( 1 + \frac{\epsilon^2}{\sigma_s^2 \nu} \right)^{-\frac{\nu+1}{2}},
 \end{equation}
-where the $\sigma_s$ parameter scales the distribution width and the $\nu$ parameter sets the number of degrees of freedom. The variance is $\sigma^2=\sigma_s^2 \frac{\nu}{\nu-2}$ and only exists for $\nu > 2$. The $t$-distribution is equivalent to the Gaussian distribution when $\nu \rightarrow \infty$. We find the best fit $t$-distribution to the data by minimizing the Anderson-Darling test. The best fit with parameters $\sigma_s \approx 8.5$ meters and $\nu \approx 4.5$ is shown as the black line in Fig. \ref{motionless_error}. Different choices in GPS receivers and using the Kolmogorov-Smirnoff test results in very similar parameters, i.e., $\sigma_s\approx8-10$ meters and $\nu\approx4-6$.
+where the $\sigma_s$ parameter scales the distribution width and the $\nu$ parameter sets the number of degrees of freedom (as $\nu \rightarrow \infty$, equation \ref{student_pdf} becomes a Gaussian). The variance is $\sigma^2=\sigma_s^2 \frac{\nu}{\nu-2}$ and only exists for $\nu > 2$. Minimizing the Anderson-Darling test to find the best fit $t$-distribution to the data, we find parameters $\sigma_s \approx 8.5$ meters and $\nu \approx 4.5$ shown as the black line in Fig. \ref{motionless_error}. Different choices in GPS receivers and using the Kolmogorov-Smirnoff test results in very similar parameters, i.e., $\sigma_s\approx8-10$ meters and $\nu\approx4-6$.
 
 The \emph{position} error distributions imply a combined \emph{distance} error distribution by computing $\epsilon_d = \sqrt{\epsilon_x^2 + \epsilon_y^2}$ and is shown in the lower panel of Fig. \ref{motionless_error}. With Gaussian noise this results in a Rayleigh distribution,
 \begin{equation}
@@ -665,7 +663,7 @@ The distance error distribution from $t$-distributed noise is computed numerical
   \label{gps_autocorrelation}
 \end{figure}
 
-Fig. \ref{gps_autocorrelation} shows the autocorrelation function of the GPS position errors and the 99\% confidence intervals. We find a rough empirical fit to be $\rho(\tau)=\exp\left(\max(-\tau/t_0,-\tau/t_1-1.35)\right)$ where $t_0=100$ seconds and $t_1=760$ seconds, which reflects an initially rapid fall off in correlation, followed by a slower decline. The smallest sampling interval of the GPS drifters in question is 30 minutes and indistinguishable from zero according to Fig. \ref{gps_autocorrelation}. It is therefore safe to assume the errors are uncorrelated for our real data example. Although the drifter sampling rate allows us to avoid further discussion of the autocorrelation function of GPS errors, accounting for autocorrelation is a relatively easy extension (and is implemented in the code).
+Fig. \ref{gps_autocorrelation} shows the autocorrelation function of the GPS position errors and the 99\% confidence intervals. We find a rough empirical fit to be $\rho(\tau)=\exp\left(\max(-\tau/t_0,-\tau/t_1-1.35)\right)$ where $t_0=100$ seconds and $t_1=760$ seconds, which reflects an initially rapid fall off in correlation, followed by a slower decline. The smallest sampling interval of the GPS drifters in question is 30 minutes and the correlation indistinguishable from zero according to Fig. \ref{gps_autocorrelation}. It is therefore safe to assume the errors are uncorrelated for our real data example. Although the drifter sampling rate allows us to avoid further discussion of the autocorrelation function of GPS errors, accounting for autocorrelation is a relatively easy extension (and is implemented in the code).
 
 The smoothing spline algorithms described in section \ref{sec:smoothing_spline} are modified to use the $t$-distribution as described in appendix B. Table \ref{fit_results_tdistribution} shows the conclusions reached for Gaussian data in section \ref{sec:smoothing_spline} still apply with $t$-distributed data.
 
@@ -824,12 +822,12 @@ Another technique used for smoothing and interpolating drifter positions is krig
 
 %%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusions}
-%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%
 
 The methodology in this manuscript solves our problem of finding smoothed, interpolated positions from a noisy GPS drifter dataset with outliers. More generally, for signals with second-order structure similar to a Mat\'ern process we found:
 \begin{enumerate}
 \item the spline degree $S$ should be set to a value higher than the high frequency spectral slope of the process (section \ref{sec:interpolation}),
-\item the tension degree $T$ can be set to $T=S$ (section \ref{sec:spline_order_tension_order_spectrum}), and
+% \item the tension degree $T$ can be set to $T=S$ (section \ref{sec:spline_order_tension_order_spectrum}), and
 \item the optimal tension parameter can be estimated \emph{a priori} (section \ref{sec:spline_order_tension_order_spectrum}).
 \end{enumerate}
 For GPS data, there appear to be three key steps for using smoothing splines:
@@ -844,8 +842,8 @@ For GPS data, there appear to be three key steps for using smoothing splines:
 %%%%%%%%%%%%%%%%%
 %ACKNOWLEDGMENTS
 %%%%%%%%%%%%%%%%%
-%\acknowledgments
-%Thanks to Miles Sundermeyer whose drifters were used in this analysis. This work was funded by ONR through the Scalable Lateral Mixing and Coherent Turbulence Departmental Research Initiative (LatMix) and National Science Foundation award 1658564.
+\acknowledgments
+Thanks to Miles Sundermeyer whose drifters were used in this analysis. This work was funded by ONR through the Scalable Lateral Mixing and Coherent Turbulence Departmental Research Initiative (LatMix) and National Science Foundation award 1658564.
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
@@ -962,7 +960,7 @@ to get a matching distribution. Of course, this is only true if $\epsilon_i$ is 
 w_s(\epsilon_i) = \sigma_s^2 \frac{\nu  + \frac{\epsilon_i^2}{\sigma_s^2}}{\nu+1}.
 \end{equation}
 
-From \eqref{t-weight} it is clear if $\epsilon_i < \sigma_s$ then it is reweighted to a smaller value, essentially making the observation point more strongly weighted. On the other hand, if $\epsilon_i > \sigma_s$, then its relative weighting decreases, and it is treated more as an outlier.
+From \eqref{t-weight} it is clear if $\epsilon_i < \sigma_s$ then it is reweighted to a smaller value, making the observation point more strongly weighted. On the other hand, if $\epsilon_i > \sigma_s$, then its relative weighting decreases, and it is treated more as an outlier.
 
 More generally, the weight function $w(z)$ for a pdf $p(z)$ is found by setting $-\partial_z \log p(z)$ equal to $-\partial_z \log p_g(z)$ of a Gaussian pdf where $w(z)$ replaces $\sigma_g^2$,
 and then solving for $w(z)$. The result is
