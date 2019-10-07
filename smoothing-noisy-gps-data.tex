@@ -59,10 +59,6 @@ Data Science Institute and the Department of Mathematics and Statistics, Lancast
 \abstract{A comprehensive methodology is provided for smoothing noisy, irregularly sampled data with non-Gaussian noise using smoothing splines. We demonstrate how the spline order and tension parameter can be chosen \emph{a priori} from physical reasoning. We also show how to allow for non-Gaussian noise and outliers which are typical in GPS signals. We demonstrate the effectiveness of our methods on GPS trajectory data obtained from oceanographic floating instruments known as drifters.}
 %%TC:endignore
 
-% \begin{IEEEkeywords}
-% b-spline, GPS, smoothing spline, interpolation, outliers
-% \end{IEEEkeywords}
-
 \begin{document}
 
 \maketitle
@@ -78,13 +74,13 @@ Data Science Institute and the Department of Mathematics and Statistics, Lancast
 \section{Introduction}
 %
 %%%%%%%%%%%%%%%%%%%%%%
-In the summer of 2011 an array of floating ocean surface buoys (drifters) were deployed in the Sargasso Sea to assess the lateral diffusivity of oceanic processes \citep{shcherbina2015-bams}. Each drifter was equipped with a global positioning system (GPS) receiver recording locations every 30 minutes.
+In 2011 an array of floating ocean surface buoys (drifters) were deployed in the Sargasso Sea to assess the lateral diffusivity of oceanic processes \citep{shcherbina2015-bams}. Each drifter was equipped with a global positioning system (GPS) receiver recording locations every 30 minutes.
 %In the summer of 2011 a series of dye-release experiments were conducted in the Sargasso Sea to assess the lateral diffusivity of oceanic processes \cite{shcherbina2015-bams}. Each of these experiments included an array of floating ocean surface buoys (drifters) drogued to the same depth as the dye and equipped with global positioning system (GPS) receivers recording locations every 30 minutes.
-Addressing the primary goal of understanding the physical processes controlling lateral diffusivity requires significant processing of the drifter positions, including removing the mean flow across all drifters, accounting for the large scale strain field, and analyzing the residual spectra for hints of a dynamical process. However, it quickly became clear that the GPS position data, which can have accurracies as low as a few meters \citep{faa2016-report}, was contaminated by outliers with position jumps of hundreds of meters or more. Prior to analysis, the position data requires removing the outliers, and interpolating gaps to keep the position data synchronized in time across the drifter array.
+Addressing the primary goal of understanding the processes controlling lateral diffusivity requires significant processing of the drifter positions, including removing mean flow, accounting for the large scale strain field, and analyzing the residual spectra for hints of a dynamical process. However, it quickly became clear that the GPS position data, which can have accuracies as low as a few meters \citep{faa2016-report}, was contaminated by outliers with position jumps of hundreds of meters or more. Prior to analysis, the position data requires removing outliers, and interpolating gaps to keep the position data synchronized in time across the drifter array.
 
-The basic problem is ubiquitous: observations from GPS receivers return observed positions $x_i$ at times $t_i$ that differ from the true positions $x_{\textrm{true}}(t_i)$ by some noise $\epsilon_i \equiv x_i - x_{\textrm{true}}(t_i)$ with variance $\sigma^2$. The primary goal of \emph{smoothing} is to find the true position $x_{\textrm{true}}(t_i)$ not contaminated by the noise, while the primary goal of \emph{interpolating} is to find the true position $x_{\textrm{true}}(t)$ between observation times.
+The basic problem is ubiquitous: observations from GPS receivers return observed positions $x_i$ at times $t_i$ that differ from the true positions $x_{\textrm{true}}(t_i)$ by some noise $\epsilon_i \equiv x_i - x_{\textrm{true}}(t_i)$ with variance $\sigma^2$. The goal of \emph{smoothing} is to find the true position $x_{\textrm{true}}(t_i)$ not contaminated by the noise, while the goal of \emph{interpolating} is to find the true position $x_{\textrm{true}}(t)$ between observation times. The approach taken here is to use smoothing splines. This approach is relatively broad, and includes both the methodologies used by \citet{yaremchuk2015-joe} and \citet{elipot2016-jgr} for smoothing drifter trajectories as special cases, as discussed later. 
 
-The approach taken here is to use smoothing splines. This approach is relatively broad, and includes both the methodologies used by \citet{yaremchuk2015-joe} and \citet{elipot2016-jgr} for smoothing drifter trajectories as special cases, as discussed later.  Our model for the `true' path $x(t)$ is specified using interpolating b-splines $X^K(t)$ such that
+Our model for the `true' path $x(t)$ is specified using interpolating b-splines $X^K(t)$ such that
 \begin{equation}
 \label{b-spline-model-intro}
     x(t) = \sum_{i=1}^N \xi_i X^K_i(t),
@@ -94,24 +90,24 @@ where $K$ is the order (degree $S=K-1$) of the spline. For $N$ observations we c
 \label{smoothing-spline}
 \phi =  \frac{1}{N}\sum_{i=1}^{N} \left( \frac{x_i - x(t_i)}{\sigma} \right) ^2 + \frac{\lambda_T}{t_N-t_1} \int_{t_1}^{t_N} \left(\frac{d^T x}{dt^T}\right)^2 \, dt,
 \end{equation}
-for some tension parameter $\lambda_T \geq 0$. If $\lambda_T = 0$ then $\phi=0$ and $\xi_i=\bar{\xi_i}$ because $x(t_i)=x_i$, but if $\lambda_T \rightarrow \infty$ then this forces the $x(t)$ to a $T$-th order polynomial (e.g., when $T=2$, the model is forced to be a straight line because it has no second derivative). The resulting path $x(t)$ is known as a smoothing spline and was first introduced in modern form by \citet{reinsch1967-nm}, but according to \citet{deboor1978-book} the idea dates back to \citet{whittaker1923-pems}. Once $S$ and $T$ are chosen, the smoothing spline has one free parameter ($\lambda_T$) and its optimal value can be found by minimizing the expected mean square error when the true value of $\sigma$ is known \citep{craven1979-nm}.
+for some tension parameter $\lambda_T \geq 0$. If $\lambda_T = 0$ then $\phi=0$ and $\xi_i=\bar{\xi_i}$ because $x(t_i)=x_i$, but if $\lambda_T \rightarrow \infty$ then this forces $x(t)$ to a $T$-th order polynomial (e.g., when $T=2$, the model is forced to be a straight line because it has no second derivative). The resulting path $x(t)$ is known as a smoothing spline and was first introduced in modern form by \citet{reinsch1967-nm}, but according to \citet{deboor1978-book} the idea dates back to \citet{whittaker1923-pems}. Once $S$ and $T$ are chosen, the smoothing spline has one free parameter ($\lambda_T$) and its optimal value can be found by minimizing the expected mean square error when the true value of $\sigma$ is known \citep{craven1979-nm}.
 
-As a practical matter there are three issues that must be addressed before smoothing splines are applied to GPS data:
+Three issues must be addressed before smoothing splines are applied to GPS data:
 \begin{enumerate}
-    \item how do we choose $S$ and $T$---and how do these choices affect the recovered power spectrum?
-    \item how do we modify the spline fit to accommodate the non-Gaussian errors of GPS receivers?
-    \item how do we identify and remove outliers?
+    \item how to choose $S$ and $T$---and how do these choices affect the recovered power spectrum?
+    \item how to modify the spline fit to accommodate the non-Gaussian errors of GPS receivers?
+    \item how to identify and remove outliers?
 \end{enumerate}
-To address these issues, but also serve as a practical guide to other practitioners, we start by reviewing B-splines in section \ref{sec:interpolation} and introduce the canonical interpolating spline that is used as the underlying model for path $x(t)$ in \eqref{b-spline-model-intro}. We also demonstrate the effect that choosing $S$ has on the high-frequency slope of the power spectrum of the interpolated fit.
+To address these issues, but also serve as a practical guide to other practitioners, we review B-splines in section \ref{sec:interpolation} and introduce the canonical interpolating spline as the underlying model for path $x(t)$ in \eqref{b-spline-model-intro}. We demonstrate the effect choosing $S$ has on the high-frequency slope of the power spectrum of the interpolated fit.
 
 Section \ref{sec:smoothing_spline} takes a broad look at smoothing splines and the assumptions they make on the underlying process. Many of the ideas presented in this section are known to the statistics community, so here we present these ideas from a more physical perspective. %The tension parameter (or smoothing parameter) $\lambda_T$ is shown to scale with the effective sample size of the error distribution and root-mean-square value of the tensioned derivative. We also 
-We show that the penalty function in \eqref{smoothing-spline} can be formulated as a maximum likelihood problem and applying tension is equivalent to assuming a Gaussian distribution on the tensioned derivative of the underlying process.
+We show that the penalty function in \eqref{smoothing-spline} can be formulated as a maximum likelihood problem, and applying tension is equivalent to assuming a Gaussian distribution on the tensioned derivative of the underlying process.
 
-Section \ref{sec:spline_order_tension_order_spectrum} uses ensembles from synthetic data designed to mimic the oceanographic data in order to test a number of choices that have to be made. We first establish that setting $T=S$ is a reasonable choice. We then show that the tension parameter can be chosen \emph{a priori} (without optimization of the mean square error) when the {\em effective sample size} (which we define later) can be estimated from the data. This estimate for the effective sample size can then be used to reduce the coefficients, $\xi^i$, in the spline fit without increasing mean square error. Finally, we show how the effective sample size of the fit establishes the highest resolved frequency.
+Section \ref{sec:spline_order_tension_order_spectrum} uses ensembles from synthetic data that mimic the oceanographic data to test a number of choices that must be made. We establish that setting $T=S$ is a reasonable choice. We show how the tension parameter can be chosen \emph{a priori} (without optimization of the mean square error) when the {\em effective sample size} (which we define later) can be estimated from the data. This estimate for effective sample size can be used to reduce the coefficients, $\xi^i$, in the spline fit without increasing mean square error. %Finally, we show how the effective sample size of the fit establishes the highest resolved frequency.
 
-The second half of the manuscript addresses issues specific to GPS positions errors. In section \ref{sec:bivariate} we discuss the assumptions of stationarity and isotropy required for bivariate smoothing splines. In section \ref{sec:drifter_data_set} we show that the GPS errors are not Gaussian distributed, but $t$-distributed, and we show how to modify the technique for a $t$-distribution. Finally, section \ref{sec:outliers} addresses how to modify the expected mean square error minimizer to make smoothing splines robust to outliers.
+The second half of the manuscript addresses issues specific to GPS position errors. In section \ref{sec:bivariate} we discuss the assumptions of stationarity and isotropy required for bivariate smoothing splines. In section \ref{sec:drifter_data_set} we show that GPS errors are not Gaussian distributed, but $t$-distributed, and we show how to modify our methodology for a $t$-distribution. Section \ref{sec:outliers} addresses how to modify our methodology to make smoothing splines robust to outliers. We compare with alternative methods and conclude in sections 8 and 9 respectively.
 
-One of the major outcomes of this work is the implementation of Matlab classes for generating b-splines, interpolating splines, smoothing splines as well as a class specific to smoothing GPS data\footnote{https://github.com/JeffreyEarly/GLNumericalModelingKit}. These classes are highlighted throughout the manuscript in their relevant sections.
+A major outcome of this work is the implementation of Matlab classes for generating b-splines, interpolating splines, smoothing splines, and a class specific to smoothing GPS data\footnote{https://github.com/JeffreyEarly/GLNumericalModelingKit}. These classes are highlighted throughout in relevant sections.
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
@@ -122,19 +118,19 @@ One of the major outcomes of this work is the implementation of Matlab classes f
 
 \begin{figure*}[h]
   \centerline{\includegraphics[width=39pc,angle=0]{interpolation.eps}}
-  \caption{An example of interpolating between 7 data points. The data points are shown as circles, and the interpolated function is shown as solid black lines. We show four different orders of interpolation $K=1..4$ (rows) and their nonzero derivatives (columns). The thin vertical grey lines are the knot points.}
+  \caption{An example of interpolating between 7 data points using spline function of order $K$. The data points are shown as circles, and the interpolated function is shown as solid black lines. We show four different orders of interpolation $K=1..4$ (rows) and their nonzero derivatives (columns). The thin vertical grey lines are the knot points.}
   \label{interpolation}
 \end{figure*}
 
-Assume that we are given $N$ observations of a particle position $(t_i,x_i)$ with no errors. The simplest possible form of interpolation would be a nearest neighbor method that assigns the position of the particle to the nearest observations in time. The resulting interpolated function $x(t)$ is a polynomial of \emph{order} $K=1$ (piecewise constant), shown in the top row of Fig. \ref{interpolation}. The next level of sophistication is to assume a constant velocity between any two observations and use that to interpolate positions between observations, second row of Fig. \ref{interpolation}. This also means that we now have a piecewise constant function $\frac{dx}{dt}$ that represents the velocity of the particle, shown in the second row, second column of Fig.  \ref{interpolation}. This is a polynomial function of order $K=2$.
+Assume we are given $N$ observations of a particle position $(t_i,x_i)$ with no errors. The simplest form of interpolation is a nearest neighbor method that assigns the position of the particle to the nearest observations in time. The resulting interpolated function $x(t)$ is a polynomial of \emph{order} $K=1$ (piecewise constant), shown in the top row of Fig. \ref{interpolation}. The next level of sophistication is to assume a constant velocity between any two observations and use that to interpolate positions between observations, second row of Fig. \ref{interpolation}. This means we now have a piecewise constant function $\frac{dx}{dt}$ that represents the velocity of the particle, shown in the second row, second column of Fig.  \ref{interpolation}. This is a polynomial function of order $K=2$.
 
-It is slightly less obvious how to proceed to a polynomial of order $K=3$. With $N$ data points we can construct a piecewise constant acceleration (the second derivative) using the $N-2$ independent accelerations computed from finite differencing, but where to place $\emph{knot points}$ that define the boundaries of the regions and how to maintain continuity is slightly less clear. The approach taken here is to use B-splines.
+It is less obvious how to proceed to a polynomial of order $K=3$. With $N$ data points we can construct a piecewise constant acceleration (the second derivative) using the $N-2$ independent accelerations computed from finite differencing, but where to place $\emph{knot points}$ that define the boundaries of the regions and how to maintain continuity is less clear. The approach taken here is to use B-splines.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{B-Splines}
 %%%%%%%%%%%%%%%%%%%%%%
 
-A B-spline (or basis spline) of \emph{order} $K$ (\emph{degree} $S=K-1$) is a piecewise polynomial that maintains nonzero continuity across $S$ knot points. The knot points are a nondecreasing collection of points in time that we will denote with $\tau_i$. The basic theory is well documented in \citet{deboor1978-book}, but here we will present a reduced version specifically tailored to our needs.
+A B-spline (or basis spline) of \emph{order} $K$ (\emph{degree} $S=K-1$) is a piecewise polynomial that maintains nonzero continuity across $S$ knot points. The knot points are a nondecreasing collection of points in time denoted by $\tau_i$. The basic theory is well documented in \citet{deboor1978-book}, but here we present a reduced version tailored to our needs.
 
 The $m$-th B-spline of order $K=1$ is defined as
 \begin{equation}
@@ -143,7 +139,7 @@ X^1_m(t) \equiv \begin{cases}
 0     & \text{otherwise}.
 \end{cases}
 \end{equation}
-This is the rectangle function as shown in the first row, first column of Fig. \ref{bsplines}. If we are given $P$ knot points, then we can construct $P-1$ B-splines of order $K=1$, although notice that if a knot point is repeated this will result in a spline that is zero everywhere. To represent an interpolating function $x(t)$ for the $N$ observations of a particle position $(t_i,x_i)$ we define $N+1$ knot points as
+This is the rectangle function as shown in the first row, first column of Fig. \ref{bsplines}. Given $P$ knot points we can construct $P-1$ B-splines of order $K=1$, although if a knot point is repeated this results in a spline that is zero everywhere. To represent an interpolating function $x(t)$ for the $N$ observations of a particle position $(t_i,x_i)$ we define $N+1$ knot points as
 \begin{equation}
 \tau_m = \begin{cases}
 t_1      & \text{$m=1$}, \\
@@ -151,15 +147,16 @@ t_{m-1} + \frac{t_m-t_{m-1}}{2}	  & \text{$1<m \leq N$},\\
 t_N     & \text{$m>N$}.
 \end{cases}
 \end{equation}
-This will create $N$ independent basis functions that provide support for the region $t_1 \leq t \leq t_N$ (provided the last spline is defined to include the last knot point). The interpolating function $x(t)$ is defined as $x(t) \equiv  X^1_m(t) \xi^m$ where the coefficients $\xi^m$ are found by solving $X^1_m(t^i) \xi^m = x^i$. The result of this process is shown in Fig. \ref{interpolation} for 7 irregularly spaced data points.
+This creates $N$ independent basis functions that provide support for the region $t_1 \leq t \leq t_N$ (provided the last spline is defined to include the last knot point). The interpolating function $x(t)$ is defined as $x(t) \equiv  X^1_m(t) \xi^m$ where the coefficients $\xi^m$ are found by solving $X^1_m(t^i) \xi^m = x^i$. The result of this process is shown in Fig. \ref{interpolation} for 7 irregularly spaced data points.
 
-All higher order B-splines are defined by recursion,
+All higher order ($K>1$) B-splines are defined by recursion,
 \begin{equation}
 X^K_m(t) \equiv \frac{t - t_m}{t_{m+K-1} - t_m} X^{K-1}_m(t) + \frac{t_{m+K}-t}{t_{m+K} - t_{m+1}} X^{K-1}_{m+1}(t).
 \end{equation}
-This recursion formula takes two neighboring lower order splines and ramps the left one up over its nonzero domain and ramps the right one down over its nonzero domain. The result of this process is to create splines that span across one additional knot point at each order, and maintain continuity across one more derivative. Examples are shown in Fig. \ref{bsplines}.
+%This recursion formula takes two neighboring lower order splines and ramps the left one up over its nonzero domain and ramps the right one down over its nonzero domain. 
+This creates splines that span across one additional knot point at each order, and maintain continuity across one more derivative. Examples are shown in Fig. \ref{bsplines}.
 
-Any knot points that are repeated $T$ times will result in a total of $T-1$ splines of order one that are everywhere zero. This has the effect of introducing discontinuities in the derivatives for higher order splines. For our purposes, we will only use this feature to prevent higher order splines from crossing the boundaries. For $K=2$ order splines we will use $N+2$ knot points at locations
+Any knot points that are repeated $T$ times result in a total of $T-1$ splines of order one that are everywhere zero. This has the effect of introducing discontinuities in the derivatives for higher order splines. For our purposes, we use this feature to prevent higher order splines from crossing boundaries. For $K=2$ order splines we use $N+2$ knot points at locations
 \begin{equation}
 \tau_m = \begin{cases}
 t_1      	& \text{$m \leq 2$}, \\
@@ -167,9 +164,9 @@ t_{m-1}	& \text{$2 < m \leq N$},\\
 t_N 		& \text{$m > N$}.
 \end{cases}
 \end{equation}
-This creates a knot point at every observation point, but repeats the first and last knot point. This has the effect of terminating the first and last spline at the boundary and creating $N$ second order B-splines, $X^2_m(t)$. Once again the interpolating function $x(t)$ is defined as $x(t) \equiv  X^2_m(t) \xi^m$ where the coefficients $\xi^m$ are found by solving $X^2_m(t^i) \xi^m = x^i$. The second row of Fig. \ref{interpolation} shows an example.
+This creates a knot point at every observation point, but repeats the first and last knot point. This has the effect of terminating the first and last spline at the boundary and creating $N$ second order B-splines, $X^2_m(t)$. The interpolating function $x(t)$ is defined as $x(t) \equiv  X^2_m(t) \xi^m$ where the coefficients $\xi^m$ are found by solving $X^2_m(t^i) \xi^m = x^i$. The second row of Fig. \ref{interpolation} shows an example.
 
-This process can be continued to higher and higher order B-splines. For splines that are of \emph{even} order, we create $N+K$ knots points with
+This process can be continued to higher order B-splines. For splines that are of \emph{even} order, we create $N+K$ knots points with
 \begin{equation}
 \tau_m^{\text{$K$-even}} = \begin{cases}
 t_1      	& \text{$m \leq K$}, \\
@@ -187,7 +184,7 @@ t_N 		& \text{$m > N$}.
 \end{cases}
 \label{odd-knots}
 \end{equation}
-The knot points are chosen specifically to create $N$ splines for the $N$ data points such that the interpolated function $x(t)$ crosses all $N$ observations $(t_i,x_i)$. The path $x(t)$ is the \emph{canonical interpolating spline of order K}. Examples are shown in Fig. \ref{interpolation}.
+The knot points are chosen to create $N$ splines for the $N$ data points such that the interpolated function $x(t)$ crosses all $N$ observations $(t_i,x_i)$. The path $x(t)$ is the \emph{canonical interpolating spline of order K}. Examples are shown in Fig. \ref{interpolation}.
 
 \begin{figure}
   \centerline{\includegraphics[width=19pc,angle=0]{bsplines.eps}}
@@ -195,7 +192,7 @@ The knot points are chosen specifically to create $N$ splines for the $N$ data p
   \label{bsplines}
 \end{figure}
 
-The knot placements in \eqref{even-knots} and \eqref{odd-knots} are equivalent to the \textit{not-a-knot} boundary conditions described in \citet{deboor1978-book} and used in the cubic spline implementation in \texttt{Matlab}. In the usual formulation of the not-a-knot boundary condition, the knot positions do not change as a function of spline order, and therefore additional constraints have to be added at each order---especially the requirement that the highest derivative maintain continuity near the boundaries. In the formulation here, these constraints are implicit in  \eqref{even-knots} and \eqref{odd-knots}.
+The knot placements in \eqref{even-knots} and \eqref{odd-knots} are equivalent to the \textit{not-a-knot} boundary conditions described in \citet{deboor1978-book} and used in the cubic spline implementation in \texttt{Matlab}. In the usual formulation of the not-a-knot boundary condition, the knot positions do not change as a function of spline order, and therefore additional constraints must be added at each order---especially the requirement that the highest derivative maintain continuity near the boundaries. In the formulation here, these constraints are implicit in  \eqref{even-knots} and \eqref{odd-knots}.
 
 %It appears to be true that this formulation results in a spline with highest derivative equivalent to the lowest order finite difference for that derivative.
 
@@ -205,26 +202,22 @@ The knot placements in \eqref{even-knots} and \eqref{odd-knots} are equivalent t
 
 The root class in our suite of Matlab classes is the \texttt{BSpline} class, which evaluates a complete B-spline basis set given a set of knot points. This class was used to generate Fig. \ref{bsplines}.
 
-The interpolating spline used to generate Fig. \ref{interpolation} is implemented in the \texttt{InterpolatingSpline} class---a sublcass of \texttt{BSpline}. This class generates interpolating splines of arbitrary order given a set of data points $(t_i, x_i)$, thus generalizing the cubic spline command that is built in to Matlab.
+The interpolating spline used to generate Fig. \ref{interpolation} is implemented in the \texttt{InterpolatingSpline} class---a sublcass of \texttt{BSpline}. This class generates interpolating splines of arbitrary order given a set of data points $(t_i, x_i)$, thus generalizing the cubic spline command built in to Matlab.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Synthetic Data}
-\label{sec:synthetic_data}
+\label{subsec:synthetic_data}
 %%%%%%%%%%%%%%%%%%%%%%
 
-Throughout this manuscript we generate synthetic data for both the signal and the noise. The velocity of the signal is generated from a Gaussian process known as the Mat\'ern \citep{lilly2017-npg}. The spectrum of the Mat\'ern is given by
+Throughout this manuscript we generate synthetic data for both the signal and the noise. The velocity of the signal is generated from a bivariate Gaussian process known as the Mat\'ern \citep{lilly2017-npg}. The spectrum of the Mat\'ern is given by
 \begin{equation}
 S(\omega) = \frac{A^2}{(\omega^2 + \lambda^2)^{p/2}},
 \end{equation}
-with $p>1$, which has finite amplitude at low frequencies and power-law fall off at high frequencies, two physically realistic properties observed, among other things, in ocean surface drifters \citep{sykulski2016-jrssc}.
+where $A$ sets the amplitude, $p$ sets the high frequency slope, and $\lambda$ sets the frequency below which the signal looks white. When $p>1$, this spectrum has finite amplitude at low frequencies and power-law fall off at high frequencies, two physically realistic properties observed in ocean surface drifters \citep{sykulski2016-jrssc}.
+%For these experiments we choose parameters $A$, $\lambda$, and $p$ to resemble the \emph{velocity} of the drifters. 
+In our experiments the parameter $A$ is chosen such that the square root of velocity variance in each direction is $u_{\textrm{rms}}=0.20$ m/s and the damping scale is $\lambda^{-1}=30$ minutes. Values of $p$ are varied with $p=2,3,4$ so that the high frequency spectrum is proportional to $\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$. Velocities are sampled every minute, and integrated to get positions. Fig. \ref{varied_slope} shows an example velocity spectrum of the signal with $p=2$.
 
-%The Mat\'ern is a Gaussian process, which is important for the discussion in section \ref{sec:maximum_likelihood}.
-
-For these experiments we choose values of $p=2,3,4$ so that the high frequency spectrum is proportional to $\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$. The Mat\'ern is used to generate the \emph{velocity} of the signal and integrated to get positions. Parameters are chosen such that the square root of velocity variance in each direction is $u_{\textrm{rms}}=0.20$ m/s and the damping scale $\lambda^{-1}=30$ minutes. These choices resemble the data from the drifters. Fig. \ref{varied_slope} shows an example velocity spectrum of the signal with $\omega^{-2}$.
-
-The position data is contaminated with (white) Gaussian noise with $\sigma=10$ meters, a value chosen to resemble GPS errors. In section \ref{gps_position_errors} we consider noise generated from a $t$-distribution which more accurately reflects GPS errors.
-
-For all of these experiments we use a range of \emph{strides}, that is, subsampled versions of the underlying process as input into the spline fits. A stride of 100 indicates that the signal is subsampled to 1 every 100 data points. This lets us evaluate the quality of fit against different sampling rates.
+The position data is contaminated with (white) Gaussian noise with $\sigma=10$ meters, a value chosen to resemble GPS errors. For all experiments we use a range of \emph{strides}, that is, subsampled versions of the underlying process as input into the spline fits. A stride of 100 indicates that the signal is subsampled to 1 in every 100 data points. This lets us evaluate the quality of fit against different strides. In analyzing the quality of fits, we use velocities when computing the power spectrum, but report mean square errors from positions.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Spline degree, $S$} \label{spline_degree}
@@ -232,13 +225,13 @@ For all of these experiments we use a range of \emph{strides}, that is, subsampl
 
 \begin{figure}
   \centerline{\includegraphics[width=19pc,angle=0]{interpolation_spectrum_slope2degreeVaried.eps}}
-  \caption{The upper panel shows the velocity spectrum of the signal (black). The blue, red, and orange lines show the spectrum of the interpolating spline fit to the data with a stride of 100 for $S=1..4$, respectively. The dashed vertical line denotes the Nyquist frequency of the strided data. The bottom panel shows the coherence between the smoothed signals and the true signal.}
+  \caption{The upper panel shows the velocity spectrum of a synthetic Lagrangian velocity generated from the Mat\'ern (black). The blue, red, and orange lines show the spectrum of the interpolating spline fit to the data with a stride of 100 for $S=1..4$, respectively. The dashed vertical line denotes the Nyquist frequency of the strided data. The bottom panel shows the coherence between the smoothed velocities and the true velocity.}
   \label{varied_slope}
 \end{figure}
 
-We first examine a synthetic signal \emph{uncontaminated} by noise, to examine the role of spline degree, $S$, on the interpolated fit. As noted in \citet{craven1979-nm}, the degree of the spline sets its roughness. In terms of the power spectrum, this corresponds to the high frequency slope as can be seen in Fig. \ref{varied_slope} which shows fits with $S=1..4$. Setting $S=1$ produces a high frequency fall off in the spline fit of $\omega^{-2}$. Although this would appear to be a desirable feature when fitting to a process with slope $\omega^{-2}$, the mean square error is consistently higher.
+We first examine a synthetic signal \emph{uncontaminated} by noise, to examine the role of the spline degree, $S$, on the interpolated fit. As noted in \citet{craven1979-nm}, the degree of the spline sets its roughness. In terms of the power spectrum, this corresponds to the high frequency slope as can be seen in Fig. \ref{varied_slope} which shows fits with $S=1..4$. Setting $S=1$ produces a high frequency fall off in the spline fit of $\omega^{-2}$. Although this appears to be a desirable feature when fitting to a process with true slope $\omega^{-2}$, the mean square error is consistently higher (as indicated in the legend of Fig. \ref{varied_slope}).
 
-The bottom panel of Fig. \ref{varied_slope} shows the coherence between the spline fit and the true signal. There is no discernible difference in coherence between spline fits with $S=1..4$. The coherence quickly drops to near zero at the same frequency in all three cases. The implication here is that the spline fits are essentially producing noise at frequencies above the loss-of-coherence. This is why the shallower slopes (with more variance at high, incoherent frequencies) have a larger mean square error than the steeper slopes (with less variance at high, incoherent frequencies). The conclusion here is that smoother is better: it is better to use an unnecessarily high order spline to avoid adding extra noise at high frequencies.
+The bottom panel of Fig. \ref{varied_slope} shows the coherence between the spline fit and the true signal. A coherence of 1 indicates that the signals are perfectly matched at a given frequency, while a coherence of 0 indicates that the signals are unrelated.  There is no discernible difference in coherence between spline fits with $S=1..4$. The coherence quickly drops to near zero at the same frequency in all three cases. The implication here is that the spline fits are essentially producing noise at frequencies above the loss-of-coherence. This is why the spline fits with shallower slopes (with more variance at high, incoherent frequencies) produce a larger overall mean square error than those with steeper slopes (with less variance at high, incoherent frequencies). The conclusion here is that smoother is better: it is better to use an unnecessarily high order spline to avoid adding extra noise at high frequencies.
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
@@ -247,34 +240,32 @@ The bottom panel of Fig. \ref{varied_slope} shows the coherence between the spli
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
-A typical starting point for maximum likelihood is to establish the probability distribution function (PDF) of the errors, $\epsilon_i \equiv x_i - x_{\textrm{true}}(t_i)$. The canonical example in one-dimension (e.g., \citet{press1992-book}) is to assume that the error in our position measurements are Gaussian i.i.d. and are therefore drawn from the following probability distribution
+A typical starting point for maximum likelihood is to establish the probability distribution function (PDF) of the errors, $\epsilon_i \equiv x_i - x_{\textrm{true}}(t_i)$. The canonical example in one-dimension (e.g., \citet{press1992-book}) is to assume errors are independently drawn from a Gaussian with the following probability distribution
 \begin{equation}
 \label{gaussian_pdf}
 p_g(\epsilon|\sigma_g) = \frac{e^{-\frac{1}{2}\frac{\epsilon^2}{\sigma_g^2}} }{\sigma_g \sqrt{ 2 \pi}},
 \end{equation}
-where $\sigma_g$ is the standard deviation. This assumption alone places no assumptions on the signal itself, only on the structure of the noise.
+where $\sigma_g$ is the standard deviation. This assumption alone places no assumptions on the signal, only on the structure of the noise.
 
 The probability of the observed data given model $x(t)$ is
 \begin{equation}
 \label{max-gaussian}
 P = \frac{1}{\sigma \sqrt{2 \pi}} \prod_{i=1}^{N}  \exp \left[ -\frac{1}{2} \left( \frac{x_i - x(t_i)}{\sigma} \right)^2 \right],
 \end{equation}
-where we have taken $\sigma=\sigma_g$.
-
-Maximizing the probability function in \eqref{max-gaussian} is also the same as minimizing its argument---up to a constant this is the log likelihood, called the penalty function
+where we have taken $\sigma=\sigma_g$. Maximizing the probability function in \eqref{max-gaussian} is the same as minimizing its argument---this is the log likelihood (up to a constant ), called the penalty function
 \begin{equation}
 \label{least-squares}
 \phi = \frac{1}{N}\sum_{i=1}^{N} \left( \frac{x_i - x(t_i)}{\sigma} \right)^2 .
 \end{equation}
-Stated in this way it is plain to see that this is the same as asking for the `least-squares' fit of the errors.
+Stated in this way this is the same as asking for the `least-squares' fit of the errors.
 
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Smoothing spline penalty function}
-\label{smoothing_spline_penalty_function}
+\label{subsec:smoothing_spline_penalty_function}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The model used here will be the canonical interpolating spline of order $K$ described in section \ref{sec:interpolation}. Of course, we have chosen our knot points such that the model intersects the observations and this certainly maximizes \eqref{max-gaussian} (and minimizes \eqref{least-squares}) because all the errors are zero, but the resulting distribution of errors (a delta function at zero) does not look anything like the assumed Gaussian distribution. Thus, if we want the error distribution that we get out to look like that which we assumed, it is necessary to constrain the problem in some way.
+The model used here is the canonical interpolating spline of order $K$ described in section \ref{sec:interpolation}. We have chosen our knot points such that the model intersects the observations and this certainly maximizes \eqref{max-gaussian} (and minimizes \eqref{least-squares}) because all the errors are zero, but the resulting distribution of errors (a delta function at zero) does not resemble the assumed Gaussian distribution. Thus, additional constraints are required if the assumed error distribution is to be recovered.
 
 The smoothing spline augments the penalty function of \eqref{least-squares} by adding a global constraint on the $m$-th derivative of the resulting function as in \eqref{smoothing-spline}.
 %\begin{equation*}
@@ -286,9 +277,9 @@ If $\lambda_T \rightarrow 0$ then this reduces to the least-squares fit in \eqre
 
 To interpret the first term of \eqref{smoothing-spline}, consider a motionless particle at true position $x_0$. Using the $N$ relevant observations $x_i$, the \emph{sample mean} $\bar{x} = \frac{1}{N} \sum x_i$ estimates the particle's position $x_0$. The unbiased \emph{sample variance} estimates the variance of the noise, $\sigma^2$, and is given by $\hat{\sigma}^2=\frac{1}{N-1} \sum (x_i-\bar{x})^2$, the expected value of which is $\left\langle \hat{\sigma}^2 \right\rangle = \left(1-\frac{1}{N}\right)\sigma^2$.
 
-Now consider the opposite extreme where the particle is moving so fast (or the observations are so sparse) that each observation is completely independent of its neighbors. In this case, each observation must be considered separately, so the sample mean at time $t_i$ is just $\bar{x}_i = x_i$ (i.e., we are summing over the single relevant observation). In this scenario we cannot produce a sample variance, because there is only a single relevant observation at time $t_i$.
+Now consider the opposite extreme where the particle is moving so fast (or the observations are so sparse) that each observation is independent of its neighbors. In this case, each observation must be considered separately, so the sample mean at time $t_i$ is $\bar{x}_i = x_i$ (i.e., we are summing over the single relevant observation). In this scenario we cannot produce a sample variance, because there is only a single relevant observation at time $t_i$.
 
-In practice, the number of relevant observations can be anywhere between $1$ and $N$. Here we use the term \emph{effective sample size}, denoted by $n_{\textrm{eff}}$, to describe the typical number of observations being used to estimate either the particle's position or the variance of the noise at any given time. In this context, the first term of \eqref{smoothing-spline} is proportional to an ensemble of multiple estimates of the sample variance
+In practice, the number of relevant observations is anywhere between $1$ and $N$. Here we use the term \emph{effective sample size}, denoted by $n_{\textrm{eff}}$, to describe the typical number of observations being used to estimate either the particle's position or the variance of the noise at any given time. In this context, the first term of \eqref{smoothing-spline} is proportional to an ensemble of multiple estimates of the sample variance
 \begin{equation}
 \label{sample_variance}
 \hat{\sigma}^2  \equiv \frac{1}{N} \sum_{i=1}^{N} \left( x_i - x(t_i) \right) ^2,
@@ -298,26 +289,26 @@ which is expected to scale as
 \label{sample_variance_variance}
 \left\langle \hat{\sigma}^2 \right\rangle = \left( 1 -  \frac{1}{n^\textrm{var}_{\textrm{eff}}} \right) \sigma^2,
 \end{equation}
-where $1 < n^\textrm{var}_{\textrm{eff}} \le N$ is our definition of the effective sample size as determined from the sample variance. Revisiting the limiting cases, as $n^\textrm{var}_{\textrm{eff}} \rightarrow N$ the sample variance matches the true variance, but as $n^\textrm{var}_{\textrm{eff}} \rightarrow 1$, the sample variance vanishes. 
+where $1 < n^\textrm{var}_{\textrm{eff}} \le N$ is our definition of the effective sample size of the sample variance. Revisiting the limiting cases, as $n^\textrm{var}_{\textrm{eff}} \rightarrow N$ the sample variance matches the true variance, but as $n^\textrm{var}_{\textrm{eff}} \rightarrow 1$, the sample variance vanishes. 
 
-There is a very simple physical interpretation for the second term in \eqref{smoothing-spline}. Consider the case where $T=1$ so that the smoothing spline is a constraint on velocity. When averaged over the integration time, the integral produces the root mean square velocity, $u_{\textrm{rms}}$, which means that the second term scales like $u_{\textrm{rms}}^2$. In general, where $x^{(T)}_{\textrm{rms}}$ is the root-mean-square of the $T$-th derivative, this means that $\lambda_T$ scales like
+There is a simple physical interpretation for the second term in \eqref{smoothing-spline}. Consider the case $T=1$ so that the smoothing spline is a constraint on velocity. When averaged over the integration time, the integral produces the root mean square velocity, $u_{\textrm{rms}}$, such that the second term scales as $u_{\textrm{rms}}^2$. In general, where $x^{(T)}_{\textrm{rms}}$ is the root-mean-square of the $T$-th derivative, this means $\lambda_T$ scales like
 \begin{equation}
 \label{lambda}
 \lambda_T = \left( 1 -\frac{1}{n^\textrm{var}_{\textrm{eff}}} \right) \frac{1}{ \left(x^{(T)}_{\textrm{rms}}\right)^2}.
 \end{equation}
-The interpretation of the smoothing spline is therefore that the two terms are balanced by a relative weighting of the sample variance of the noise and mean square of the $T$-th derivative of the physical process. As will be discussed in section \ref{sec:spline_order_tension_order_spectrum}, both $x^{(T)}_{\textrm{rms}}$ and $n^\textrm{var}_{\textrm{eff}}$ can be estimated \emph{a priori} and therefore a good initial estimate for $\lambda_T$ can be made.
+The interpretation of the smoothing spline is that the two terms are balanced by a relative weighting of the sample variance of the noise and mean square of the $T$-th derivative of the physical process. As discussed in section \ref{sec:spline_order_tension_order_spectrum}, both $x^{(T)}_{\textrm{rms}}$ and $n^\textrm{var}_{\textrm{eff}}$ can be estimated \emph{a priori} such that a good initial estimate for $\lambda_T$ can be made.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Smoothing spline maximum likelihood}
-\label{sec:maximum_likelihood}
+\label{subsec:maximum_likelihood}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The penalty function for the smoothing spline in \eqref{smoothing-spline} can be restated in terms of maximum likelihood under some conditions (see also chapter 3.8 in \citet{green1994-book}). Assume that in addition to knowing about how the measurement errors are distributed like in \eqref{max-gaussian}, that we also know how the velocity of underlying physical process is distributed. For example, in geophysical turbulence it has been shown that the velocity probability distribution function is like the Laplace distribution \citep{bracco2000-pf}. To recover the smoothing spline, we need to consider the case where the velocity PDF is Gaussian. Stated as maximum likelihood, this means that at \emph{any given instant} (not just the times of observation) we expected the model velocity to look Gaussian. We can discretize the problem by sampling the velocity $Q$ times $t_q = t_1 + q \Delta t_q$, where $\Delta t_q=\frac{t_N-t_1}{Q-1}$ and $q=0..Q-1$. The maximum likelihood is thus stated as
+The penalty function in \eqref{smoothing-spline} can be restated in terms of maximum likelihood under some conditions (see chapter 3.8 in \citet{green1994-book}). Assume that in addition to knowing the distribution of errors as in \eqref{max-gaussian}, we know how the velocity of the underlying physical process is distributed. For example, in geophysical turbulence the velocity probability distribution function is like a Laplace distribution \citep{bracco2000-pf}. To recover the smoothing spline, we consider the case where the velocity PDF is Gaussian. Stated as maximum likelihood, this means at \emph{any given instant} (not just the times of observation) we expect the model velocity to be Gaussian. We discretize the problem by sampling the velocity $Q$ times $t_q = t_1 + q \Delta t_q$, where $\Delta t_q=\frac{t_N-t_1}{Q-1}$ and $q=0..Q-1$. The maximum likelihood is thus stated as
 \begin{align}
 P =  & \prod^N _{i=1}\frac{1}{\sigma \sqrt{2 \pi}}\exp \left[ -\frac{1}{2} \left( \frac{x_i - x(t_i)}{\sigma} \right)^2 \right] \nonumber \\ &  \cdot  \prod^{Q}_{q=1}\frac{\sqrt{\gamma}}{x^{(T)}_{\textrm{rms}} \sqrt{2 \pi}} \exp \left[  - \frac{\gamma}{2} \left(  \frac{x^{(T)}(t_q)}{x^{(T)}_{\textrm{rms}}} \right)^2 \right],
 \label{gaussian-max-likelihood}
 \end{align}
-which is simply the joint probability of the error distribution from \eqref{max-gaussian} and the velocity distribution of the underlying physical process. We also include parameter $\gamma$ for convenience in order to set the relative weighting between the two distributions, although it could be absorbed into the definition of $x^{(T)}_{\textrm{rms}}$. Writing \eqref{gaussian-max-likelihood} as a penalty function (after converting the product of exponentials into exponentials of sums), we have that
+which is the joint probability of the error distribution from \eqref{max-gaussian} and the velocity distribution of the underlying physical process. We include parameter $\gamma$ to set the relative weighting between the two distributions, although it could be absorbed into the definition of $x^{(T)}_{\textrm{rms}}$. Writing \eqref{gaussian-max-likelihood} as a penalty function (after converting the product of exponentials into exponentials of sums), we have
 \begin{equation}
 -\log P= \frac{1}{2}\sum^N _{i=1}  \left( \frac{x_i - x(t_i)}{\sigma} \right)^2 + \frac{\gamma}{2} \sum^{Q}_{q=1} \left( \frac{x^{(T)}(t_q)}{x^{(T)}_{\textrm{rms}}} \right)^2 + C,
 \label{smoothing-spline-log-likelihood}
@@ -327,48 +318,48 @@ where $C$ is a constant. Setting $\gamma=\frac{N}{Q}$ and renormalizing the pena
 \label{smoothing-spline-pdf}
 \phi = \frac{1}{N} \sum^N _{i=1}  \left( \frac{x_i - x(t_i)}{\sigma} \right)^2 + \frac{1}{t_N-t_1} \sum^{Q}_{q=1}  \left(  \frac{x^{(T)}(t_q)}{x^{(T)}_{\textrm{rms}}} \right)^2 \Delta t_q.
 \end{equation}
-Apart from the discretization of the integral, \eqref{smoothing-spline-pdf} is the same as the penalty function for a smoothing spline \eqref{smoothing-spline}.
+Apart from the discretization of the integral, \eqref{smoothing-spline-pdf} is the same as the penalty function in \eqref{smoothing-spline}.
 
 There is an important special case when tension is applied at the same order as the spline, $T=S$. In this case the spline is piecewise constant for $x^{(T)}$ with exactly $N-T$ unique values. The parameter $\gamma =\frac{N}{N-T}\approx 1$ and \eqref{gaussian-max-likelihood} can be simplified. This case is appealing because only the $N-T$ unique values of the derivative $x^{(T)}$ that can be computed from $N$ data points are being used for tension, which is not the case when $T<S$.
 
-This maximum likelihood perspective shows that adding tension to the penalty function is equivalent to assuming that one of the higher order derivatives in the model (e.g., velocity if $T=1$) is Gaussian. This is therefore making an assumption about the underlying \emph{physical process} of the model. This is in contrast to the first term which is entirely a statement about \emph{measurement noise}.
+This maximum likelihood perspective shows that adding tension to the penalty function is equivalent to assuming a higher order derivative in the model (e.g., velocity if $T=1$) is Gaussian. This is therefore making an assumption about the underlying \emph{physical process} of the model. This is in contrast to the first term which is entirely a statement about \emph{measurement noise}.
 
-As an aside, writing the smoothing spline as a maximum-likelihood condition \eqref{gaussian-max-likelihood}, suggests that if the underlying physical process has a non-zero mean value in tension, the fit will not behave as expected. However, smoothing splines can be easily modified to accommodate a mean value in tension, as shown in appendix \ref{sec:numerical_implementation}. 
+Writing the smoothing spline as a maximum-likelihood condition \eqref{gaussian-max-likelihood}, suggests that if the underlying physical process has a non-zero mean value in tension, the fit will not behave as expected. However, smoothing splines can be easily modified to accommodate a mean value in tension, as shown in appendix~A. 
 
 %%%%%%%%%%%%%%%%%%%%%%
-\subsection{Optimal parameter estimation} \label{sec:optimal_parameter}
+\subsection{Optimal parameter estimation}
+\label{subsec:optimal_parameter}
 %%%%%%%%%%%%%%%%%%%%%%
 
-For a given choice of $T$ and $\lambda_T$, the minimum solution to \eqref{smoothing-spline} can be found analytically (see \citet{teanby2007-mg} and our appendix~\ref{sec:numerical_implementation}). Once the solution is found the smoothing matrix $\mathbf{S_\lambda}$ is defined as the matrix that takes the observations $\mathbf{x}$ and maps them to their smooth values, $\mathbf{\hat{x}} = \mathbf{S_\lambda} \mathbf{x}$.
+For a given choice of $T$ and $\lambda_T$, the minimum solution to \eqref{smoothing-spline} can be found analytically (see \citet{teanby2007-mg} and our appendix~A). Once the solution is found the smoothing matrix $\mathbf{S_\lambda}$ is defined as the matrix that takes observations $\mathbf{x}$ and maps them to their smooth values, $\mathbf{\hat{x}} = \mathbf{S_\lambda} \mathbf{x}$.
 
-The free parameter $\lambda_T$ is a relative weighting between the two terms in \eqref{smoothing-spline} and choosing its optimal value can be done by minimizing the expected mean square error \citep{craven1979-nm},
+The free parameter $\lambda_T$ is a relative weighting between the two terms in \eqref{smoothing-spline}. Choosing its optimal value can be done by minimizing the expected mean square error \citep{craven1979-nm},
 \begin{align}
 \label{MSE}
     \textrm{MSE}(\lambda) =& \frac{1}{N} || \left( \mathbf{S_\lambda} - I \right) \mathbf{x} ||^2 + \frac{2 \sigma^2}{N}  \Tr \mathbf{S_\lambda} - \sigma^2,
 \end{align}
-where $||\cdot||^2$ is the Euclidean norm and $\Tr$ indicates the trace.
+where $||\cdot||^2$ is the Euclidean norm, $\Tr$ indicates the trace, and $I$ is the identify matrix.
 
-It is worth noting that a fair amount of the literature on smoothing splines is devoted to minimizing the mean square error when the variance, $\sigma^2$, is \emph{not} known. For example, \citet{craven1979-nm} and \citet{wahba1978-jrss-b} use cross-validation to estimate $\sigma$ and minimize the mean square error. Recent work comparing different estimators shows that no single technique appears to be optimal \citep{lee2003-csda}. For our application however, the errors in GPS data can be relatively easily established, as shown in section \ref{sec:drifter_data_set}.
+A significant amount of the literature on smoothing splines is devoted to minimizing the mean square error when the variance, $\sigma^2$, is \emph{not} known. \citet{craven1979-nm} and \citet{wahba1978-jrss-b} use cross-validation to estimate $\sigma$ and minimize mean square error. Recent work comparing different estimators shows no single technique to be optimal \citep{lee2003-csda}. For our application however, the errors in GPS data can be relatively easily established, as shown in section \ref{sec:drifter_data_set}.
 
-The mean square error in \eqref{MSE} is a combination of the sample variance and the variance of the mean. As already discussed in the context of the penalty function $\phi$ in section \ref{smoothing_spline_penalty_function}, the first term in \eqref{MSE} is an ensemble of sample variances, and therefore by combining \eqref{sample_variance},  \eqref{sample_variance_variance} and \eqref{MSE} we obtain
-
+The mean square error in \eqref{MSE} is a combination of the sample variance and the variance of the mean. As already discussed in the context of the penalty function $\phi$ in section \ref{sec:smoothing_spline}\ref{subsec:smoothing_spline_penalty_function}, the first term in \eqref{MSE} is an ensemble of sample variances, and therefore by combining \eqref{sample_variance},  \eqref{sample_variance_variance} and \eqref{MSE} we obtain
 %we define the effective sample size of the sample variance, $n_{\textrm{eff}}^{\textrm{var}}$, with
 \begin{equation}
 \label{dof_var}
     \left(1-\frac{1}{n_{\textrm{eff}}^{\textrm{var}}} \right)\sigma^2 = \frac{1}{N} || \left( \mathbf{I} - \mathbf{S_\lambda} \right) \mathbf{x} ||^2.
 \end{equation}
-The second term in \eqref{MSE} is proportional to twice the squared standard error, i.e., the variance of the sample mean. As discussed in \citet{teanby2007-mg}, the quantity $\mathbf{S_\lambda} \Sigma$ is the covariance matrix with the squared standard error along the diagonal and thus the mean squared standard error is given by $\frac{1}{N} \Tr \left( \mathbf{S_\lambda} \Sigma \right)$. The variance of the sample mean is known to scale inversely with the number of samples being used to estimate the mean. Thus, we use this to define the effective sample size of the variance of the mean, $n_{\textrm{eff}}^{\textrm{SE}}$ with
+The second term in \eqref{MSE} is proportional to twice the squared standard error, i.e., the variance of the sample mean. As discussed in \citet{teanby2007-mg}, the quantity $\mathbf{S_\lambda} \Sigma$ is the covariance matrix with the squared standard error along the diagonal and thus the mean squared standard error is given by $\frac{1}{N} \Tr \left( \mathbf{S_\lambda} \Sigma \right)$. The variance of the sample mean is known to scale inversely with the number of samples being used to estimate the mean. We use this to define the effective sample size of the variance of the mean, $n_{\textrm{eff}}^{\textrm{SE}}$ with
 \begin{equation}
 \label{dof_se}
     \frac{\sigma^2}{n_{\textrm{eff}}^{\textrm{SE}}} = \frac{1}{N} \Tr \left( \mathbf{S_\lambda} \Sigma \right).
 \end{equation}
-Taking the measures of effective sample size as functions of $\lambda$, the mean square error can be expressed by combining \eqref{MSE}--\eqref{dof_se} such that
+Taking the measures of effective sample size as functions of $\lambda$, the mean square error can be expressed by combining \eqref{MSE}--\eqref{dof_se}:
 \begin{equation}
     \textrm{MSE}(\lambda) = 2\frac{\sigma^2}{n_{\textrm{eff}}^{\textrm{SE}}} - \frac{\sigma^2}{n_{\textrm{eff}}^{\textrm{var}}}.
 \end{equation}
-If one assumes that $ n_{\textrm{eff}}^{\textrm{var}} = n_{\textrm{eff}}^{\textrm{SE}}$, then the expected mean square error from \eqref{MSE} is equal to $\sigma^2/n_{\textrm{eff}}$. Although not shown here, in an empirical analysis we find that $n_{\textrm{eff}}^{\textrm{var}}$ and $n_{\textrm{eff}}^{\textrm{SE}}$ are approximately equal, although $n_{\textrm{eff}}^{\textrm{var}}$ becomes highly variable when $n_{\textrm{eff}}^{\textrm{SE}}$ approaches 1. 
+If one assumes $ n_{\textrm{eff}}^{\textrm{var}} = n_{\textrm{eff}}^{\textrm{SE}}$, then the expected mean square error from \eqref{MSE} is equal to $\sigma^2/n_{\textrm{eff}}$. Although not shown here, in an empirical analysis we find that $n_{\textrm{eff}}^{\textrm{var}}$ and $n_{\textrm{eff}}^{\textrm{SE}}$ are approximately equal, although $n_{\textrm{eff}}^{\textrm{var}}$ becomes highly variable when $n_{\textrm{eff}}^{\textrm{SE}}$ approaches 1. These measures of effective sample size can be used to estimate the value of $\lambda_T$ necessary for optimal tension without minimizing the expected mean square error.
 
-These measures of effective sample size can be used to estimate the value of $\lambda_T$ necessary for optimal tension without minimizing the expected mean square error. Note that the definition of effective sample size used here is related to, but not the same as, the notion of degrees-of-freedom used in \citet{cantoni2002-biom} and references therein.
+%Note that the definition of effective sample size used here is related to, but not the same as, the notion of degrees-of-freedom used in \citet{cantoni2002-biom} and references therein.
 
 % In the 50 years since \cite{reinsch1967-nm} was published, a number of different methods have been proposed for choosing the optimal value of $\lambda_m$ in \eqref{smoothing-spline}. One approach is cross-validation \cite{wahba1978-jrss-b,craven1979-nm} which is essentially a form of bootstrapping, where the optimal parameter is determined by minimizing the error with data points not included in the fit. Another approach is to determine the number of degrees of freedom expected in the sample variance of \eqref{sample_variance}. Both \cite{reinsch1967-nm} and \cite{teanby2007-mg} argue that the tension should be adjusted so that the sample variance is roughly the expected variance, $\hat{\sigma}^2 \sim \sigma^2$, but according to \cite{wahba1990-siam} this appears to overestimate the number of degrees of freedom, consistent with the argument in section \ref{sec:sample_variance}. Other techniques for determining the degrees of freedom have been proposed, see for example \cite{cantoni2002-biom}. Recent work comparing different estimators shows that no single technique appears to be an optimal estimator \cite{lee2003-csda}.
 
@@ -380,20 +371,20 @@ These measures of effective sample size can be used to estimate the value of $\l
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
-With a model path \eqref{b-spline-model-intro}, a penalty function \eqref{smoothing-spline}, and a minimization condition \eqref{MSE}, we have all the primary pieces to create a smoothing spline interpolant to the data. However, there are a number of choices that still have to be made. In this section we use synthetically generated data to represent our physical process, and contaminate the process with Gaussian noise as described in section \ref{sec:synthetic_data}. We use this synthetically generated data to test our ability to recover the signal and examine the effects of changing the spline and tension order on the mean square error and the resulting spectrum.
+With a model path \eqref{b-spline-model-intro}, a penalty function \eqref{smoothing-spline}, and a minimization condition \eqref{MSE}, we have all the primary pieces to create a smoothing spline interpolant to the data. However, a number of choices still must be made. In this section we use synthetically generated data to represent our physical process, and contaminate the process with Gaussian noise as described in section \ref{sec:interpolation}\ref{subsec:synthetic_data}. We test our ability to recover the signal and examine the effects of changing the spline and tension order on the mean square error and the resulting spectrum.
 
-The results of this section are empirical, and it is important to acknowledge upfront that any conclusions reached \emph{may} depend on our particular choice of physical model that generates the signal which has been chosen to resemble the oceanographic data of interest. Nevertheless, our expectation is that the conclusions here are `O(1)' correct, and applicable, at least, to our GPS tracked drifter dataset.
+The results of this section are empirical, and we acknowledge upfront that any conclusions reached \emph{may} depend on our particular choice of physical model generating the signal. Nevertheless, our expectation is the conclusions are `O(1)' correct, and applicable, at least, to our GPS-tracked drifter dataset.
 
 %%%%%%%%%%%%%%%%%%%%%%
-\subsection{Tension degree, $T$} \label{tension_degree}
+\subsection{Tension degree, $T$}
+\label{subsec:tension_degree}
 %%%%%%%%%%%%%%%%%%%%%%
 
 Given a smoothing spline of degree $S$, the tension in the penalty function \eqref{smoothing-spline} can be applied at any degree $T\leq S$. We use the synthetic data for the three different slopes to empirically establish the relationship between the tension degree, $T$ and the spline degree, $S$. 
 
 For $S=1\dots 5$ and all $T\leq S$ we minimize the mean square error against the true values. 
 %(not the expected mean square error).\footnote{Minimizing against mean square error of the subsampled data and full data makes no appreciable difference.}
-The minimization is performed for 200 ensembles of noise and signal with three slopes ($\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$) and 5 different strides. For a given slope, stride, and realization of noise, we identify the minimum mean square error across $S$ and $T$ and compare all other values of $S$ and $T$ as a percentage increase relative to that minimum. After aggregating across slopes, strides, and ensembles, the 68\% confidence range is shown in table \ref{optimal_T}.
-
+The minimization is performed for 200 ensembles of noise and signal with three slopes ($\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$) and 5 different strides. For a given slope, stride, and realization of noise, we identify the minimum mean square error across $S$ and $T$ and compare all values of $S$ and $T$ as a percentage increase relative to that minimum. After aggregating across slopes, strides, and ensembles, the 68\% confidence range is shown in table \ref{optimal_T}.
 \begin{table}[ht]
 \caption{68th percentile range of increase in mean square error from the optimal fit}
 \label{optimal_T}
@@ -410,59 +401,58 @@ S & 1 & 2 & 3 & 4 & 5 \\ \midrule
  \bottomrule 
 \end{tabular} 
 \end{table}
-
-The results in table \ref{optimal_T} show that while setting $T=S$ may not always be optimal, it is never significantly worse than the optimal choice. Thus, for the remainder of the manuscript, we will always take $T=S$. This choice is the same as the special case highlighted in section \ref{sec:smoothing_spline}.
+The table shows while setting $T=S$ is not always optimal, it is never significantly worse than the optimal choice. Thus for the remainder of the manuscript we set $T=S$.
+%This choice is the same as the special case highlighted in section \ref{sec:smoothing_spline}.
 
 %%%%%%%%%%%%%%%%%%%%%%
-\subsection{Loss of coherence} \label{loss_of_coherence}
+\subsection{Loss of coherence}
+\label{subsec:loss_of_coherence}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The loss-of-coherence defines the time scale below which the smoothing spline is not providing useful information. A reasonable hypothesis is that this scale is related to the effective sample size, $n_{\textrm{eff}}$ because the effective sample size indicates how many points are being used to estimate the true value. Therefore the loss-of-coherence occurs at the \emph{effective Nyquist} which we define as
+The loss-of-coherence defines the time scale below which the smoothing spline is not providing useful information. A reasonable hypothesis is that this scale is related to the effective sample size, $n_{\textrm{eff}}$ because this indicates how many points are being used to estimate the true value. Therefore the loss-of-coherence occurs at the \emph{effective Nyquist} which we define as
 \begin{equation}
 \label{effective-nyquist}
     f_s^{\textrm{eff}} \equiv \frac{1}{2 n_{\textrm{eff}} \Delta t}.
 \end{equation}
 In practice, we use $n^\textrm{SE}_\textrm{eff}$ because it is less variable than $n^\textrm{var}_\textrm{eff}$ for values near 1 and is the more direct measure of how many points are being used to estimate the model path. 
-Fig. \ref{synthetic_process_and_spectrum} shows the power spectrum and coherence of optimal tension fits for three different strides of the data. In all three cases \eqref{effective-nyquist} indicates almost exactly where the coherence drops below 0.5.
+Fig. \ref{synthetic_process_and_spectrum} shows the power spectrum and coherence of optimal tension fits for three different strides of the data. In each case \eqref{effective-nyquist} indicates the approximate value where the coherence drops below 0.5.
 
 \begin{figure}
   \centerline{\includegraphics[width=19pc,angle=0]{synthetic_process_and_spectrum_slope2degree3.eps}}
-  \caption{The upper panel shows the uncontaminated velocity spectrum of the signal (black) and velocity spectrum of the noise (red). The observed signal is the sum of the two. The blue, red, and orange lines show the spectrum of the smoothing spline best fit to the observations with all, 1/10th and 1/100th the data, respectively. The bottom panel shows the coherence between the smoothed signals and the true signal.}
+  \caption{The upper panel shows the uncontaminated velocity spectrum of the signal (black) and velocity spectrum of the noise (red). The observed signal is the sum of the two. The blue, red, and orange lines show the spectrum of the smoothing spline best fit to the observations with all, 1/10th and 1/100th the data, respectively. The vertical dashed lines show the effective Nyquist computed using equation \ref{effective-nyquist}. The bottom panel shows the coherence between the smoothed signals and the true signal.}
   \label{synthetic_process_and_spectrum}
 \end{figure}
 
 
 %%%%%%%%%%%%%%%%%%%%%%
-\subsection{Reduced spline coefficients} \label{reduced_coefficients}
+\subsection{Reduced spline coefficients}
+\label{subsec:reduced_coefficients}
 %%%%%%%%%%%%%%%%%%%%%%
 
-One practical consideration when working with large datasets is that the computational cost of creating the spline fit may be limited by the rate of solving for the spline coefficients. It is therefore beneficial to reduce knot points (and therefore total splines) where possible. A reasonable hypothesis is to suppose that when the effective sample size is large, as measured by \eqref{dof_se}, that we may be able to avoid placing a knot point at every data point---essentially `skipping' data points.
+One practical consideration when working with large datasets is the computational cost of creating the spline fit, which is limited by the rate of solving for the spline coefficients. It is beneficial to reduce knot points (and therefore total splines) where possible. A reasonable strategy is that when the effective sample size is large, as measured by \eqref{dof_se}, we avoid placing a knot point at every data point---essentially `skipping' data points.
 
-To test this idea, we find the optimal fit over a range of different strides (which varies the effective sample size) and increase the number of knot points that are skipped until the mean square error starts to rise. We find that we can safely skip $\textrm{max}(1,\textrm{floor}(2n_{\textrm{eff}}/3))$ knot points without sacrificing any precision. In fact, as can be seen in table \ref{fit_results_gaussian}, in some cases the optimal mean square error improves with fewer knot points. The `full dof' column indicates a fit where one knot point is created for every observation point, whereas the `reduced dof' indicates a fit where the number of knot points is reduced.
-
-This means that when handling large datasets, we can reduce the number of splines being used if the effective sample size is large, and we can simply `chunk' the data (split into multiple independent pieces) when the effective sample size is small.
+To test this idea, we find the optimal fit over a range of different strides (which varies the effective sample size) and increase the number of skipped knot points until the mean square error starts to rise. We find we can skip $\textrm{max}(1,\textrm{floor}(2n_{\textrm{eff}}/3))$ knot points without sacrificing precision. The column labeled `optimal mse' in table  \ref{fit_results_gaussian} indicates the optimal fit where one knot point is created for every observation point, whereas the `reduced dof' (reduced degrees of freedom) indicates a fit where the number of knot points is reduced. In some cases the optimal mean square error improves with fewer knot points. This means when handling large datasets, we can reduce the number of splines being used if the effective sample size is large, and we can `chunk' the data (split into multiple independent pieces) when the effective sample size is small.
 
 %%%%%%%%%%%%%%%%%%%%%%
-\subsection{Interpolation condition} \label{interpolation_condition}
+\subsection{Interpolation condition}
+\label{subsec:interpolation_condition}
 %%%%%%%%%%%%%%%%%%%%%%
 
-To estimate the value of $\lambda_T$ from \eqref{lambda}, we require an estimate of the mean square value of a derivative of the process, $x_{\textrm{rms}}^{(T)}$ as well as an estimate of the effective sample size, $n_{\textrm{eff}}$. Assuming one can make an estimate of $x_{\textrm{rms}}^{(m)}$ from the signal (see appendix \ref{sec:variance_estimate}), we just need a method for estimating the effective sample size.
+To estimate $\lambda_T$ from \eqref{lambda}, we estimate the mean square value of a derivative of the process, $x_{\textrm{rms}}^{(T)}$ (see appendix C) and the effective sample size, $n_{\textrm{eff}}$. We argue that effective sample size should vary based on the relative size of the measurement errors to the speed of motion. For example, if the position errors are only $1$ meter, but a particle typically travels $10$ meters between measurements, then it is hardly justifiable to increase the tension so that the smoothing spline misses the observation points by $1$ meter. There is not enough statistical evidence to suggest that the particle did not go right through the observation point. On the other hand, if the position errors are $1$ meter, but the particle typically travels $10$ centimeters between measurements, nearby measurements provide more information about the particle's true position during that time, so our estimate of the particle's true position is closer to a mean of the nearby observations.
 
-We argue that the effective sample size should vary based on the relative size of the measurement errors to the speed of motion. For example, if the position errors are only $1$ meter, but a particle typically travels $10$ meters between measurements, then it is hardly justifiable to increase the tension so that the smoothing spline misses the observation points by $1$ meter. There is not enough statistical evidence to suggest that the particle didn't go right through the observation point. On the other hand, if the position errors are $1$ meter, but the particle typically travels $10$ centimeters between measurements, nearby measurements provide more information about the particle's true position during that time, so our estimate of the particle's true position is closer to a mean of the nearby observations.
-
-This idea can be made more rigorous by noting that one would consider change in position, $\Delta x$, statistically significant if it exceeds the position errors $\sigma$ by some factor.  Assuming the physical process has a characteristic velocity scale, $u_{\textrm{rms}}$, we use this concept to define $\Gamma$ as
+This idea can be made more rigorous by stating that a change in position, $\Delta x$, is statistically significant if it exceeds the position errors $\sigma$ by some factor.  Assuming the physical process has a characteristic velocity scale, $u_{\textrm{rms}}$, we use this concept to define $\Gamma$ as
 \begin{equation}
 \label{gamma_def}
 \Gamma \equiv \frac{\sigma}{u_{\textrm{rms}}\Delta t},
 \end{equation}
-where $\Delta t$ is the typical time between observations. This argument suggests that the effective sample size should be proportional to $\Gamma$, i.e.,
+where $\Delta t$ is the typical time between observations. This argument suggests effective sample size should be proportional to $\Gamma$, i.e.,
 \begin{equation}
 \label{gamma_equation}
 n_{\textrm{eff}}^\Gamma = \max\left(1,C \cdot \Gamma^m\right)
 \end{equation}
-where $C$ and $m$ are unknown constants, and we prevent the effective sample size from dropping below 1. Intuitively this means that as long as the particle does not move too far between observations, nearby observations help to estimate the true position of the particle.
+where $C$ and $m$ are unknown constants, and we prevent the effective sample size from dropping below 1. Intuitively this means as long as the particle does not move too far between observations, nearby observations help to estimate the true position of the particle.
 
-To test the relationship between $\Gamma$ and the effective sample size, we compute the optimal smoothing spline for a range of values of $\Gamma$ (created by sub-sampling the signal) for the three different slopes ($\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$). The value $n_{\textrm{eff}}^\textrm{SE}$ is computed from the optimal solution for 50 ensembles and shown in Fig. \ref{dofVsGamma}. The fits are remarkably good, but depend on the slope of process. Processes with shallower slopes (rougher trajectories) provide a smaller effective sample size for a given value of $\Gamma$. 
+To test the relationship between $\Gamma$ and effective sample size, we compute the optimal smoothing spline for a range of values of $\Gamma$ (created by sub-sampling the signal) for three different spectral slopes ($\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$). The value $n_{\textrm{eff}}^\textrm{SE}$ is computed from the optimal solution for 50 ensembles and shown in Fig. \ref{dofVsGamma}. The fits are remarkably good, but depend on the slope. Processes with shallower slopes (rougher trajectories) yield a smaller effective sample size for a given value of $\Gamma$. 
 
 \begin{figure}
   \centerline{\includegraphics[width=19pc,angle=0]{dofVsGamma.eps}}
@@ -470,16 +460,14 @@ To test the relationship between $\Gamma$ and the effective sample size, we comp
   \label{dofVsGamma}
 \end{figure}
 
-Using the interpolation condition $\Gamma$ to estimate the effective sample size, we set $n_{\textrm{eff}}^\Gamma = 14 \cdot \Gamma^{0.71}$, the empirically determined best fit for slope $\omega^{-3}$.  For all spline fits then, we use
+Using the interpolation condition $\Gamma$ to estimate effective sample size, we set $n_{\textrm{eff}}^\Gamma = 14 \cdot \Gamma^{0.71}$, the empirically determined best fit for slope $\omega^{-3}$.  For all spline fits we use
 \begin{equation}
 \label{lambda_initial_guess}
 \lambda^{\textrm{initial}}_T = \left( 1 -\frac{1}{n_{\textrm{eff}}^\Gamma}\right) \frac{1}{ \left(x^{(T)}_{\textrm{rms}}\right)^2  }
 \end{equation}
-as an initial estimate for the optimal smoothing parameter where both $x^{(T)}_{\textrm{rms}}$ in \eqref{lambda_initial_guess} and $u_\textrm{rms}$ in \eqref{gamma_def} are estimated using the method described in appendix \ref{sec:variance_estimate}.
-
-The scaling law for $n_{\textrm{eff}}^\Gamma$ can be found analytically.
+as an initial estimate for the optimal smoothing parameter where $x^{(T)}_{\textrm{rms}}$ in \eqref{lambda_initial_guess} and $u_\textrm{rms}$ in \eqref{gamma_def} are estimated using the method described in appendix C. The scaling law for $n_{\textrm{eff}}^\Gamma$ can be estimated analytically.
 %Given a particle moving at some velocity $u_\textrm{rms}$, observed at regular intervals of $\Delta t$ with position error $\sigma$, we find the expected number of samples $\left\langle n \right\rangle$ for a statistically significant change in position. Specifically,
-Let the position observations be given by $x_i$ where
+Let position observations be given by $x_i$ where
 \begin{equation}
 x_i = u_\textrm{rms} i \Delta t + \epsilon_i \textrm{ where } \epsilon_i = \mathcal{N}(0,\sigma).
 \end{equation}
@@ -490,14 +478,15 @@ z= \frac{\left\langle n \right\rangle u_\textrm{rms} \Delta t}{\sqrt{\frac{\sigm
 \label{gamma_analytical}
 \left\langle n \right\rangle = \left( \frac{z \sigma \sqrt{2}}{u_\textrm{rms} \Delta t} \right)^{\frac{2}{3}}.
 \end{equation}
-The power law in \eqref{gamma_analytical} matches the empirically derived power laws shown in Fig. \ref{dofVsGamma} and suggests that $m$ in \eqref{gamma_equation} should be $m=2/3$. This also suggests that the coefficient $C$ in \eqref{gamma_equation} can be related to $z$, a measure of statistical significance.
+The power law in \eqref{gamma_analytical} is close to the empirically derived power laws shown in Fig. \ref{dofVsGamma}. This suggests the coefficient $C$ in \eqref{gamma_equation} can be related to $z$, a measure of statistical significance.
 %  To estimate the tension parameter $\lambda_2$ from \eqref{lambda} we therefore need an estimate of both $u_{\textrm{rms}}$ and $a_{\textrm{rms}}$. Computing this directly from the observed signal in the time domain is problematic because, given frequent enough sampling, the noise will dominate the estimate. Instead we estimate these values in the frequency domain summing the power in the frequency bins that more than 10 times the expected value of the noise. Because each frequency bin in a periodigram follows a $\chi^2$ distribution for two degrees of freedom, this only adds observed power that is likely to be true signal.
 %%%%%%%%%%%%%%%%%%%%%%
-\subsection{Optimal fits} \label{optimal_fits}
+\subsection{Optimal fits}
+\label{subsec:optimal_fits}
 %%%%%%%%%%%%%%%%%%%%%%
 \begin{table}[ht]
 \caption{Mean square error and effective sample size for a range of strides and smoothing spline methods. 
-%The first three columns show the baseline optimal, best-case scenario found using the uncontaminated signal with 1 knot point for each point (1 dof). The next three columns show the average increase in mean square error. The `reduced dof' column shows the optimal value after reducing the number of knot points using the effective degrees of freedom in section \ref{reduced_coefficients}. The `blind initial' column uses \eqref{lambda_initial_guess} to set $\lambda_T$, while the `expected mse' column optimizes using \eqref{MSE} 
+%The first three columns show the baseline optimal, best-case scenario found using the uncontaminated signal with 1 knot point for each point (1 dof). The next three columns show the average increase in mean square error. The `reduced dof' column shows the optimal value after reducing the number of knot points using the effective degrees of freedom in section \ref{subsec:reduced_coefficients}. The `blind initial' column uses \eqref{lambda_initial_guess} to set $\lambda_T$, while the `expected mse' column optimizes using \eqref{MSE} 
 }
 \label{fit_results_gaussian}
 \centering
@@ -524,12 +513,12 @@ $\omega^{-4}$ &&&&&  \\ \hline
 \end{table}
 
 
-Table \ref{fit_results_gaussian} summarizes the key results of this section by applying a smoothing spline with with $S=3$ to the 200 ensembles of the noise and signal with three different slope ($\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$) and five different strides. The second and third columns show the effective sample size and average mean square error when the smoothing spline is applied using the true values to minimize the mean square error---this is the lower bound. The fourth column shows average increase in mean square error when reducing the number of spline coefficient as documented in section \ref{reduced_coefficients}. There is almost no change in mean square error and therefore all subsequent methods (whether blind or unblind) use this technique. The fifth column uses \eqref{lambda_initial_guess} from section \ref{interpolation_condition} to provide a (blind) initial guess of the tension parameter. Here the results are mixed---a typical increase in mean square error is about 30-50\% when the effective sample size is large. While this might seem large, this is a small fraction of the total variance of the noise, e.g., an optimal mean square error of $6$ m$^2$ increase to $8$ m$^2$ when the total variance is $100$ m$^2$. When the data sets are small (and computation time is not a limiting factor), nearly optimal fits can be found using \eqref{MSE}, as shown in the last column of the table.
+Table \ref{fit_results_gaussian} summarizes the key results of this section by applying a smoothing spline with $S=3$ to 200 ensembles with three different slopes ($\omega^{-2}$, $\omega^{-3}$, $\omega^{-4}$) and five different strides. The second and third columns show the effective sample size and average mean square error when the smoothing spline is applied using the true values (i.e., `unblinded') to minimize the mean square error---this is the lower bound. The fourth column shows average increase in mean square error when reducing the number of spline coefficients as documented in section \ref{sec:spline_order_tension_order_spectrum}\ref{subsec:reduced_coefficients}. There is almost no change in mean square error and therefore all subsequent methods (whether blind or unblind) use this technique. The fifth column uses \eqref{lambda_initial_guess} from section \ref{sec:spline_order_tension_order_spectrum}\ref{subsec:interpolation_condition} to provide a (blind) initial guess of the tension parameter. The results are mixed---a typical increase in mean square error is 30-50\% when the effective sample size is large. While this seems large, this is a small fraction of the total noise variance, e.g., an optimal mean square error of $6$m$^2$ increase to $8$m$^2$ when the total variance is $100$m$^2$. Nearly optimal fits can be found using \eqref{MSE}, as shown in the last column of the table.
 
-% For point of comparison, table \ref{fit_results_gaussian_other_methods} shows shows the relative performance of other minimization methods compared to the expected mean-square error method \eqref{MSE}.  The relative performance of cross-validation (cv), generalized cross-validation (gcv), and the log-likelihood method \eqref{gaussian-max-likelihood} are all remarkably good. Cross-validation and generalized cross-validation perform similar to each other, and similar to the expected mean-square error for larger effective sample sizes. The cross-validation methods start to fall-apart as the effective sample size decreases towards 1 (which is clear from their definition must happen). The log-likelihood method requires knowing $\sigma$ and estimating $x_\textrm{rms}^{(T)}$ (see appendix \ref{sec:variance_estimate}), which makes the method somewhat less practical unless both happen to be known.
+% For point of comparison, table \ref{fit_results_gaussian_other_methods} shows shows the relative performance of other minimization methods compared to the expected mean-square error method \eqref{MSE}.  The relative performance of cross-validation (cv), generalized cross-validation (gcv), and the log-likelihood method \eqref{gaussian-max-likelihood} are all remarkably good. Cross-validation and generalized cross-validation perform similar to each other, and similar to the expected mean-square error for larger effective sample sizes. The cross-validation methods start to fall-apart as the effective sample size decreases towards 1 (which is clear from their definition must happen). The log-likelihood method requires knowing $\sigma$ and estimating $x_\textrm{rms}^{(T)}$ (see appendix \ref{appendixC:variance_estimate}), which makes the method somewhat less practical unless both happen to be known.
 
 % \begin{table}[ht]
-% \caption{Mean square error and effective sample size for a range of strides.  The first three columns show the baseline values using the expected MSE \eqref{MSE} to minimize. The next four columns show the average increase in mean-square error. The `ranged mse' column uses the ranged expected mse described in section \ref{sec:robust_minimization}. The `cv' column uses cross-validation (equation 3.5 in \cite{green1994-book}).  The `cv' column uses generalized cross-validation (equation 3.13 in \cite{green1994-book}) and the `log-likelihood' column uses \eqref{gaussian-max-likelihood}.}
+% \caption{Mean square error and effective sample size for a range of strides.  The first three columns show the baseline values using the expected MSE \eqref{MSE} to minimize. The next four columns show the average increase in mean-square error. The `ranged mse' column uses the ranged expected mse described in section \ref{sec:outliers}\ref{subsec:robust_minimization}. The `cv' column uses cross-validation (equation 3.5 in \cite{green1994-book}).  The `cv' column uses generalized cross-validation (equation 3.13 in \cite{green1994-book}) and the `log-likelihood' column uses \eqref{gaussian-max-likelihood}.}
 % \label{fit_results_gaussian_other_methods}
 % \centering
 % \begin{tabular}{r p{1cm} | p{1cm}p{1cm}p{1cm}p{1cm}} $n_\textrm{eff}$ (stride) & expected mse & ranged & cv & gcv & log-likelihood \\ \hline \hline 
@@ -559,7 +548,9 @@ Table \ref{fit_results_gaussian} summarizes the key results of this section by a
 \subsection{Numerical implementation}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The numerical implementation of the methods in this section are available in the \texttt{SmoothingSpline} class which subclasses \texttt{BSpline}. This class is initialized with three required parameters: a set of data points $(t_i,x_i)$ and a distribution (specifically a normal distribution for the results in this section). The initial value of $\lambda_T$ is chosen using \eqref{lambda_initial_guess}. The \texttt{SmoothingSpline} class implements a \texttt{.minimize()} method which takes any function of the spline as an argument (such as \eqref{MSE}), and minimizes the function by varying $\lambda_T$.
+The numerical implementation of the methods in this section are available in the \texttt{SmoothingSpline} class which subclasses \texttt{BSpline}. This class is initialized with three required parameters: a set of data points $(t_i,x_i)$ and an error distribution.
+%(a normal distribution for the results in this section).
+%The initial value of $\lambda_T$ is chosen using \eqref{lambda_initial_guess}. The \texttt{SmoothingSpline} class implements a \texttt{.minimize()} method which takes any function of the spline as an argument (such as \eqref{MSE}), and minimizes the function by varying $\lambda_T$.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \section{Bivariate smoothing splines and stationarity}
@@ -568,43 +559,42 @@ The numerical implementation of the methods in this section are available in the
 
 Up to this point we have considered univariate data, $(t_i, x_i)$, but GPS position data is fundamentally bivariate. The term `bivariate' in the context of splines is often used to denote splines defined on two independent variables---however, in this context we define bivariate to mean two dependent variables (e.g., $x$ and $y$) and one independent variable (e.g., $t$).
 
-The trivial approach to working with such bivariate data is to treat each direction independently---i.e., minimize $\lambda^x_T$ and $\lambda^y_T$ independently of each other. However, it is often the case that the underlying physical process is isotropic. In the context of the maximum likelihood formulation of smoothing splines \eqref{smoothing-spline-pdf}, this means that we expect $x^{(T)}_{\textrm{rms}}$ (the rms value of the tensioned variable) to be the same in all directions (invariant under rotation). This however does \emph{not} mean that $\lambda_x$ should necessarily equal $\lambda_y$. To be explicit, if 
+The trivial approach to working with bivariate data is to treat each direction independently---i.e., minimize $\lambda^x_T$ and $\lambda^y_T$ independently of each other. However, the underlying physical process is often isotropic. In the context of the maximum likelihood formulation of smoothing splines \eqref{smoothing-spline-pdf}, this means we expect $x^{(T)}_{\textrm{rms}}$ (the rms value of the tensioned variable) to be the same in all directions (invariant under rotation). This however does \emph{not} mean that $\lambda_x$ should necessarily equal $\lambda_y$. To be explicit, if 
 \begin{equation}
 \label{lambda_x}
 \begin{split}
-\lambda^x_T = \left( 1 - \frac{1}{n^x_{\textrm{eff}}} \right) \frac{1}{ \left(x^{(T)}_{\textrm{rms}}\right)^2}, \\
+\lambda^x_T = \left( 1 - \frac{1}{n^x_{\textrm{eff}}} \right) \frac{1}{ \left(x^{(T)}_{\textrm{rms}}\right)^2}, \quad
 \lambda^y_T = \left( 1 - \frac{1}{n^y_{\textrm{eff}}} \right) \frac{1}{ \left(y^{(T)}_{\textrm{rms}}\right)^2},
 \end{split}
 \end{equation}
-then even if $x^{(T)}_{\textrm{rms}} = y^{(T)}_{\textrm{rms}}$, the effective sample sizes $n^x_{\textrm{eff}}$ and $n^y_{\textrm{eff}}$ will not necessarily be equal if there is any mean velocity because, as shown in section \ref{interpolation_condition}, the effective sample size depends on velocity.
+then even if $x^{(T)}_{\textrm{rms}} = y^{(T)}_{\textrm{rms}}$, the effective sample sizes $n^x_{\textrm{eff}}$ and $n^y_{\textrm{eff}}$ may differ if there is any mean velocity because, as shown in section \ref{sec:spline_order_tension_order_spectrum}\ref{subsec:interpolation_condition}, effective sample size depends on velocity.
 
-Therefore to assume isotropy in $\lambda_T$ and use a bivariate smoothing spline, the mean velocity from the underlying process must be removed. What qualifies as mean and fluctuation rarely has a clear answer, but a reasonable option is letting a polynomial of degree $T+1$ define the mean. This has the added benefit of removing a constant non-zero tension value, which as shown in section \ref{sec:maximum_likelihood}, changes the problem formulation. 
+Therefore to assume isotropy in $\lambda_T$ and use a bivariate smoothing spline, the mean velocity from the underlying process must be removed. What qualifies as mean and fluctuation rarely has a clear answer, but a reasonable option is letting a polynomial of degree $T+1$ define the mean. This has the added benefit of removing a constant non-zero tension value, which as shown in section \ref{sec:smoothing_spline}\ref{subsec:maximum_likelihood}, changes the problem formulation. 
 
-It is worth noting that it is not actually isotropy that requires removing the mean velocity, but in fact stationarity. The effective sample size is shown to be dependent on rms velocity, so if the velocity varies in time, then the optimal effective sample size will need to vary as well. This means that not only do smoothing splines require stationarity in the tensioned variable $x^{(T)}$ as shown in section \ref{sec:maximum_likelihood}, but they also require stationarity in the velocity $x^{(1)}$ to be effective. This last requirement can be solved by either removing the mean (as we have suggested), or segmenting observations into pseudo-stationary chunks.
+It is stationarity, not isotropy, that requires removing the mean velocity. The effective sample size is shown to be dependent on rms velocity, so if velocity varies in time, then the optimal effective sample size varies as well. This means not only do smoothing splines require stationarity in the tensioned variable $x^{(T)}$ as shown in section \ref{sec:smoothing_spline}\ref{subsec:maximum_likelihood}, but they also require stationarity in the velocity $x^{(1)}$ to be effective. This last requirement can be solved by either removing the mean (as suggested here), or segmenting observations into locally-stationary chunks.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Assessing errors}
-\label{sec:errors_wit_mean}
+\label{subsec:errors_wit_mean}
 %%%%%%%%%%%%%%%%%%%%%%
 
-Removing the mean or some other low-passed version of the data means that the total smoothing matrix will be some combination of the low-passed and high-passed smoothing matrices. Once this matrix is computed, it can be used to compute the standard errors.
+Removing the mean or some other low-passed version of the data means the total smoothing matrix is a combination of the low-passed and high-passed smoothing matrices. Once this matrix is computed, it can be used to compute the standard errors.
 
-We first create a low pass filter to capture the \emph{mean} component of the flow using a simple polynomial fit,
-\begin{equation}
+We first create a low pass filter to capture the \emph{mean} component of the flow using a simple polynomial fit $
 \bar{\mathbf{x}} = \bar{\mathbf{S}} \mathbf{x}
-\end{equation}
+$
 and then define the residual as our stationary part,
-\begin{equation}
+$
 \mathbf{x}^\prime \equiv \mathbf{x} - \bar{\mathbf{x}}.
-\end{equation}
+$
 We now compute the smoothing spline as usual on the residual,
-\begin{equation}
+$
 \mathbf{x}^\prime_\lambda = \mathbf{S}_\lambda \mathbf{x}^\prime
-\end{equation}
+$
 So the total, smoothed path is
 \begin{align}
-\hat{\mathbf{x}} =& \bar{\mathbf{x}} + \mathbf{x}^\prime_\lambda = \bar{\mathbf{S}} \mathbf{x} + \mathbf{S}_\lambda \left( \mathbf{x} - \bar{\mathbf{S}} \mathbf{x} \right) = \left(\bar{\mathbf{S}} + \mathbf{S}_\lambda - \mathbf{S}_\lambda \bar{\mathbf{S}}\right)\mathbf{x} \nonumber \\
-\equiv& \mathbf{S}_T \mathbf{x}
+\hat{\mathbf{x}} = \bar{\mathbf{x}} + \mathbf{x}^\prime_\lambda = \bar{\mathbf{S}} \mathbf{x} + \mathbf{S}_\lambda \left( \mathbf{x} - \bar{\mathbf{S}} \mathbf{x} \right) = \left(\bar{\mathbf{S}} + \mathbf{S}_\lambda - \mathbf{S}_\lambda \bar{\mathbf{S}}\right)\mathbf{x}
+\equiv \mathbf{S}_T \mathbf{x}
 \end{align}
 From this we can compute the covariance matrix and the standard error.
 
@@ -612,7 +602,7 @@ From this we can compute the covariance matrix and the standard error.
 \subsection{Numerical implementation}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The \texttt{BivariateSmoothingSpline} class is initialized with data $(t_i, x_i, y_i)$ and a distribution. For a spline of degree $S=T$, a spline of degree $S+1$ is used to remove the mean in each direction. In the case of a normal distribution, this is simply a least squares polynomial fit. By assumption, the residual data ($\mathbf{x}^\prime$, $\mathbf{y}^\prime$ in the notation above) is stationary and isotropic, so the tension parameter $\lambda_T$ is applied equally to spline fits in the two directions. Minimization is performed on the sum of the expected mean square error in both directions.
+The \texttt{BivariateSmoothingSpline} class is initialized with data $(t_i, x_i, y_i)$ and a distribution. For a spline of degree $S=T$, a spline of degree $S+1$ is used to remove the mean in each direction. With a Gaussian distribution this is simply a least squares polynomial fit. By assumption, the residual data is stationary and isotropic, so the tension parameter $\lambda_T$ is applied equally in each direction. Minimization is performed on the sum of the expected mean square errors in each direction.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \section{GPS data set}
@@ -621,18 +611,18 @@ The \texttt{BivariateSmoothingSpline} class is initialized with data $(t_i, x_i,
 
 %The GPS positions used in this manuscript were collected from oceanic surface \emph{drifters}---floating buoys with drogues tethered 15-30 meters below the ocean surface, depending on the particular experiment being conducted. In the past, these drifters have used the Argos positioning system which has significantly poorer temporal coverage and position accuracy \cite{elipot2016-jgr}, but recently more surface drifters have employed GPS receivers and transmitted their data back through Argos or Iridium satellites.
 
-The primary dataset considered here will be nine surface drifters that were deployed in the Sargasso Sea in the summer of 2011 \citep{shcherbina2015-bams}. 
+The primary dataset considered here are nine surface drifters deployed in the Sargasso Sea in the summer of 2011 \citep{shcherbina2015-bams}. 
 %These particular drifters were part of the LatMix experiment \cite{shcherbina2015-bams} and recorded data at approximately 30 minute intervals over the course of a week before being retrieved.
-In the past, such drifters used the Argos positioning system which has significantly poorer temporal coverage and position accuracy \citep{elipot2016-jgr}, but recently the majority of surface drifters have employed GPS receivers and transmitted their data back through Argos or Iridium satellites.
+In the past, such drifters used the Argos positioning system which has significantly poorer temporal coverage and position accuracy \citep{elipot2016-jgr}, but recently most surface drifters have employed GPS receivers and transmitted their data back through Argos or Iridium satellites.
 
-The GPS receiver sits on the surface drifter and collects position data, but because of atmospheric conditions or ocean waves, the receivers are sometimes unable to obtain a position, or when they do, it is highly inaccurate. Thus, despite nominal accuracies of a few meters, it is often the case that some positions are off by more than 1000 meters, as can be seen in Fig. \ref{gpsfit}. Applying a smoothing spline fit using the methodology in section \ref{sec:smoothing_spline} produces an extremely poor fit, with clear overshoots to bad data points.
+The GPS receiver sits on the surface drifter and collects position data, but because of atmospheric conditions or ocean waves, the receivers are sometimes unable to obtain a position, or when they do, it is highly inaccurate. Despite nominal accuracies of a few meters, it is often the case that some positions are off by more than 1000 meters, as can be seen in Fig. \ref{gpsfit}. Applying a smoothing spline fit using the methodology in section \ref{sec:smoothing_spline} produces an extremely poor fit, with clear overshoots to bad data points.
 
 %In the following two sections we examine the expected errors from GPS position data and test the effectiveness of smoothing splines with non-Gaussian errors.
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
 \subsection{GPS error distribution}
-\label{gps_position_errors}
+\label{subsec:gps_position_errors}
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
@@ -643,16 +633,16 @@ The GPS receiver sits on the surface drifter and collects position data, but bec
   \label{motionless_error}
 \end{figure}
 
-We characterize the GPS errors by considering data from a motionless GPS receiver allowed to run for 12 hours. The specific GPS receiver used for this test was not the same as the one used for the drifters (because it was no longer available) but should produce errors similar enough for this analysis.
+We characterize the GPS errors by considering data from a motionless GPS receiver allowed to run for 12 hours. The GPS receiver used in this test is not the same as the one used for the drifters (because it was no longer available) but should produce errors similar enough for this analysis.
 
-The position recorded by the motionless GPS are assumed to have isotropic errors with mean zero, which means that the positions themselves are the errors. The probability distribution function (PDF) of the combined $x$ and $y$ position errors are shown in Fig. \ref{motionless_error}.
+The position recorded by the motionless GPS are assumed to have isotropic errors with mean zero, which means the positions themselves are the errors. The probability distribution function (PDF) of the combined $x$ and $y$ position errors are shown in Fig. \ref{motionless_error}.
 
 The error distribution is first fit to a zero-mean Gaussian PDF \eqref{gaussian_pdf}.
 %\begin{equation}
 %\tag{\ref{gaussian_pdf} revisited}
 %p_g(\epsilon|\sigma_g) = \frac{e^{-\frac{1}{2}\frac{\epsilon^2}{\sigma_g^2}} }{\sigma_g \sqrt{ 2 \pi}}.
 %\end{equation}
-The maximum likelihood fit is found by simply computing the standard deviation of the sample, which is found to be $\sigma \approx 10$ meters and shown as the gray line in Fig. \ref{motionless_error}. However, it is clear the error distribution shows much longer tails than the Gaussian PDF.
+The maximum likelihood fit is found by computing the standard deviation of the sample, which is found to be $\sigma \approx 10$ meters and shown as the gray line in Fig. \ref{motionless_error}. However, it is clear the error distribution shows much longer tails than the Gaussian PDF.
 
 The Student $t$-distribution is a generalization of the Gaussian that produces longer tails and is defined as 
 \begin{equation}
@@ -661,12 +651,13 @@ p_s\left(\epsilon |\nu,\sigma_s^2\right) = \frac{\Gamma\left( \frac{\nu + 1}{2} 
 \end{equation}
 where the $\sigma_s$ parameter scales the distribution width and the $\nu$ parameter sets the number of degrees of freedom. The variance is $\sigma^2=\sigma_s^2 \frac{\nu}{\nu-2}$ and only exists for $\nu > 2$. The $t$-distribution is equivalent to the Gaussian distribution when $\nu \rightarrow \infty$. We find the best fit $t$-distribution to the data by minimizing the Anderson-Darling test. The best fit with parameters $\sigma_s \approx 8.5$ meters and $\nu \approx 4.5$ is shown as the black line in Fig. \ref{motionless_error}. Different choices in GPS receivers and using the Kolmogorov-Smirnoff test results in very similar parameters, i.e., $\sigma_s\approx8-10$ meters and $\nu\approx4-6$.
 
-The \emph{position} error distributions also imply a combined \emph{distance} error distribution by computing $\epsilon_d = \sqrt{\epsilon_x^2 + \epsilon_y^2}$ and is shown in the lower panel of Fig. \ref{motionless_error}. For two independent Gaussian distributions this results in a Rayleigh distribution,
+The \emph{position} error distributions imply a combined \emph{distance} error distribution by computing $\epsilon_d = \sqrt{\epsilon_x^2 + \epsilon_y^2}$ and is shown in the lower panel of Fig. \ref{motionless_error}. With Gaussian noise this results in a Rayleigh distribution,
 \begin{equation}
 \label{rayleigh_pdf}
-p_r(\epsilon_d|\sigma_g) = \frac{\epsilon_d}{\sigma_g^2 } e^{-\frac{1}{2}\frac{\epsilon_d^2}{\sigma_g^2}}.
+p_r(\epsilon_d|\sigma_g) = \frac{\epsilon_d}{\sigma_g^2 } e^{-\frac{1}{2}\frac{\epsilon_d^2}{\sigma_g^2}},
 \end{equation}
-The distance distribution for two $t$-distributions is computed numerically and is shown in the bottom panel of Fig. \ref{motionless_error} on top of the actual distance errors. Approximately 95\% of distance errors are within $30$ meters.
+as shown by the gray line.
+The distance error distribution from $t$-distributed noise is computed numerically and is shown by the black line. Around 95\% of distance errors are within $30$ meters.
 
 \begin{figure}
   \centerline{\includegraphics[width=15pc,angle=0]{gps_autocorrelation.eps}}
@@ -674,9 +665,9 @@ The distance distribution for two $t$-distributions is computed numerically and 
   \label{gps_autocorrelation}
 \end{figure}
 
-Fig. \ref{gps_autocorrelation} shows the autocorrelation function of the GPS position errors. We find a rough empirical fit to be $\rho(\tau)=\exp\left(\max(-\tau/t_0,-\tau/t_1-1.35)\right)$ where $t_0=100$ seconds and $t_1=760$ seconds, which reflects an initially rapid fall off in correlation, followed by a slower decline. The smallest sampling interval of the GPS drifters in question is 30 minutes and therefore it is safe to assume the errors are uncorrelated for our purposes. Although the drifter sampling rate allows us to avoid further discussion of the autocorrelation function of GPS errors, accounting for autocorrelation is a relatively easy extension (and in fact, already implemented in the code).
+Fig. \ref{gps_autocorrelation} shows the autocorrelation function of the GPS position errors and the 99\% confidence intervals. We find a rough empirical fit to be $\rho(\tau)=\exp\left(\max(-\tau/t_0,-\tau/t_1-1.35)\right)$ where $t_0=100$ seconds and $t_1=760$ seconds, which reflects an initially rapid fall off in correlation, followed by a slower decline. The smallest sampling interval of the GPS drifters in question is 30 minutes and indistinguishable from zero according to Fig. \ref{gps_autocorrelation}. It is therefore safe to assume the errors are uncorrelated for our real data example. Although the drifter sampling rate allows us to avoid further discussion of the autocorrelation function of GPS errors, accounting for autocorrelation is a relatively easy extension (and is implemented in the code).
 
-The smoothing spline algorithms described in section \ref{sec:smoothing_spline} are modified to use the $t$-distribution as described in section \ref{sec:irls}. Table \ref{fit_results_tdistribution} shows that the conclusions reached for Gaussian data in section \ref{sec:smoothing_spline} still apply with $t$-distributed data.
+The smoothing spline algorithms described in section \ref{sec:smoothing_spline} are modified to use the $t$-distribution as described in appendix B. Table \ref{fit_results_tdistribution} shows the conclusions reached for Gaussian data in section \ref{sec:smoothing_spline} still apply with $t$-distributed data.
 
 \begin{table}[ht]
 \caption{Same as table \ref{fit_results_gaussian}, but with noise following a $t$ distribution.}
@@ -727,9 +718,9 @@ $\omega^{-4}$ &&&&&  \\ \hline
   \label{gpsfit}
 \end{figure*}
 
-The goal here is to find a smooth solution in the presence of outliers---points that do not appear to be of the known error distribution for the GPS receiver shown in section \ref{gps_position_errors}. These points are obviously problematic as can be seen in Fig. \ref{gpsfit}, where individual data points jump hundreds of meters and even several kilometers away from its neighbors. Errors of this size are inconsistent with the noise analysis of the preceding section, so the goal here is to find a model path $x(t)$ robust to this uncharacterized noise. What makes outliers `obvious' to the eye is that they appear as unexpectedly large motions, inconsistent with most of the other motion for that path. In this sense, the smoothing spline formulation is a good one as it assumes the motion at some order (e.g., acceleration) is Gaussian, as shown in section \ref{sec:maximum_likelihood}. Interestingly, in the nine drifters we are analyzing here, one drifter shows no obvious outliers, suggesting the issue may be related to how the antenna is configured. This particular drifter serves as a useful point of comparison.
+The goal here is to find a smooth solution in the presence of outliers---points that do not appear to be of the known error distribution for the GPS receiver shown in section \ref{sec:drifter_data_set}\ref{subsec:gps_position_errors}. These points are obviously problematic as can be seen in Fig. \ref{gpsfit}, where individual data points jump hundreds of meters and even several kilometers away from its neighbors. Errors of this size are inconsistent with the noise analysis of the preceding section, so the goal here is to find a model path $x(t)$ robust to this uncharacterized noise. What makes outliers `obvious' to the eye is they appear as unexpectedly large motions, inconsistent with the other motion for that path. The smoothing spline formulation is therefore useful, as it assumes the motion at some order (e.g., acceleration) is Gaussian, as shown in section \ref{sec:smoothing_spline}\ref{subsec:maximum_likelihood}. In the nine drifters we are analyzing here, one drifter shows no obvious outliers, suggesting the issue may be related to how the antennae are configured. This particular drifter serves as a useful point of comparison.
 
-Minimizing with the expected mean square error \eqref{MSE} produces a fit so poor that it is not worth showing. Because outliers add enormous amounts of variance, the expected mean square error vastly under tensions the spline---essentially chasing every outlier shown in Fig. \ref{gpsfit}. Because some of the noise is uncharacterized, this suggests using a method such as cross-validation might be effective. The orange line in Fig. \ref{gpsfit} uses a smoothing spline fit, assuming Student t-distributed errors, but minimized with cross-validation. This fit performs relatively well, but compared with the drifter 7, it is clear that it still chases some outliers. The goal in this section is to develop a method robust to outliers in cases where we know something about the noise.
+Minimizing with the expected mean square error \eqref{MSE} produces a fit so poor it is not worth showing. Because outliers add enormous amounts of variance, the expected mean square error vastly underestimates the spline tension---essentially chasing every outlier shown in Fig. \ref{gpsfit}. Because some of the noise is uncharacterized, this suggests using a method such as cross-validation might be effective. The orange line in Fig. \ref{gpsfit} uses a smoothing spline fit, assuming Student t-distributed errors, but minimized with cross-validation. This fit performs relatively well, but compared with the drifter 7, it is clear it still chases some outliers. The goal in this section is to develop a method robust to outliers in cases where we know something about the noise.
 
 The basic problem formulation is as follows: we define a new `robust distribution', $p_{\textrm{robust}}$, that includes the known noise distribution, $p_{\textrm{noise}}$, plus an unknown (or assumed) form of an outlier distribution, $p_{\textrm{outlier}}$,
 \begin{equation}
@@ -738,23 +729,23 @@ The basic problem formulation is as follows: we define a new `robust distributio
 \end{equation}
 %For this section we did not consider a normal distribution for $p_{\textrm{noise}}$, but considered only 
 We consider
-a $t$-distribution for $p_{\textrm{noise}}$ with parameters found from the GPS errors in section \ref{gps_position_errors}. The distribution of $ p_{\textrm{outlier}}$ is also set to be a $t$-distribution, but with $\nu=3$ and $\sigma=50\sigma_\textrm{gps}$ which roughly matches the total variance of the observed outliers. In our tests we varied $\alpha$ from 0 up to $0.25$, approximately the range of observed outliers from the drifter data sets.
+a $t$-distribution for $p_{\textrm{noise}}$ with parameters found from the GPS errors in section \ref{sec:drifter_data_set}\ref{subsec:gps_position_errors}. The distribution of $ p_{\textrm{outlier}}$ is also set to be a $t$-distribution, but with $\nu=3$ and $\sigma=50\sigma_\textrm{gps}$ which roughly matches the total variance of the observed outliers. In our tests we varied $\alpha$ from 0 up to $0.25$, approximately the range of observed outliers from the drifter data sets.
 
-Throughout our attempts to smooth the noisy GPS data we tried many different approaches to modifying smoothing splines for robustness to outliers, but ultimately found that enormous gains in accuracy are made by simply discarding outliers while minimizing the expected mean square error \eqref{MSE}. The results of this approach are shown in section \ref{sec:robust_minimization}, but we also document our methodology to reliably estimate the outlier distribution in section \ref{sec:full_tension}.
+Throughout our attempts to smooth the noisy GPS data we tried many different approaches to modifying smoothing splines for robustness to outliers, but ultimately found enormous gains are made by simply discarding outliers while minimizing the expected mean square error \eqref{MSE}. The results of this approach are shown in section \ref{sec:outliers}\ref{subsec:robust_minimization}, and we document our methodology to reliably estimate the outlier distribution in section \ref{sec:outliers}\ref{subsec:full_tension}.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Robust minimization}
-\label{sec:robust_minimization}
+\label{subsec:robust_minimization}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The whole problem with outliers is that we do not know their distribution, so minimizing the expected mean square error using \eqref{MSE} with the expected variance from the robust distribution defined in \eqref{robust_pdf} cannot possibly work. Outliers add extra variance, and will therefore cause the spline to be under tensioned ($\lambda_T$ too small). The key concept behind our method is to simply exclude the outliers from the calculation of \eqref{MSE}, where outliers are defined as points unlikely to arise with the known noise distribution. The \emph{ranged expected mean square error} thus replaces $\sigma^2$ with,
+The challenge with outliers is we do not know their distribution, so minimizing the expected mean square error using \eqref{MSE} with the expected variance from the robust distribution defined in \eqref{robust_pdf} does not work. Outliers add extra variance, and therefore cause the spline to be under tensioned ($\lambda_T$ too small). Our method excludes the outliers from the calculation of \eqref{MSE}, where outliers are defined as points unlikely to arise with the known noise distribution. The \emph{ranged expected mean square error} replaces $\sigma^2$ with,
 \begin{equation}
 \label{ranged_mse}
     \sigma_\beta^2 = \int_{\textrm{cdf}^{-1}(\beta/2)}^{\textrm{cdf}^{-1}(1-\beta/2)} z^2 p_{\textrm{noise}}(z) \, dz
 \end{equation}
 and discards all rows (and columns) of $\mathbf{S}_\lambda$ where $\left(\mathbf{S}_\lambda - I\right)\mathbf{x}<\textrm{cdf}^{-1}(\beta/2)$ or $\left(\mathbf{S}_\lambda - I\right)\mathbf{x}>\textrm{cdf}^{-1}(1-\beta/2)$.
 
-To test this approach we generate data as before, but now also let a certain percentage of outliers ($\alpha$) be generated with an outlier distribution following \eqref{robust_pdf}. We consider five different values of $\beta=\left[\frac{1}{50},\frac{1}{100},\frac{1}{200},\frac{1}{400},\frac{1}{800} \right]$ as well as $\beta=0$, which is just \eqref{MSE}. Tests across a number of ensembles with outlier ratios $\alpha=\left[0.0,0.05,0.10,0.25\right]$ we find that $\beta=\frac{1}{100}$ is overall the best choice.
+To test this approach we generated data as before, but allowed a certain percentage of outliers ($\alpha$) to be generated with an outlier distribution following \eqref{robust_pdf}. We considered five values of $\beta=\left[\frac{1}{50},\frac{1}{100},\frac{1}{200},\frac{1}{400},\frac{1}{800} \right]$ as well as $\beta=0$, which is just \eqref{MSE}. Testing across a number of ensembles with outlier ratios $\alpha=\left[0.0,0.05,0.10,0.25\right]$ we found $\beta=\frac{1}{100}$ is overall the best choice.
 
 % \begin{table*}[ht]
 % \caption{}
@@ -791,35 +782,33 @@ To test this approach we generate data as before, but now also let a certain per
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Full tension solution and outlier distribution}
-\label{sec:full_tension}
+\label{subsec:full_tension}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The \emph{full tension} solution is defined as the maximum allowable value of $\lambda$ given the known noise distribution. That is, the spline fit is pulled away from the observations so that the distribution of observed errors ($x_i-x(t_i)$) matches the expected distribution $p_{\textrm{noise}}(\epsilon)$. In cases where the effective sample size $n_\textrm{eff}$ is large, the full tension solution will approximately match the optimal (minimal mean square error) solution. In cases where the effective sample size is small, the full tension solution is more akin to a low-pass solution (because increasing $\lambda$ is equivalent to decreasing $x^{(T)}_\textrm{rms}$).
+The \emph{full tension} solution is defined as the maximum allowable value of $\lambda$ given the known noise distribution. That is, the spline fit is pulled away from the observations so that the distribution of observed errors ($x_i-x(t_i)$) matches the expected distribution $p_{\textrm{noise}}(\epsilon)$. In cases where the effective sample size $n_\textrm{eff}$ is large, the full tension solution approximately matches the optimal (minimal mean square error) solution. In cases where the effective sample size is small, the full tension solution is more akin to a low-pass solution (as increasing $\lambda$ is equivalent to decreasing $x^{(T)}_\textrm{rms}$).
 
-In the simplest case where there are no outliers, the full tension solution can be found by requiring that the sample variance match the variance of $p_{\textrm{noise}}(\epsilon)$. When outliers are present, a more robust method of estimation is required. After some experimentation, we found that the most reliable method of achieving full tension is to minimize the Anderson-Darling test of $p_{\textrm{noise}}(\epsilon)$ on the interquartile range of observed errors. In fact, we found that this method can be used to estimate the outlier distribution and further refine both the full tension solution and the range over which the expected mean square error is computed.
+In the simplest case where there are no outliers, the full tension solution can be found by requiring the sample variance match the variance of $p_{\textrm{noise}}(\epsilon)$. When outliers are present, a more robust method of estimation is required. After some experimentation, we found the most reliable method of achieving full tension is to minimize the Anderson-Darling test of $p_{\textrm{noise}}(\epsilon)$ on the interquartile range of observed errors. This method can be used to estimate the outlier distribution and further refine both the full tension solution and the range over which the expected mean square error is computed.
 
-The outlier distribution is estimated in the following fashion. We first assume that the outlier distribution follows a $t$-distribution with $\nu=3$ and that $\alpha<0.5$. If the spline is in full tension, then the observed total variance can be used to find $\sigma_o$ for the outlier distribution. From \eqref{robust_pdf} it follows that,
+The outlier distribution is estimated as follows. We first assume the outlier distribution follows a $t$-distribution with $\nu=3$ and $\alpha<0.5$. If the spline is in full tension, then the observed total variance can be used to find $\sigma_o$ for the outlier distribution. From \eqref{robust_pdf}:
 \begin{equation}
     \textrm{var}_\textrm{total} = (1-\alpha) \textrm{var}_\textrm{noise} + \alpha 3 \sigma_o^2
 \end{equation}
-which, given some $\alpha$, can be solved for $\sigma_o$. Our method considers 100 different values of $\alpha$ logarithmicaly spaced from $0.01$ to $0.5$ and chooses the value which minimizes the Anderson-Darling test.
-
-With an estimate for $p_{\textrm{robust}}(\epsilon)$, the full tension solution can be refined by now minimizing the Anderson-Darling test of $p_{\textrm{robust}}(\epsilon)$ on the interquartile range of observed errors. This iterative process converges quite quickly on a good estimate for the outlier distribution and the full tension solution.
+which, given some $\alpha$, can be solved for $\sigma_o$. Our method uses 100 values of $\alpha$ logarithmicaly spaced from $0.01$ to $0.5$ and chooses the value which minimizes the Anderson-Darling test. With an estimate for $p_{\textrm{robust}}(\epsilon)$, the full tension solution can be refined by minimizing the Anderson-Darling test of $p_{\textrm{robust}}(\epsilon)$ on the interquartile range of observed errors. This iterative process converges quite quickly to a good estimate for the outlier distribution and the full tension solution.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Extension to bivariate data}
-\label{sec:robust_bivariate}
+\label{subsec:robust_bivariate}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The strategies in this section are relatively easily extended to bivariate data. All error distributions are assumed isotropic, and thus the outlier distribution can be estimated by including the errors from both independent directions. The ranged expected mean square error calculation defined in section \ref{sec:robust_minimization} uses the \emph{distance} of the error for its cutoff in order to remain invariant under rotation.
+The strategies in this section are relatively easily extended to bivariate data. All error distributions are assumed isotropic, and the outlier distribution can be estimated by including the errors from both independent directions. The ranged expected mean square error calculation defined in section \ref{sec:outliers}\ref{subsec:robust_minimization} uses the \emph{distance} of the error for its cutoff to remain invariant under rotation.
 
-Application of this methodology to one of the GPS drifters (drifter 6) is shown in Fig. \ref{gpsfit}. Although it is impossible to know exactly how well the smoothing spline fit performed, comparison with drifter 7 (with no apparent outliers) suggests that our methodology successfully avoids chasing outliers.
+Application of this method to one of the GPS drifters (drifter 6) is shown in Fig. \ref{gpsfit}. Although it is impossible to know exactly how well the spline fit performed, comparison with drifter 7 (with no apparent outliers) suggests our methodology successfully avoids chasing outliers.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{Numerical implementation}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The \texttt{GPSSmoothingSpline} inherits from the \texttt{BivariateSmoothingSpline} class and assumes the errors follow the $t$-distribution found in section \ref{gps_position_errors}. The class also projects latitude and longitude using a transverse Mercator projection with the central meridian set to the center of the dataset.
+The \texttt{GPSSmoothingSpline} inherits from the \texttt{BivariateSmoothingSpline} class and assumes errors follow a $t$-distribution found in section \ref{sec:drifter_data_set}\ref{subsec:gps_position_errors}. The class projects latitude and longitude using a transverse Mercator projection with the central meridian set to the center of the dataset.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \section{Discussion}
@@ -827,7 +816,7 @@ The \texttt{GPSSmoothingSpline} inherits from the \texttt{BivariateSmoothingSpli
 
 The methods discussed in this manuscript are related to other methodologies used to smooth and interpolate drifter trajectories.
 
-\citet{yaremchuk2015-joe} formulate a cost function, their equation 9, based on PDFs of the drifter accelerations and the GPS errors. Setting their $\mu=1$ (they choose $\mu=0.9$) this is equivalent to the special case of equation \ref{smoothing-spline-pdf} when $S=T=2$, where they have implicitly chosen $\lambda_T$ by assuming an infinite effective sample size, $n^\textrm{eff}$. Their methodology for isolating outliers is nearly equivalent the iteratively reweighted least squares method detailed in appendix \ref{sec:irls} using a weight function similar to Tukey's biweight, equation \ref{tukey-biweight}.
+\citet{yaremchuk2015-joe} formulate a cost function, their equation 9, based on PDFs of the drifter accelerations and the GPS errors. Setting their $\mu=1$ (they choose $\mu=0.9$) this is equivalent to the special case of equation \ref{smoothing-spline-pdf} when $S=T=2$, where they have implicitly chosen $\lambda_T$ by assuming an infinite effective sample size, $n^\textrm{eff}$. Their methodology for isolating outliers is nearly equivalent to the iteratively reweighted least squares method detailed in appendix B using a weight function similar to Tukey's biweight, equation \ref{tukey-biweight}.
 
 \citet{elipot2016-jgr} apply their methodology to the ARGOS tracked surface drifter, which are significantly noisier positions than GPS errors, but also follow a t-distribution. They assume a linear model for positions, equivalent to assuming $S=T=2$ with $\lambda_T \rightarrow \infty$. In the numerical implementation of this manuscript, this special case is implemented in the \texttt{ConstrainedSpline} class. The time dependent weight function used in \citet{elipot2016-jgr} requires manually specifying a weight for each point used, and this method is therefore somewhat different than the approach taken here.
 
@@ -837,26 +826,26 @@ Another technique used for smoothing and interpolating drifter positions is krig
 \section{Conclusions}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The methodology manuscript solves our initial problem of finding smoothed, interpolated positions from our noisy GPS drifter dataset with outliers. For signals similar to the Mat\'ern process, we found that
+The methodology in this manuscript solves our problem of finding smoothed, interpolated positions from a noisy GPS drifter dataset with outliers. More generally, for signals with second-order structure similar to a Mat\'ern process we found:
 \begin{enumerate}
-\item the spline degree $S$ should be set to a value higher than the high frequency slope of the process (section \ref{sec:interpolation})
+\item the spline degree $S$ should be set to a value higher than the high frequency spectral slope of the process (section \ref{sec:interpolation}),
 \item the tension degree $T$ can be set to $T=S$ (section \ref{sec:spline_order_tension_order_spectrum}), and
-\item the optimal tension parameter can be estimated \emph{a priori} (also section \ref{sec:spline_order_tension_order_spectrum}).
+\item the optimal tension parameter can be estimated \emph{a priori} (section \ref{sec:spline_order_tension_order_spectrum}).
 \end{enumerate}
-For the GPS data in particular, there appear to be three key steps for using smoothing splines to achieve these results:
+For GPS data, there appear to be three key steps for using smoothing splines:
 \begin{enumerate}
     \item using a $t$-distribution for the noise (section \ref{sec:drifter_data_set}),
     \item removing the mean velocity to make the bivariate data stationary (section \ref{sec:bivariate}), and
     \item using the ranged expected mean square error for robustness to outliers (section \ref{sec:outliers}).
 \end{enumerate}
-The effective Nyquist identified in section \ref{loss_of_coherence} indicates that the power spectrum for the GPS drifters resulting from the smoothed fit is valid up to about half the nominal sampling rate.
+%The effective Nyquist identified in section \ref{sec:spline_order_tension_order_spectrum}\ref{subsec:loss_of_coherence} indicates that the power spectrum for the GPS drifters resulting from the smoothed fit is valid up to about half the nominal sampling rate.
 %because $n_\textrm{eff}\approx 2$.
 
 %%%%%%%%%%%%%%%%%
 %ACKNOWLEDGMENTS
 %%%%%%%%%%%%%%%%%
-\acknowledgments
-Thanks to Miles Sundermeyer whose drifters were used in this analysis. This work was funded by ONR through the Scalable Lateral Mixing and Coherent Turbulence Departmental Research Initiative (LatMix) and National Science Foundation award 1658564.
+%\acknowledgments
+%Thanks to Miles Sundermeyer whose drifters were used in this analysis. This work was funded by ONR through the Scalable Lateral Mixing and Coherent Turbulence Departmental Research Initiative (LatMix) and National Science Foundation award 1658564.
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
@@ -866,12 +855,12 @@ Thanks to Miles Sundermeyer whose drifters were used in this analysis. This work
 
 %%%%%%%%%%%%%%%%%%%%%%
 \appendixtitle{Numerical implementation}
-\label{sec:numerical_implementation}
+\label{appendixA:numerical_implementation}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The B-splines are generated using the algorithm described in \citet{deboor1978-book} with knot points determined by  \eqref{even-knots} and \eqref{odd-knots}. The matrix $\mathbf{X}$ with components $X\indices{^i_m}$ denotes the $m$-th B-spline at time $t_i$. In this notation the column vector $\xi^m$ represents the coefficients of the splines such that positions at time $t_i$ are given by $\hat{x}^i$ where $\hat{x}^i =  X\indices{^i_m} \xi^m$.
+The B-splines are generated using the algorithm described in \citet{deboor1978-book} with knot points determined by  \eqref{even-knots} and \eqref{odd-knots}. The matrix $\mathbf{X}$ with components $X\indices{^i_m}$ denotes the $m$-th B-spline at time $t_i$. The column vector $\xi^m$ represents the coefficients of the splines such that positions at time $t_i$ are given by $\hat{x}^i$ where $\hat{x}^i =  X\indices{^i_m} \xi^m$.
 
-The smoothing spline condition given in \eqref{gaussian-max-likelihood} can be augmented to include a nonzero mean tension, $\mu_u$,
+The smoothing spline condition~ \eqref{gaussian-max-likelihood} can be augmented to include a nonzero mean tension, $\mu_u$,
 \begin{equation}
 \phi =  \frac{1}{N} \sum^N _{i=1}\left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 + \frac{1}{Q} \sum^{Q}_{q=1}  \left(  \frac{u(t_q)-\mu_u}{\sigma_u} \right)^2,
 \end{equation}
@@ -888,9 +877,9 @@ where $\Sigma$ denotes the covariance matrix describing the measurement errors a
 where $\mathbf{\iota}$ is a vector of $1$s. The operation $\mathbf{V}^{\textrm{T}} \mathbf{\iota}$ essentially integrates the $m$-splines and results in a column vector with the integrated values.
 
 We define the smoothing matrix as the linear operator that takes observations $\mathbf{x}$ to their smoothed values $\mathbf{\hat{x}}$,
-\begin{equation}
+$
 \mathbf{\hat{x}} = \mathbf{S_\lambda} \mathbf{x}.
-\end{equation}
+$
 From this definition and \eqref{xi_equation},
 \begin{equation}
 \label{smoothing-operator}
@@ -949,20 +938,20 @@ when $\mu=0$.
 %%%%%%%%%%%%%%%%%%%%%%
 \appendix[B]
 \appendixtitle{Iteratively reweighted least squares}
-\label{sec:irls}
+\label{appendixB:irls}
 %%%%%%%%%%%%%%%%%%%%%%
 
-In practice it is challenging to use the $t$-distribution directly because it does not result in a linear solution for the coefficients as in \eqref{xi_equation}. One method around this issue is to use a search algorithm to directly look for the maximum values. Alternatively, one can use the iteratively reweighted least squares (IRLS) method.
+Using the $t$-distribution is challenging because it does not result in a linear solution for the coefficients as in \eqref{xi_equation}. One solution is to use a search algorithm to directly look for maximum values. Alternatively, one can use iteratively reweighted least squares (IRLS).
 
-The idea with IRLS is to reweight the coefficients of the Gaussian, $\sigma_g$ in \eqref{gaussian_pdf}, so that the resulting distribution looks like the desired distribution, e.g., \eqref{student_pdf}. Recalling that $\epsilon_i \equiv x_i - x(t_i,\mathbf{\xi})$, the minimization condition that $\frac{d p_g}{d\xi}=0$, implies that
+The idea with IRLS is to reweight the coefficients of the Gaussian, $\sigma_g$ in \eqref{gaussian_pdf}, so that the resulting distribution looks like the desired distribution, e.g., \eqref{student_pdf}. Recalling $\epsilon_i \equiv x_i - x(t_i,\mathbf{\xi})$, the minimization condition $\frac{d p_g}{d\xi}=0$ implies that
 \begin{equation}
 \frac{\epsilon_i}{\sigma_g^2} \frac{\partial x(t_i,\mathbf{x})}{\partial \mathbf{\xi}} = 0,
 \end{equation}
-for the Gaussian distribution, whereas for the $t$-distribution this implies that,
+for the Gaussian distribution, whereas for the $t$-distribution this implies
 \begin{equation}
  \frac{\epsilon_i}{\sigma_s^2} \frac{\nu+1}{\nu} \left( 1 + \frac{\epsilon_i^2}{\nu \sigma_s^2} \right)^{-1}  \frac{\partial x(t_i,\mathbf{x})}{\partial \mathbf{\xi}}  = 0.
 \end{equation}
-This means that one can set
+This means one can set
 \begin{equation}
 \sigma_g^2 =   \sigma_s^2 \frac{\nu}{\nu+1} \left( 1 + \frac{\epsilon_i^2}{\nu \sigma_s^2} \right),
 \label{sigma_reweighted}
@@ -973,18 +962,18 @@ to get a matching distribution. Of course, this is only true if $\epsilon_i$ is 
 w_s(\epsilon_i) = \sigma_s^2 \frac{\nu  + \frac{\epsilon_i^2}{\sigma_s^2}}{\nu+1}.
 \end{equation}
 
-From \eqref{t-weight} it is clear that if $\epsilon_i < \sigma_s$ then it will be reweighted to a smaller value, essentially making the observation point more strongly weighted. On the other hand, if $\epsilon_i > \sigma_s$, then its relative weighting will decrease, and it will be treated more as an outlier.
+From \eqref{t-weight} it is clear if $\epsilon_i < \sigma_s$ then it is reweighted to a smaller value, essentially making the observation point more strongly weighted. On the other hand, if $\epsilon_i > \sigma_s$, then its relative weighting decreases, and it is treated more as an outlier.
 
 More generally, the weight function $w(z)$ for a pdf $p(z)$ is found by setting $-\partial_z \log p(z)$ equal to $-\partial_z \log p_g(z)$ of a Gaussian pdf where $w(z)$ replaces $\sigma_g^2$,
-and then solving for $w(z)$. The result is that,
+and then solving for $w(z)$. The result is
 \begin{equation}
     \frac{z}{w(z)} = - \frac{\partial_z p}{p}
 \quad \Rightarrow \quad
     w(z) = -z \frac{p}{\partial_z p}.
 \end{equation}
-Note that the same strategy could be used to reshape the pdf of a Gaussian to match the desired distribution, but here we simply match the minimization conditions of the pdfs.
+The same strategy could be used to reshape the pdf of a Gaussian to match the desired distribution, but here we simply match the minimization conditions of the pdfs.
 
-As a point of reference, Tukey's biweight is given by,
+As a point of reference, Tukey's biweight is given by
 \begin{equation}
 \label{tukey-biweight}
 \psi(z) = 
@@ -993,29 +982,29 @@ As a point of reference, Tukey's biweight is given by,
 0 & \textrm{else},
 \end{cases}
 \end{equation}
-which, as a weight function is,
+which, as a weight function is
 \begin{equation}
     w_{tb}(\epsilon_i) = \frac{z}{\psi(z)}.
 \end{equation}
 
-In a practical sense, the $\Sigma^{-1}$ of \eqref{smoothing-operator} is replaced with the diagonal matrix $W\equiv\textrm{diag}(1/w(\epsilon_i))$ populated with the reweighted values for each observation such that,
+In a practical sense, $\Sigma^{-1}$ in \eqref{smoothing-operator} is replaced with the diagonal matrix $W\equiv\textrm{diag}(1/w(\epsilon_i))$ populated with the reweighted values for each observation such that
 \begin{equation}
 \label{general-smoothing-operator}
 \mathbf{S_\lambda} \equiv \mathbf{X} \left[ \mathbf{X}^{\textrm{T}} W \mathbf{X} + \lambda_1 \mathbf{V}^{\textrm{T}} \mathbf{V} \right]^{-1} \mathbf{X}^{\textrm{T}} W.
 \end{equation}
-This operator is again used to compute the standard error from the variances,  $\mathbf{S_\lambda} \Sigma$, where the variance is assumed to be $\sigma_s^2 \frac{\nu}{\nu-2}$ for each observation when using a $t$-distribution.
+This operator is used to compute the standard error from the variances,  $\mathbf{S_\lambda} \Sigma$, where the variance is assumed to be $\sigma_s^2 \frac{\nu}{\nu-2}$ for each observation when using a $t$-distribution.
 
-The reality is that the smoothing spline solution \emph{does} depend on the initial value of $w(\epsilon_i)$ used in the IRLS method. That said, we find that for uniform initial weightings (e.g., all values start with the square root of the variance), the differences are not statistically significant from other initial values.
+The smoothing spline solution \emph{does} depend on the initial value of $w(\epsilon_i)$ used in the IRLS method. However, we find that for uniform initial weightings (e.g., all values start with the square root of the variance), the differences are not statistically significant from other initial values.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \appendix[C]
 \appendixtitle{Estimating the variance of the signal}
 %%%%%%%%%%%%%%%%%%%%%%
-\label{sec:variance_estimate}
+\label{appendixC:variance_estimate}
 
-The method in this paper depends on good estimates of the root-mean-square velocity, $u_{\textrm{rms}}$, of the signal in order to determine the effective degrees of freedom, as well as the variance of the tensioned derivative. The approach taken here is to compute the power spectrum of the signal at the derivative of interest, and sum the variance that is statistically significantly greater than the expected variance of the noise.
+Our methodology requires good estimates of the root-mean-square velocity, $u_{\textrm{rms}}$, of the signal, to determine the effective sample size and variance of the tensioned derivative. Our approach is to compute the power spectrum of the signal at the derivative of interest, and sum the variance that is statistically significantly greater than the expected variance of the noise.
 
-Given a process observed with values $x_n$ at times $t_n = n \Delta$ where $n=1..N$, we estimate the mean of its $m$-th derivative by performing a least squares fit to the polynomial $\bar{x}_n \equiv p_m t_n^m + p_{m-1} t_n^{m-1} + .. + p_0$. The \emph{detrended} time series is then defined as $\tilde{x}_n \equiv x_n - \bar{x}_n$. The power spectrum of this time series is given by
+Given a process observed with values $x_n$ at times $t_n = n \Delta$ where $n=1..N$, we estimate the mean of its $m$-th derivative by performing a least squares fit to the polynomial $\bar{x}_n \equiv p_m t_n^m + p_{m-1} t_n^{m-1} + .. + p_0$. The \emph{detrended} time series is defined as $\tilde{x}_n \equiv x_n - \bar{x}_n$. The power spectrum of this time series is
 \begin{equation}
 S_{\textrm{signal}}(f_k) = \frac{\Delta}{N} \left\lvert \sum_{n=0}^{N-1} x_n e^{-2\pi i f_k t_n} \right\rvert^2,
 \end{equation}
@@ -1029,13 +1018,13 @@ The power spectrum of the $m$-th derivative of the process is computed as
 \begin{equation}
 S_{\textrm{signal}}^{(m)}(f_k) = (2 \pi f_k)^{2m} \cdot S(f_k).
 \end{equation}
-Note that it is important to detrend the signal prior to computing the derivative because, by assumption, the signal is periodic and has no secular trend.
+It is important to detrend the signal prior to computing the derivative because, by assumption, the signal is periodic and has no secular trend.
 
-The noise, $\epsilon_i$, has total variance $\sigma^2 = \frac{1}{N} \sum_{i=1}^{N} \epsilon_i^2$. Because the noise is assumed to be uncorrelated, the variance distributes evenly across all frequency. The spectrum of the noise is therefore
+The noise, $\epsilon_i$, has total variance $\sigma^2 = \frac{1}{N} \sum_{i=1}^{N} \epsilon_i^2$. Because the noise is assumed to be uncorrelated, the variance distributes evenly across all frequencies. The spectrum of the noise is therefore
 \begin{equation}
 S_{\textrm{noise}}(f_k) = \sigma^2 \Delta,
 \end{equation}
-which immediately can be seen to satisfy Plancherel's theorem \eqref{plancherel}. The $m$-th derivative of the noise has the power spectrum
+which immediately satisfies Plancherel's theorem \eqref{plancherel}. The $m$-th derivative of the noise has power spectrum
 \begin{equation}
 S_{\textrm{noise}}^{(m)}(f_k) = \sigma^2 \Delta (2 \pi f_k)^{2m}.
 \end{equation}
