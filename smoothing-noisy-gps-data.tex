@@ -702,16 +702,17 @@ $\omega^{-4}$ &&&&&  \\ \hline
 
 \begin{figure*}[t]
   \centering
-    \begin{minipage}{0.30\textwidth}
-        \centering
-        \includegraphics[width=1.0\textwidth]{gpsfit_xy.eps} % first figure itself
-        % \caption{first figure}
-    \end{minipage}\hfill
-    \begin{minipage}{0.7\textwidth}
-        \centering
-        \includegraphics[width=1.0\textwidth]{gpsfit_xtyt.eps} % second figure itself
-        % \caption{second figure}
-    \end{minipage}
+    % \begin{minipage}{0.30\textwidth}
+    %     \centering
+    %     \includegraphics[width=1.0\textwidth]{gpsfit_xy.eps} % first figure itself
+    %     % \caption{first figure}
+    % \end{minipage}\hfill
+    % \begin{minipage}{0.7\textwidth}
+    %     \centering
+    %     \includegraphics[width=1.0\textwidth]{gpsfit_xtyt.eps} % second figure itself
+    %     % \caption{second figure}
+    % \end{minipage}
+   \includegraphics[width=1.0\textwidth]{gpsfit.pdf}
    \caption{GPS position data for a 40 hour window from drifter 6. The points are the recorded positions and the black line is the optimal fit using the ranged expected mean square error. Data points with less than 0.01\% chance of occurring are highlighted and deemed outliers. The light grey line is the is optimal smoothing spline fit for drifter 7, which has no apparent outliers and was released a few hundred meters from drifter 6. The orange line is the smoothing spline fit assuming t-distributed errors, but using cross-validation to minimize $\lambda_T$}
   \label{gpsfit}
 \end{figure*}
