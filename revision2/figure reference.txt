@@ -1,0 +1,8 @@
+1: interpolation.eps
+2: bsplines.eps
+3: interpolation_spectrum_slope2degreeVaried.eps
+4: synthetic_process_and_spectrum_slope2degree3.eps
+5: dofVsGamma.eps
+6: gps_error.pdf
+7: gps_autocorrelation.eps
+8: gpsfit.pdf
